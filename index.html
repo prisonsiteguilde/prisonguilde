@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="Рецепты, калькулятор добычи и гайды для игры Ton Prison в Telegram" />
+  <meta name="theme-color" content="#0a0c10" />
+  <title>Ton Prison — Гайды</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/styles-ultra.css" />
+</head>
+<body class="theme-dark">
+
+  <div class="app-shell">
+
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo-wrap">
+          <div class="logo-icon">🔒</div>
+        </div>
+        <div class="brand-text">
+          <div class="brand-title">TON PRISON</div>
+          <div class="brand-sub">ГАЙДЫ / РЕЦЕПТЫ / КАЛЬКУЛЯТОР</div>
+        </div>
+      </div>
+
+      <nav class="tabs" id="tabs">
+        <button class="tab active" data-route="recipes" type="button">
+          <span class="tab-icon">📋</span>
+          <span class="tab-label">Рецепты</span>
+        </button>
+        <button class="tab" data-route="calculator" type="button">
+          <span class="tab-icon">🚬</span>
+          <span class="tab-label">Калькулятор</span>
+        </button>
+      </nav>
+
+      <div class="topbar-actions">
+        <button class="theme-btn" id="themeToggle" title="Сменить тему">
+          <span id="themeIcon">🌙</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div id="page" class="page-container"></div>
+    </main>
+
+    <nav class="bottom-nav" id="bottomNav">
+      <button class="bnav-btn active" data-route="recipes" type="button">
+        <span class="bnav-icon">📋</span>
+        <span class="bnav-label">Рецепты</span>
+      </button>
+      <button class="bnav-btn" data-route="calculator" type="button">
+        <span class="bnav-icon">🚬</span>
+        <span class="bnav-label">Калькулятор</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <div id="notifyHost" class="notify-host" aria-live="polite"></div>
+  <div id="modalHost" class="modal-host hidden"></div>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
