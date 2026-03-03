@@ -2,10 +2,12 @@
 import { renderRecipes } from "./pages/recipes.js";
 import { renderCalculator } from "./pages/calculator.js";
 import { notify } from "./notify.js";
+import { renderAffixes } from "./pages/affixes.js";
 
 const routes = {
   recipes: renderRecipes,
   calculator: renderCalculator,
+  affixes: renderAffixes,
 };
 
 let currentRoute = "recipes";
