@@ -1280,7 +1280,7 @@ button.rcp-ing:hover {
     max-height: none;
   }
 
-  #grid { max-height: 55vh; }
+  #grid { max-height: 40vh; }
 
   .calc-two { grid-template-columns: 1fr; }
 }
