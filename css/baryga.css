@@ -1,0 +1,281 @@
+
+.barygа-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Tabs ── */
+.bary-tabs {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.bary-tab {
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+  font-family: 'Inter', sans-serif;
+}
+
+.bary-tab:hover { background: var(--surface); color: var(--text); }
+
+.bary-tab.active {
+  background: rgba(255,149,0,0.12);
+  border-color: rgba(255,149,0,0.35);
+  color: var(--amber);
+}
+
+/* ── Level table ── */
+.bary-lv-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--border2);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-ghost);
+}
+
+.bary-lv-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+}
+
+.bary-lv-row:last-child { border-bottom: none; }
+.bary-lv-row:hover { background: var(--surface); }
+.bary-lv-row.has-reward { background: rgba(255,149,0,0.03); }
+
+.bary-lv-num {
+  width: 36px;
+  flex-shrink: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--amber);
+  text-align: center;
+}
+
+.bary-lv-costs {
+  width: 250px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding-right: 12px;
+}
+
+.bary-lv-reward {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.bary-item-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* "Впервые" тег */
+.bary-first-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(46,204,113,0.12);
+  color: var(--ok);
+  border: 1px solid rgba(46,204,113,0.3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Cost badges ── */
+.bary-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
+}
+
+.bary-cost.sigs  { background: rgba(255,149,0,0.12); color: var(--amber);  border: 1px solid rgba(255,149,0,0.25); }
+.bary-cost.kop   { background: rgba(255,215,0,0.10); color: #FFD700;       border: 1px solid rgba(255,215,0,0.25); }
+.bary-cost.silv  { background: rgba(180,180,220,0.12); color: #b4b4dc;     border: 1px solid rgba(180,180,220,0.25); }
+.bary-cost.chirk { background: rgba(74,160,255,0.10); color: var(--blue2); border: 1px solid rgba(74,160,255,0.25); }
+.bary-cost.small { font-size: 10px; padding: 1px 6px; gap: 2px; }
+
+/* ── Shop table ── */
+.bary-shop-head,
+.bary-shop-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bary-shop-head {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border2);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-ghost);
+}
+
+.bary-shop-row:last-child { border-bottom: none; }
+.bary-shop-row:hover { background: var(--surface); }
+
+.bary-shop-lv    { width: 42px; flex-shrink: 0; text-align: center; }
+.bary-shop-name  { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding-right: 8px; }
+.bary-shop-price { width: 165px; flex-shrink: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.bary-shop-qty   { width: 76px; flex-shrink: 0; text-align: center; }
+
+/* ── Effects list ── */
+.bary-eff-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+}
+
+.bary-eff-row:last-child { border-bottom: none; }
+.bary-eff-row:hover { background: var(--surface); }
+
+/* ── Compare table ── */
+.bary-cmp-head,
+.bary-cmp-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+}
+
+.bary-cmp-head {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border2);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-ghost);
+}
+
+.bary-cmp-row:last-child { border-bottom: none; }
+.bary-cmp-row:hover { background: var(--surface); }
+
+.bary-cmp-icon {
+  width: 58px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 8px;
+  border-right: 1px solid var(--border);
+}
+
+.bary-cmp-cell {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bary-cmp-cell:last-child { border-right: none; }
+
+.bary-cmp-type {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-ghost);
+}
+
+.bary-cmp-effect {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.bary-cmp-effect.unknown {
+  color: var(--text-ghost);
+  font-style: italic;
+}
+
+.bary-cmp-empty {
+  color: var(--text-ghost);
+  font-size: 13px;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ── Currency icons ── */
+.cur-ico {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* ── Item images ── */
+.bary-item-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
+.bary-item-img.lg {
+  width: 38px;
+  height: 38px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .bary-shop-price { width: 110px; }
+  .bary-cmp-cell   { padding: 8px 8px; }
+  .bary-cmp-effect { font-size: 11px; }
+}
+
+@media (max-width: 580px) {
+  .bary-lv-costs  { width: 160px; }
+  .bary-lv-head   { display: none; }
+  .bary-shop-head { display: none; }
+  .bary-cmp-icon  { width: 42px; }
+}

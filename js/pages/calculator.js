@@ -1,8 +1,3 @@
-// js/pages/calculator.js — v3.1
-// NPC hourly rate = base_rate * (1 + respect / 100)
-// Capacity = (21000 + 2100 * mining) * viti_mult
-// Viti set: +50% NPC speed AND capacity
-
 const NPC_LIST = [
   { name: "Барыга",   sigPerHour:  25, maxCount: 7, icon: "🧢" },
   { name: "Пекарь",   sigPerHour:  40, maxCount: 6, icon: "🍞" },
@@ -120,7 +115,6 @@ export async function renderCalculator() {
     </div>
   `;
 
-  // Viti toggle
   root.querySelector("#vitiToggle").addEventListener("click", () => {
     vitiActive = !vitiActive;
     root.querySelector("#vitiCheck").textContent = vitiActive ? "✓" : "";
@@ -130,7 +124,6 @@ export async function renderCalculator() {
     calculate();
   });
 
-  // Build NPC rows
   for (const npc of NPC_LIST) {
     const row = document.createElement("div");
     row.className = "npc-item";

@@ -1,4 +1,3 @@
-// js/pages/affixes.js
 
 const SLOTS = [
   { key: "weapon",  label: "Оружие",    icon: "⚔️",  color: "#E74C3C" },
@@ -72,7 +71,6 @@ export async function renderAffixes() {
 
   const state = { slot: "", search: "", cat: "" };
 
-  // ── build HTML ───────────────────────────────
   const slotBtns = SLOTS.map(s =>
     `<button class="aff-slot-btn" data-slot="${s.key}" type="button"
        style="--sc:${s.color};">${s.icon} ${s.label}</button>`
@@ -120,7 +118,6 @@ export async function renderAffixes() {
     </div>
   `;
 
-  // ── events ───────────────────────────────────
   root.querySelectorAll(".aff-slot-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       state.slot = btn.getAttribute("data-slot");
@@ -150,7 +147,6 @@ export async function renderAffixes() {
     }, 120);
   });
 
-  // ── filter ───────────────────────────────────
   function filter() {
     return AFFIXES.filter(a => {
       if (state.slot && !a.slots.includes(state.slot)) return false;
@@ -160,12 +156,10 @@ export async function renderAffixes() {
     });
   }
 
-  // ── render ───────────────────────────────────
   function render() {
     const list      = filter();
     const showSlots = !state.slot;
 
-    // Summary strip when slot selected
     const summary = root.querySelector("#affSummary");
     if (state.slot) {
       const sl = SLOTS.find(s => s.key === state.slot);
@@ -189,7 +183,6 @@ export async function renderAffixes() {
       summary.innerHTML = "";
     }
 
-    // Table head
     root.querySelector("#affTableHead").innerHTML = `
       <div class="aff-col-num">#</div>
       <div class="aff-col-cat">Кат.</div>
@@ -198,7 +191,6 @@ export async function renderAffixes() {
       ${showSlots ? '<div class="aff-col-slots">Слоты</div>' : ""}
     `;
 
-    // Table body
     if (!list.length) {
       root.querySelector("#affTableBody").innerHTML =
         `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Ничего не найдено</div></div>`;

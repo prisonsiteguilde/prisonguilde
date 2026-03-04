@@ -1,4 +1,4 @@
-// js/pages/recipes.js — v3.0 Enhanced
+
 import { listRecipes } from "../db.js";
 import { notify } from "../notify.js";
 import { openModal } from "../ui.js";
@@ -30,7 +30,6 @@ const RARITY_ORDER = { gray: 1, green: 2, blue: 3, purple: 4 };
 
 const MULT_PRESETS = [1, 5, 10, 25, 50];
 
-/* ── helpers ───────────────────────────────────── */
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 }
@@ -120,7 +119,7 @@ function pushRecent(id) {
   saveLS(LS_RECENT, cur.slice(0, 5));
 }
 
-/* ── main export ───────────────────────────────── */
+
 export async function renderRecipes() {
   const root = document.createElement("div");
   root.className = "recipes-page";
@@ -134,7 +133,7 @@ export async function renderRecipes() {
     compact: isCompact(),
   };
 
-  /* ── shell HTML ────────────────────────────── */
+
   function buildShell() {
     const favCount = loadFavs().length;
 
@@ -202,7 +201,7 @@ export async function renderRecipes() {
       </div>
     `;
 
-    /* ── bind controls ─────────────────────── */
+
     const qEl  = root.querySelector("#q");
     const rarEl = root.querySelector("#rar");
     qEl.value  = state.q;
@@ -214,7 +213,7 @@ export async function renderRecipes() {
     });
     rarEl.addEventListener("change", () => { state.rar = rarEl.value; renderCatalog(); });
 
-    // Chips
+
     const chipMap = {
       cAll: "", cFav: "favorites", cCraft: "cancaft",
       cWeapon: "weapon", cCons: "consumable", cOther: "other"
@@ -256,7 +255,7 @@ export async function renderRecipes() {
     });
   }
 
-  /* ── navigation ────────────────────────────── */
+
   function updateNav() {
     const back = root.querySelector("#back");
     const fwd  = root.querySelector("#fwd");
@@ -280,7 +279,7 @@ export async function renderRecipes() {
     if (btn) { btn.classList.add("active"); btn.scrollIntoView({ block: "nearest" }); }
   }
 
-  /* ── filter ─────────────────────────────────── */
+
   function filterRecipes() {
     const q   = normSearch(state.q);
     const rar = state.rar || "";
@@ -302,7 +301,7 @@ export async function renderRecipes() {
     return list;
   }
 
-  /* ── catalog render ─────────────────────────── */
+
   function renderCatalog() {
     const grid = root.querySelector("#grid");
     const cnt  = root.querySelector("#cnt");
@@ -322,7 +321,7 @@ export async function renderRecipes() {
       return;
     }
 
-    // Recent items strip
+
     const recentIds = loadRecent().filter(id => state.byId.has(id));
     const recentHtml = recentIds.length ? `
       <div class="rcp-recent">
@@ -342,7 +341,7 @@ export async function renderRecipes() {
       </div>
     ` : "";
 
-    // Group by base name
+
     const groups = new Map();
     for (const r of list) {
       const key = baseNameOf(r) || r.id;
@@ -351,7 +350,7 @@ export async function renderRecipes() {
     }
     const groupNames = Array.from(groups.keys()).sort((a,b) => a.localeCompare(b, "ru"));
 
-    // Auto-expand all groups when searching
+
     const forceOpen = !!state.q || !!state.rar || !!state.catType;
 
     const groupsHtml = groupNames.map(name => {
@@ -443,7 +442,7 @@ export async function renderRecipes() {
     });
   }
 
-  /* ── recipe detail ──────────────────────────── */
+
   function renderRecipe(recipeId, { push }) {
     const pane = root.querySelector("#pane");
     const ttl  = root.querySelector("#ttl");
@@ -479,7 +478,7 @@ export async function renderRecipes() {
     const inv  = loadInv();
     const sum  = sumBase(r.id, state.byId, 1);
 
-    /* Ingredients list */
+
     const ingsHtml = ing.length ? ing.map(it => {
       const qty = clampQty(it.qty);
       if (it.kind === "resource") {
@@ -508,7 +507,7 @@ export async function renderRecipes() {
       return "";
     }).join("") : `<div class="muted">Ингредиенты не указаны</div>`;
 
-    /* Summary rows */
+
     const totalHave  = Object.keys(sum).filter(k => clampQty(inv[k] ?? 0) >= clampQty(sum[k])).length;
     const totalNeed  = Object.keys(sum).length;
     const allOk      = totalHave === totalNeed && totalNeed > 0;
@@ -580,10 +579,10 @@ export async function renderRecipes() {
       ` : ""}
     `;
 
-    // Apply icons
+
     applyIconBoxes(pane);
 
-    // Actions
+
     pane.querySelector("#editInvBtn")?.addEventListener("click", () => openInvModal(r));
     pane.querySelector("#favBtn")?.addEventListener("click", () => {
       toggleFav(r.id);
@@ -619,7 +618,7 @@ export async function renderRecipes() {
         .catch(() => notify("bad", "Ошибка", "Не удалось скопировать"));
     });
 
-    // Jump to child recipe
+
     pane.querySelectorAll("[data-jump]").forEach(btn => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-jump");
@@ -628,7 +627,7 @@ export async function renderRecipes() {
     });
   }
 
-  /* ── inventory modal ────────────────────────── */
+
   function openInvModal(highlightRecipe) {
     const inv  = loadInv();
     const node = document.createElement("div");
@@ -726,7 +725,7 @@ export async function renderRecipes() {
     });
   }
 
-  /* ── event delegation ───────────────────────── */
+
   root.addEventListener("click", e => {
     const btn = e.target.closest("[data-recipe]");
     if (btn) { const id = btn.getAttribute("data-recipe"); if (id) renderRecipe(id, { push: true }); return; }
@@ -734,7 +733,7 @@ export async function renderRecipes() {
     if (jump) { const id = jump.getAttribute("data-jump"); if (id) renderRecipe(id, { push: true }); }
   });
 
-  /* ── init ───────────────────────────────────── */
+
   buildShell();
 
   try {
@@ -748,14 +747,14 @@ export async function renderRecipes() {
   state.byId = new Map(state.recipes.map(r => [r.id, r]));
   renderCatalog();
 
-  // Restore last viewed
+
   const last = loadLS(LS_LAST, null);
   if (last && state.byId.has(last)) {
     renderRecipe(last, { push: false });
     pushHist(last);
   }
 
-  // Check URL for deep-link: #recipes?id=xxx
+
   const search = location.hash.split("?")[1] || "";
   const params = new URLSearchParams(search);
   const linkId = params.get("id");

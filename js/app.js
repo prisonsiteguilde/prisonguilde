@@ -3,11 +3,13 @@ import { renderRecipes } from "./pages/recipes.js";
 import { renderCalculator } from "./pages/calculator.js";
 import { notify } from "./notify.js";
 import { renderAffixes } from "./pages/affixes.js";
+import { renderBarygа } from "./pages/baryga.js";
 
 const routes = {
   recipes: renderRecipes,
   calculator: renderCalculator,
   affixes: renderAffixes,
+  baryga: renderBarygа,
 };
 
 let currentRoute = "recipes";
@@ -17,12 +19,12 @@ async function navigate(route) {
   currentRoute = route;
   location.hash = route;
 
-  // Update top tabs
+
   document.querySelectorAll(".tab[data-route]").forEach((t) => {
     t.classList.toggle("active", t.dataset.route === route);
   });
 
-  // Update bottom nav
+
   document.querySelectorAll(".bnav-btn[data-route]").forEach((t) => {
     t.classList.toggle("active", t.dataset.route === route);
   });
@@ -51,7 +53,7 @@ async function navigate(route) {
   }
 }
 
-// Theme system
+
 const THEMES = [
   { key: "theme-dark",  icon: "🌙", label: "Тёмная" },
   { key: "theme-light", icon: "☀️", label: "Светлая" },
@@ -81,19 +83,19 @@ function escapeHtml(s) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Theme init
+
   const savedTheme = localStorage.getItem("theme") || "theme-dark";
   applyTheme(savedTheme);
   document.getElementById("themeToggle")?.addEventListener("click", cycleTheme);
 
-  // Tab navigation
+
   document.querySelectorAll("[data-route]").forEach((btn) => {
     btn.addEventListener("click", () => navigate(btn.dataset.route));
   });
 
-  // Global keyboard shortcuts
+
   document.addEventListener("keydown", (e) => {
-    // Ctrl+K or / — focus search
+
     if ((e.ctrlKey && e.key === "k") || (e.key === "/" && !isInputFocused())) {
       e.preventDefault();
       const searchEl = document.getElementById("q");
@@ -103,11 +105,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // Ctrl+1 / Ctrl+2 — switch tabs
+
     if (e.ctrlKey && e.key === "1") { e.preventDefault(); navigate("recipes"); }
     if (e.ctrlKey && e.key === "2") { e.preventDefault(); navigate("calculator"); }
 
-    // Escape — clear search / close modal
+
     if (e.key === "Escape") {
       const modal = document.getElementById("modalHost");
       if (modal && !modal.classList.contains("hidden")) {
@@ -123,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Route init
+
   const hash = location.hash.slice(1) || "recipes";
   navigate(hash);
 

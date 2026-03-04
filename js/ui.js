@@ -1,4 +1,4 @@
-// js/ui.js
+
 export function openModal(title, bodyNode) {
   const host = document.getElementById("modalHost");
   host.classList.remove("hidden");
