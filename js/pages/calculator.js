@@ -7,7 +7,7 @@ const NPC_LIST = [
   { name: "Завхоз",   sigPerHour: 140, maxCount: 7, icon: "📦" },
 ];
 
-const LS_CALC = "calculator.state.v4";
+const LS_CALC = "calculator.state.v5";
 
 function loadState() {
   try { return JSON.parse(localStorage.getItem(LS_CALC) || "{}"); }
@@ -19,13 +19,13 @@ function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, m =>
     ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 }
-function fmtNum(n) { return Number(n || 0).toLocaleString("ru-RU"); }
+function fmtNum(n)    { return Number(n || 0).toLocaleString("ru-RU"); }
 function fmtDec(n, d) { return Number(n || 0).toFixed(d !== undefined ? d : 2).replace(".", ","); }
 
 function getRuPlural(n, f) {
   const a = Math.abs(n) % 100, b = a % 10;
   if (a > 10 && a < 20) return f[2];
-  if (b > 1 && b < 5)   return f[1];
+  if (b > 1  && b < 5)  return f[1];
   if (b === 1)           return f[0];
   return f[2];
 }
@@ -60,7 +60,7 @@ export async function renderCalculator() {
       <div class="row">
         <div>
           <div class="card-title">🚬 КАЛЬКУЛЯТОР ДОБЫЧИ</div>
-          <div class="card-sub">Уважение влияет на скорость шестёрок · Добыча — на вместимость склада</div>
+          <div class="card-sub">Уважение → скорость · Добыча → вместимость склада</div>
         </div>
         <span class="badge amber">Сиг/мин</span>
       </div>
@@ -74,12 +74,14 @@ export async function renderCalculator() {
           <div class="calc-form">
             <div>
               <div class="label">Уважение</div>
-              <input class="input" id="respect" type="number" step="0.01" min="0" placeholder="0" value="${esc(saved.respect ?? "0")}" />
+              <input class="input" id="respect" type="number" step="0.01" min="0" placeholder="0"
+                value="${esc(saved.respect ?? "0")}" />
               <div class="muted" style="font-size:11px;margin-top:4px;" id="respectHint"></div>
             </div>
             <div>
               <div class="label">Добыча</div>
-              <input class="input" id="mining" type="number" step="0.01" min="0" placeholder="0" value="${esc(saved.mining ?? "0")}" />
+              <input class="input" id="mining" type="number" step="0.01" min="0" placeholder="0"
+                value="${esc(saved.mining ?? "0")}" />
               <div class="muted" style="font-size:11px;margin-top:4px;" id="miningHint"></div>
             </div>
           </div>
@@ -88,7 +90,7 @@ export async function renderCalculator() {
             <div class="viti-check ${vitiActive ? "on" : ""}" id="vitiCheck">${vitiActive ? "✓" : ""}</div>
             <div style="flex:1;">
               <div style="font-weight:700;font-size:14px;">⭐ Сет Вити</div>
-              <div class="muted" style="font-size:12px;">Увеличивает добычу и вместимость шестёрок на 50%</div>
+              <div class="muted" style="font-size:12px;">+50% к скорости и вместимости шестёрок</div>
             </div>
             <span class="badge ${vitiActive ? "amber" : ""}" id="vitiBadge">${vitiActive ? "+50%" : "Выкл"}</span>
           </div>
@@ -96,7 +98,9 @@ export async function renderCalculator() {
 
         <div class="card">
           <div class="section-title">👥 ШЕСТЁРКИ</div>
-          <div class="muted" style="margin-bottom:12px;font-size:12px;">Скорость = базовая × (1 + уважение / 100)</div>
+          <div class="muted" style="margin-bottom:12px;font-size:12px;">
+            
+          </div>
           <div class="npc-grid" id="npcGrid"></div>
         </div>
 
@@ -105,10 +109,13 @@ export async function renderCalculator() {
       <div style="display:flex;flex-direction:column;gap:16px;">
         <div class="card">
           <div class="section-title">📊 РЕЗУЛЬТАТЫ</div>
-          <div id="result" class="calc-result"><div class="muted">Введи параметры — результаты появятся здесь.</div></div>
+          <div id="result" class="calc-result"><div class="muted">Введи параметры.</div></div>
         </div>
         <div class="card">
-          <div class="section-title">📈 ВКЛАД ШЕСТЁРОК</div>
+          <div class="section-title">📦 СКЛАД ПО ШЕСТЁРКАМ</div>
+          <div class="muted" style="font-size:11px;margin-bottom:10px;">
+           
+          </div>
           <div id="breakdown" class="npc-breakdown"><div class="muted">Нет активных шестёрок.</div></div>
         </div>
       </div>
@@ -169,39 +176,48 @@ export async function renderCalculator() {
 
     saveState({ respect: $respect.value, mining: $mining.value, npcs: { ...npcCounts }, viti: vitiActive });
 
-    const capacity = Math.round((21000 + 2100 * mining) * vitiMult);
+    const capFactor = (8 + 0.8 * mining) * vitiMult;
 
     const rHint = root.querySelector("#respectHint");
     const mHint = root.querySelector("#miningHint");
-    if (rHint) rHint.textContent = "Множитель шестёрок: ×" + fmtDec(respMult);
-    if (mHint) mHint.textContent = "Вместимость: " + fmtNum(capacity) + " сиг";
+    if (rHint) rHint.textContent = "Множитель скорости: ×" + fmtDec(respMult);
+    if (mHint) mHint.textContent = "Фактор склада: " + fmtDec(capFactor) + (vitiActive ? " (с Вити ×1.5)" : "");
 
-    const npcSpeeds  = {};
-    const npcPerOne  = {};
-    let totalSpeed   = 0;
+    const npcSpeeds   = {};  
+    const npcPerOne   = {};  
+    const npcCap      = {};  
+    let totalSpeed    = 0;
+    let totalCapacity = 0;
 
     for (const npc of NPC_LIST) {
       const count  = npcCounts[npc.name] || 0;
       const perOne = npc.sigPerHour * respMult * vitiMult;
-      const total  = (perOne * count) / 60;
-      npcPerOne[npc.name]  = perOne;
-      npcSpeeds[npc.name]  = total;
-      totalSpeed += total;
+      const speed  = (perOne * count) / 60;
+      const cap    = count * npc.sigPerHour * capFactor;
+
+      npcPerOne[npc.name] = perOne;
+      npcSpeeds[npc.name] = speed;
+      npcCap[npc.name]    = cap;
+      totalSpeed    += speed;
+      totalCapacity += cap;
 
       const rateEl = root.querySelector("#npcRate-" + CSS.escape(npc.name));
-      if (rateEl) rateEl.textContent = fmtDec(perOne) + " сиг/ч за 1";
+      if (rateEl) rateEl.textContent = fmtDec(perOne) + " сиг/ч × 1";
     }
 
-    const safe    = totalSpeed > 0 ? totalSpeed : 0.000001;
-    const fillMin = capacity / safe;
-    const daily   = Math.round(safe * 1440);
-    const fillPct = Math.min(100, (safe * 1440 / capacity) * 100);
+    const fillMin = totalSpeed > 0 ? totalCapacity / 60 / totalSpeed : Infinity;
+    const daily   = Math.round(totalSpeed * 1440);
+    const fillPct = totalCapacity > 0 && daily > 0
+      ? Math.min(200, (daily / totalCapacity) * 100)
+      : 0;
 
     const maxSpd = Math.max(...Object.values(npcSpeeds), 0.001);
     for (const npc of NPC_LIST) {
       const b = root.querySelector("#bar-" + CSS.escape(npc.name));
       if (b) b.style.width = Math.round((npcSpeeds[npc.name] / maxSpd) * 100) + "%";
     }
+
+    const overflows = isFinite(fillMin) && fillMin < 1440;
 
     root.querySelector("#result").innerHTML =
       '<div class="calc-stat highlight">' +
@@ -213,14 +229,16 @@ export async function renderCalculator() {
         '<div class="value ok">' + fmtNum(Math.round(totalSpeed * 60)) + ' <span style="font-size:12px;font-weight:400;">сиг/ч</span></div>' +
       '</div>' +
       '<div class="calc-stat">' +
-        '<div><div class="label">Лимит склада</div>' +
+        '<div><div class="label">Суммарный склад</div>' +
           (vitiActive ? '<div style="font-size:11px;color:var(--amber);">× 1.5 (Сет Вити)</div>' : '') +
         '</div>' +
-        '<div class="value">' + fmtNum(capacity) + ' <span style="font-size:12px;font-weight:400;">сиг</span></div>' +
+        '<div class="value">' + fmtNum(Math.round(totalCapacity)) + ' <span style="font-size:12px;font-weight:400;">сиг</span></div>' +
       '</div>' +
       '<div class="calc-stat">' +
-        '<div><div class="label">Время до лимита</div></div>' +
-        '<div class="value" style="font-size:15px;">' + formatTime(fillMin) + '</div>' +
+        '<div><div class="label">Время заполнения</div></div>' +
+        '<div class="value" style="font-size:15px;">' +
+          (isFinite(fillMin) ? formatTime(fillMin) : "∞") +
+        '</div>' +
       '</div>' +
       '<div class="calc-stat highlight">' +
         '<div><div class="label">За 24 часа (без лимита)</div></div>' +
@@ -230,7 +248,9 @@ export async function renderCalculator() {
         '<div class="fill-bar-label"><span>Заполнение за 24ч</span><span>' + Math.round(fillPct) + '%</span></div>' +
         '<div class="fill-bar"><div class="fill-bar-inner" style="width:' + Math.min(100, fillPct) + '%;"></div></div>' +
         '<div class="muted" style="font-size:11px;margin-top:5px;text-align:right;">' +
-          (fillPct >= 100 ? "✅ Лимит заполняется за " + formatTime(fillMin) : "🕐 До лимита: " + formatTime(fillMin)) +
+          (overflows
+            ? "✅ Лимит заполняется за " + formatTime(fillMin) + " — нужно отжимать чаще!"
+            : (isFinite(fillMin) ? "🕐 До лимита: " + formatTime(fillMin) : "")) +
         '</div>' +
       '</div>';
 
@@ -242,23 +262,34 @@ export async function renderCalculator() {
 
     root.querySelector("#breakdown").innerHTML = activeNpcs.map(npc => {
       const spd = npcSpeeds[npc.name];
-      const pct = Math.round((spd / totalSpeed) * 100);
+      const cap = npcCap[npc.name];
+      const pct = totalSpeed > 0 ? Math.round((spd / totalSpeed) * 100) : 0;
       const cnt = npcCounts[npc.name];
       const per = npcPerOne[npc.name];
+      // Время до заполнения конкретного типа
+      const fillT = spd > 0 ? cap / 60 / spd : Infinity;
       return '<div class="npc-breakdown-row">' +
         '<span style="font-size:20px;">' + npc.icon + '</span>' +
-        '<div class="npc-breakdown-name">' + esc(npc.name) +
-          ' <span class="badge" style="font-size:10px;margin-left:3px;">×' + cnt + '</span></div>' +
         '<div style="flex:1;min-width:0;">' +
+          '<div style="display:flex;align-items:center;gap:5px;">' +
+            '<span class="npc-breakdown-name">' + esc(npc.name) + '</span>' +
+            '<span class="badge" style="font-size:10px;">×' + cnt + '</span>' +
+          '</div>' +
           '<div class="npc-breakdown-bar-wrap">' +
             '<div class="npc-breakdown-bar" style="width:' + pct + '%;"></div>' +
           '</div>' +
           '<div class="muted" style="font-size:10px;margin-top:2px;">' +
-            fmtDec(per) + ' × ' + cnt + ' = ' + fmtNum(Math.round(per * cnt)) + '/ч' +
+            fmtDec(per) + ' × ' + cnt + ' = ' + fmtNum(Math.round(per * cnt)) + ' сиг/ч' +
+          '</div>' +
+          '<div style="font-size:10px;color:var(--amber);margin-top:1px;">' +
+            '📦 ' + fmtNum(Math.round(cap)) + ' сиг · заполн. за ' +
+            (isFinite(fillT) ? formatTime(fillT) : "∞") +
           '</div>' +
         '</div>' +
-        '<div class="npc-breakdown-speed">' + fmtDec(spd) + ' с/м</div>' +
-        '<span class="badge" style="min-width:36px;text-align:center;">' + pct + '%</span>' +
+        '<div style="text-align:right;flex-shrink:0;">' +
+          '<div class="npc-breakdown-speed">' + fmtDec(spd) + ' с/м</div>' +
+          '<span class="badge" style="min-width:36px;text-align:center;">' + pct + '%</span>' +
+        '</div>' +
       '</div>';
     }).join("");
   }
