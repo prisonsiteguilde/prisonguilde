@@ -1,3 +1,16 @@
+// js/pages/calculator.js — v4.0
+//
+// ══ ФОРМУЛЫ (верифицированы по скриншотам) ══════════════════════
+//
+// Скорость шестёрки (сиг/ч на одну):
+//   rate_per_one = base_rate × (1 + respect / 100) × viti_mult
+//
+// Склад одного типа (суммарный):
+//   capacity = count × base_rate × (8 + 0.8 × mining) × viti_mult
+//
+// viti_mult = 1.5 если Сет Вити включён, иначе 1.0
+// mining и respect — статы персонажа (БЕЗ учёта Вити, игра показывает базу)
+
 const NPC_LIST = [
   { name: "Барыга",   sigPerHour:  25, maxCount: 7, icon: "🧢" },
   { name: "Пекарь",   sigPerHour:  40, maxCount: 6, icon: "🍞" },
@@ -114,7 +127,7 @@ export async function renderCalculator() {
         <div class="card">
           <div class="section-title">📦 СКЛАД ПО ШЕСТЁРКАМ</div>
           <div class="muted" style="font-size:11px;margin-bottom:10px;">
-           
+            
           </div>
           <div id="breakdown" class="npc-breakdown"><div class="muted">Нет активных шестёрок.</div></div>
         </div>
@@ -122,6 +135,7 @@ export async function renderCalculator() {
     </div>
   `;
 
+  // Viti toggle
   root.querySelector("#vitiToggle").addEventListener("click", () => {
     vitiActive = !vitiActive;
     root.querySelector("#vitiCheck").textContent = vitiActive ? "✓" : "";
@@ -131,6 +145,7 @@ export async function renderCalculator() {
     calculate();
   });
 
+  // Build NPC rows
   for (const npc of NPC_LIST) {
     const row = document.createElement("div");
     row.className = "npc-item";
@@ -176,6 +191,7 @@ export async function renderCalculator() {
 
     saveState({ respect: $respect.value, mining: $mining.value, npcs: { ...npcCounts }, viti: vitiActive });
 
+
     const capFactor = (8 + 0.8 * mining) * vitiMult;
 
     const rHint = root.querySelector("#respectHint");
@@ -183,9 +199,9 @@ export async function renderCalculator() {
     if (rHint) rHint.textContent = "Множитель скорости: ×" + fmtDec(respMult);
     if (mHint) mHint.textContent = "Фактор склада: " + fmtDec(capFactor) + (vitiActive ? " (с Вити ×1.5)" : "");
 
-    const npcSpeeds   = {};  
+    const npcSpeeds   = {}; 
     const npcPerOne   = {};  
-    const npcCap      = {};  
+    const npcCap      = {}; 
     let totalSpeed    = 0;
     let totalCapacity = 0;
 
@@ -205,10 +221,12 @@ export async function renderCalculator() {
       if (rateEl) rateEl.textContent = fmtDec(perOne) + " сиг/ч × 1";
     }
 
-    const fillMin = totalSpeed > 0 ? totalCapacity / 60 / totalSpeed : Infinity;
+
+    const fillMin = totalSpeed > 0 ? totalCapacity / totalSpeed : Infinity;
     const daily   = Math.round(totalSpeed * 1440);
-    const fillPct = totalCapacity > 0 && daily > 0
-      ? Math.min(200, (daily / totalCapacity) * 100)
+
+    const timesPerDay = (totalCapacity > 0 && isFinite(fillMin))
+      ? 1440 / fillMin
       : 0;
 
     const maxSpd = Math.max(...Object.values(npcSpeeds), 0.001);
@@ -244,15 +262,21 @@ export async function renderCalculator() {
         '<div><div class="label">За 24 часа (без лимита)</div></div>' +
         '<div class="value">' + fmtNum(daily) + ' <span style="font-size:12px;font-weight:400;">сиг/день</span></div>' +
       '</div>' +
-      '<div class="fill-bar-wrap">' +
-        '<div class="fill-bar-label"><span>Заполнение за 24ч</span><span>' + Math.round(fillPct) + '%</span></div>' +
-        '<div class="fill-bar"><div class="fill-bar-inner" style="width:' + Math.min(100, fillPct) + '%;"></div></div>' +
-        '<div class="muted" style="font-size:11px;margin-top:5px;text-align:right;">' +
-          (overflows
-            ? "✅ Лимит заполняется за " + formatTime(fillMin) + " — нужно отжимать чаще!"
-            : (isFinite(fillMin) ? "🕐 До лимита: " + formatTime(fillMin) : "")) +
-        '</div>' +
-      '</div>';
+      (isFinite(fillMin) ? (
+        '<div class="fill-bar-wrap">' +
+          '<div class="fill-bar-label">' +
+            '<span>' + (timesPerDay >= 1
+              ? '⚠️ Склад заполняется ' + fmtDec(timesPerDay, 1) + ' раз/сут — отжимай чаще!'
+              : '🕐 Время до лимита') +
+            '</span>' +
+            '<span>' + formatTime(fillMin) + '</span>' +
+          '</div>' +
+          '<div class="fill-bar">' +
+            '<div class="fill-bar-inner" style="width:' + Math.min(100, timesPerDay * 100) + '%;background:' +
+              (timesPerDay >= 1 ? 'var(--red,#e74c3c)' : 'var(--ok)') + ';"></div>' +
+          '</div>' +
+        '</div>'
+      ) : '');
 
     const activeNpcs = NPC_LIST.filter(n => (npcCounts[n.name] || 0) > 0);
     if (!activeNpcs.length) {
@@ -266,8 +290,7 @@ export async function renderCalculator() {
       const pct = totalSpeed > 0 ? Math.round((spd / totalSpeed) * 100) : 0;
       const cnt = npcCounts[npc.name];
       const per = npcPerOne[npc.name];
-      // Время до заполнения конкретного типа
-      const fillT = spd > 0 ? cap / 60 / spd : Infinity;
+      const fillT = spd > 0 ? cap / spd : Infinity;
       return '<div class="npc-breakdown-row">' +
         '<span style="font-size:20px;">' + npc.icon + '</span>' +
         '<div style="flex:1;min-width:0;">' +
