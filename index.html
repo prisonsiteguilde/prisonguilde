@@ -4,12 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="description" content="Рецепты, калькулятор добычи и гайды для игры Ton Prison в Telegram" />
-  <meta name="theme-color" content="#0a0c10" />
+  <meta name="theme-color" content="#080a0e" />
   <title>Ton Prison — Гайды</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./css/styles-ultra.css" />
   <link rel="stylesheet" href="./css/affixes.css" />
   <link rel="stylesheet" href="./css/baryga.css" />
@@ -18,115 +18,85 @@
 
   <div class="app-shell">
 
-    <header class="topbar">
-      <div class="brand">
-        <div class="logo-wrap">
-          <div class="logo-icon">🔒</div>
-        </div>
-        <div class="brand-text">
-          <div class="brand-title">TON PRISON</div>
-          <div class="brand-sub">ГАЙДЫ / РЕЦЕПТЫ / КАЛЬКУЛЯТОР</div>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo-wrap">🔒</div>
+        <div class="sidebar-brand-text">
+          <div class="sidebar-title">TON PRISON</div>
+          <div class="sidebar-sub">ГАЙДЫ / РЕЦЕПТЫ</div>
         </div>
       </div>
 
-      <nav class="tabs" id="tabs">
-        <button class="tab active" data-route="recipes" type="button">
-          <span class="tab-icon">📋</span>
-          <span class="tab-label">Рецепты</span>
-        </button>
-        <button class="tab" data-route="calculator" type="button">
-          <span class="tab-icon">🚬</span>
-          <span class="tab-label">Калькулятор</span>
-        </button>
-        <button class="tab" data-route="affixes" type="button">
-          <span class="tab-icon">✨</span>
-          <span class="tab-label">Аффиксы</span>
-        </button>
-        <button class="tab" data-route="baryga" type="button">
-          <span class="tab-icon">🏪</span>
-          <span class="tab-label">Барыга</span>
-        </button>
-        <button class="tab" data-route="bosses" type="button">
-          <span class="tab-icon">👹</span>
-          <span class="tab-label">Боссы</span>
-        </button>
-        <button class="tab" data-route="minions" type="button">
-          <span class="tab-icon">👥</span>
-          <span class="tab-label">Шестёрки</span>
-        </button>
-        <button class="tab" data-route="sets" type="button">
-          <span class="tab-icon">👕</span>
-          <span class="tab-label">Сеты</span>
-        </button>
-        <button class="tab" data-route="effects" type="button">
-          <span class="tab-icon">⚔️</span>
-          <span class="tab-label">Эффекты</span>
-        </button>
+      <div class="sidebar-divider"></div>
+
+      <nav class="sidebar-nav" id="sidebarNav">
+        <button class="snav-btn active" data-route="recipes"    type="button"><span class="snav-icon">📋</span><span class="snav-label">Рецепты</span></button>
+        <button class="snav-btn"        data-route="calculator" type="button"><span class="snav-icon">🚬</span><span class="snav-label">Калькулятор</span></button>
+        <button class="snav-btn"        data-route="affixes"    type="button"><span class="snav-icon">✨</span><span class="snav-label">Аффиксы</span></button>
+        <button class="snav-btn"        data-route="baryga"     type="button"><span class="snav-icon">🏪</span><span class="snav-label">Барыга</span></button>
+        <button class="snav-btn"        data-route="bosses"     type="button"><span class="snav-icon">👹</span><span class="snav-label">Боссы</span></button>
+        <button class="snav-btn"        data-route="minions"    type="button"><span class="snav-icon">👥</span><span class="snav-label">Шестёрки</span></button>
+        <button class="snav-btn"        data-route="sets"       type="button"><span class="snav-icon">👕</span><span class="snav-label">Сеты</span></button>
+        <button class="snav-btn"        data-route="effects"    type="button"><span class="snav-icon">⚔️</span><span class="snav-label">Эффекты</span></button>
       </nav>
 
-      <div class="topbar-actions">
-        <button class="theme-btn" id="themeToggle" title="Сменить тему">
+      <div class="sidebar-spacer"></div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-label">Тема</div>
+        <div class="theme-switcher" id="themeSwitcher">
+          <button class="theme-opt active" data-theme="theme-dark"  title="Тёмная">🌙</button>
+          <button class="theme-opt"        data-theme="theme-neon"  title="Неон">⚡</button>
+          <button class="theme-opt"        data-theme="theme-blood" title="Кровь">🩸</button>
+          <button class="theme-opt"        data-theme="theme-light" title="Светлая">☀️</button>
+        </div>
+        <div class="sidebar-ver">v4.1</div>
+      </div>
+    </aside>
+
+    <div class="app-content">
+
+      <header class="topbar-mobile" id="topbarMobile">
+        <div class="mobile-brand">
+          <div class="mobile-logo">🔒</div>
+          <span class="mobile-title">TON PRISON</span>
+        </div>
+        <button class="mobile-theme-btn" id="themeToggle" title="Сменить тему">
           <span id="themeIcon">🌙</span>
         </button>
-      </div>
-    </header>
+      </header>
 
-    <main class="app-main">
-      <div id="page" class="page-container"></div>
-    </main>
+      <main class="app-main" id="appMain">
+        <div id="page" class="page-container"></div>
+      </main>
+
+    </div>
 
     <nav class="bottom-nav" id="bottomNav">
-      <button class="bnav-btn active" data-route="recipes" type="button">
-        <span class="bnav-icon">📋</span>
-        <span class="bnav-label">Рецепты</span>
-      </button>
-      <button class="bnav-btn" data-route="calculator" type="button">
-        <span class="bnav-icon">🚬</span>
-        <span class="bnav-label">Калькулятор</span>
-      </button>
-      <button class="bnav-btn" data-route="affixes" type="button">
-        <span class="bnav-icon">✨</span>
-        <span class="bnav-label">Аффиксы</span>
-      </button>
-      <button class="bnav-btn" data-route="baryga" type="button">
-        <span class="bnav-icon">🏪</span>
-        <span class="bnav-label">Барыга</span>
-      </button>
-      <button class="bnav-btn" data-route="bosses" type="button">
-        <span class="bnav-icon">👹</span>
-        <span class="bnav-label">Боссы</span>
-      </button>
-      <button class="bnav-btn" data-route="minions" type="button">
-        <span class="bnav-icon">👥</span>
-        <span class="bnav-label">Шестёрки</span>
-      </button>
-      <button class="bnav-btn" data-route="sets" type="button">
-        <span class="bnav-icon">👕</span>
-        <span class="bnav-label">Сеты</span>
-      </button>
-      <button class="bnav-btn" data-route="effects" type="button">
-        <span class="bnav-icon">⚔️</span>
-        <span class="bnav-label">Эффекты</span>
-      </button>
+      <button class="bnav-btn active" data-route="recipes"    type="button"><span class="bnav-icon">📋</span><span class="bnav-label">Рецепты</span></button>
+      <button class="bnav-btn"        data-route="calculator" type="button"><span class="bnav-icon">🚬</span><span class="bnav-label">Расчёт</span></button>
+      <button class="bnav-btn"        data-route="affixes"    type="button"><span class="bnav-icon">✨</span><span class="bnav-label">Аффиксы</span></button>
+      <button class="bnav-btn"        data-route="baryga"     type="button"><span class="bnav-icon">🏪</span><span class="bnav-label">Барыга</span></button>
+      <button class="bnav-btn"        data-route="bosses"     type="button"><span class="bnav-icon">👹</span><span class="bnav-label">Боссы</span></button>
+      <button class="bnav-btn"        data-route="minions"    type="button"><span class="bnav-icon">👥</span><span class="bnav-label">Сечас</span></button>
+      <button class="bnav-btn"        data-route="sets"       type="button"><span class="bnav-icon">👕</span><span class="bnav-label">Сеты</span></button>
+      <button class="bnav-btn"        data-route="effects"    type="button"><span class="bnav-icon">⚔️</span><span class="bnav-label">Эффекты</span></button>
     </nav>
 
   </div>
 
   <div id="notifyHost" class="notify-host" aria-live="polite"></div>
   <div id="modalHost" class="modal-host hidden"></div>
-
   <button class="scroll-top-btn" id="scrollTopBtn" title="Наверх">↑</button>
 
-  <script type="module" src="./js/app.js?v=3.1"></script>
+  <script type="module" src="./js/app.js?v=4.1"></script>
   <script>
-    // Scroll-to-top logic
     const scrollBtn = document.getElementById("scrollTopBtn");
-    const mainEl = document.querySelector(".app-main");
+    const mainEl   = document.getElementById("appMain");
     if (mainEl && scrollBtn) {
       mainEl.addEventListener("scroll", () => {
         scrollBtn.classList.toggle("visible", mainEl.scrollTop > 300);
       }, { passive: true });
-      // Fallback: window scroll
       window.addEventListener("scroll", () => {
         scrollBtn.classList.toggle("visible", window.scrollY > 300);
       }, { passive: true });

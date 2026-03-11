@@ -1,3 +1,6 @@
+/* ================================================================
+   BARYGA PAGE — v4.0
+   ================================================================ */
 
 .barygа-page {
   display: flex;
@@ -14,7 +17,7 @@
 }
 
 .bary-tab {
-  padding: 8px 18px;
+  padding: 7px 18px;
   border-radius: 20px;
   border: 1px solid var(--border2);
   background: transparent;
@@ -22,16 +25,16 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.18s;
-  font-family: 'Inter', sans-serif;
+  transition: all 0.18s var(--ease);
+  font-family: 'Outfit', sans-serif;
 }
 
 .bary-tab:hover { background: var(--surface); color: var(--text); }
 
 .bary-tab.active {
-  background: rgba(255,149,0,0.12);
-  border-color: rgba(255,149,0,0.35);
-  color: var(--amber);
+  background: var(--accent-dim);
+  border-color: var(--accent-line);
+  color: var(--accent);
 }
 
 /* ── Level table ── */
@@ -60,15 +63,15 @@
 
 .bary-lv-row:last-child { border-bottom: none; }
 .bary-lv-row:hover { background: var(--surface); }
-.bary-lv-row.has-reward { background: rgba(255,149,0,0.03); }
+.bary-lv-row.has-reward { background: rgba(255,149,0,0.025); }
 
 .bary-lv-num {
   width: 36px;
   flex-shrink: 0;
   font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
-  font-size: 13px;
-  color: var(--amber);
+  font-size: 14px;
+  color: var(--accent);
   text-align: center;
 }
 
@@ -92,12 +95,8 @@
   flex-wrap: wrap;
 }
 
-.bary-item-name {
-  font-size: 13px;
-  font-weight: 600;
-}
+.bary-item-name { font-size: 13px; font-weight: 600; }
 
-/* "Впервые" тег */
 .bary-first-tag {
   display: inline-block;
   font-size: 10px;
@@ -106,7 +105,7 @@
   border-radius: 10px;
   background: rgba(46,204,113,0.12);
   color: var(--ok);
-  border: 1px solid rgba(46,204,113,0.3);
+  border: 1px solid rgba(46,204,113,0.28);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -116,7 +115,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
+  padding: 3px 9px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 700;
@@ -124,10 +123,10 @@
   white-space: nowrap;
 }
 
-.bary-cost.sigs  { background: rgba(255,149,0,0.12); color: var(--amber);  border: 1px solid rgba(255,149,0,0.25); }
-.bary-cost.kop   { background: rgba(255,215,0,0.10); color: #FFD700;       border: 1px solid rgba(255,215,0,0.25); }
-.bary-cost.silv  { background: rgba(180,180,220,0.12); color: #b4b4dc;     border: 1px solid rgba(180,180,220,0.25); }
-.bary-cost.chirk { background: rgba(74,160,255,0.10); color: var(--blue2); border: 1px solid rgba(74,160,255,0.25); }
+.bary-cost.sigs  { background: var(--accent-dim);               color: var(--accent); border: 1px solid var(--accent-line); }
+.bary-cost.kop   { background: rgba(255,215,0,0.10);            color: #FFD700;       border: 1px solid rgba(255,215,0,0.25); }
+.bary-cost.silv  { background: rgba(180,180,220,0.12);          color: #b4b4dc;       border: 1px solid rgba(180,180,220,0.25); }
+.bary-cost.chirk { background: rgba(74,160,255,0.10);           color: var(--blue2);  border: 1px solid rgba(74,160,255,0.25); }
 .bary-cost.small { font-size: 10px; padding: 1px 6px; gap: 2px; }
 
 /* ── Shop table ── */
@@ -153,10 +152,10 @@
 .bary-shop-row:last-child { border-bottom: none; }
 .bary-shop-row:hover { background: var(--surface); }
 
-.bary-shop-lv    { width: 42px; flex-shrink: 0; text-align: center; }
+.bary-shop-lv    { width: 42px;  flex-shrink: 0; text-align: center; }
 .bary-shop-name  { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding-right: 8px; }
 .bary-shop-price { width: 165px; flex-shrink: 0; display: flex; flex-wrap: wrap; gap: 4px; }
-.bary-shop-qty   { width: 76px; flex-shrink: 0; text-align: center; }
+.bary-shop-qty   { width: 76px;  flex-shrink: 0; text-align: center; }
 
 /* ── Effects list ── */
 .bary-eff-row {
@@ -168,7 +167,6 @@
   border-bottom: 1px solid var(--border);
   transition: background 0.12s;
 }
-
 .bary-eff-row:last-child { border-bottom: none; }
 .bary-eff-row:hover { background: var(--surface); }
 
@@ -195,81 +193,53 @@
 .bary-cmp-row:hover { background: var(--surface); }
 
 .bary-cmp-icon {
-  width: 58px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 8px;
-  border-right: 1px solid var(--border);
+  width: 58px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 10px 8px; border-right: 1px solid var(--border);
 }
 
 .bary-cmp-cell {
-  flex: 1;
-  min-width: 0;
-  padding: 10px 12px;
+  flex: 1; min-width: 0; padding: 10px 12px;
   border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: flex; flex-direction: column; gap: 4px;
 }
-
 .bary-cmp-cell:last-child { border-right: none; }
 
-.bary-cmp-type {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-ghost);
-}
-
-.bary-cmp-effect {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-dim);
-  line-height: 1.4;
-}
-
-.bary-cmp-effect.unknown {
-  color: var(--text-ghost);
-  font-style: italic;
-}
-
-.bary-cmp-empty {
-  color: var(--text-ghost);
-  font-size: 13px;
-  justify-content: center;
-  align-items: center;
-}
+.bary-cmp-type { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-ghost); }
+.bary-cmp-effect { font-size: 12px; font-weight: 600; color: var(--text-dim); line-height: 1.4; }
+.bary-cmp-effect.unknown { color: var(--text-ghost); font-style: italic; }
+.bary-cmp-empty { color: var(--text-ghost); font-size: 13px; justify-content: center; align-items: center; }
 
 /* ── Currency icons ── */
-.cur-ico {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-  vertical-align: middle;
-  flex-shrink: 0;
-}
+.cur-ico { width: 16px; height: 16px; object-fit: contain; vertical-align: middle; flex-shrink: 0; }
 
 /* ── Item images ── */
-.bary-item-img {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-  flex-shrink: 0;
-  border-radius: 4px;
-}
+.bary-item-img { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; border-radius: 5px; }
+.bary-item-img.lg { width: 38px; height: 38px; }
 
-.bary-item-img.lg {
-  width: 38px;
-  height: 38px;
+/* ── Spoiler ── */
+.bary-spoiler-wrap { overflow: hidden; padding: 0 !important; }
+
+.bary-spoiler-btn {
+  width: 100%; display: flex; justify-content: space-between; align-items: center;
+  padding: 13px 16px; background: transparent; border: none; cursor: pointer;
+  font-size: 12px; font-weight: 700; letter-spacing: 1px;
+  color: var(--text-dim); font-family: 'Outfit', sans-serif;
+  text-transform: uppercase; transition: background 0.15s, color 0.15s;
 }
+.bary-spoiler-btn:hover { background: var(--surface); color: var(--accent); }
+.bary-spoiler-arrow { font-size: 11px; transition: color 0.15s; }
+.bary-spoiler-body { padding: 14px 16px; border-top: 1px solid var(--border); }
+
+/* ── Level items ── */
+.bary-lv-item { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.bary-item-plus { font-size: 12px; font-weight: 700; color: var(--text-ghost); flex-shrink: 0; }
+.bary-rar-badge { font-size: 9px !important; padding: 1px 5px !important; flex-shrink: 0; }
 
 /* ── Responsive ── */
 @media (max-width: 700px) {
   .bary-shop-price { width: 110px; }
-  .bary-cmp-cell   { padding: 8px 8px; }
+  .bary-cmp-cell   { padding: 8px; }
   .bary-cmp-effect { font-size: 11px; }
 }
 
@@ -278,74 +248,4 @@
   .bary-lv-head   { display: none; }
   .bary-shop-head { display: none; }
   .bary-cmp-icon  { width: 42px; }
-}
-
-/* ── Spoiler / Collapsible ── */
-.bary-spoiler-wrap {
-  overflow: hidden;
-  padding: 0 !important;
-}
-
-.bary-spoiler-btn {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 13px 16px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
-  text-transform: uppercase;
-  transition: background 0.15s, color 0.15s;
-}
-
-.bary-spoiler-btn:hover {
-  background: var(--surface);
-  color: var(--amber);
-}
-
-.bary-spoiler-arrow {
-  font-size: 11px;
-  transition: color 0.15s;
-}
-
-.bary-spoiler-body {
-  padding: 14px 16px;
-  border-top: 1px solid var(--border);
-}
-
-/* ── Level items (до 2 предметов) ── */
-.bary-lv-reward {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.bary-lv-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-}
-
-.bary-item-plus {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-ghost);
-  flex-shrink: 0;
-}
-
-.bary-rar-badge {
-  font-size: 9px !important;
-  padding: 1px 5px !important;
-  flex-shrink: 0;
 }

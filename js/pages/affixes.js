@@ -199,14 +199,20 @@ export async function renderAffixes() {
 
     const maxColors = { offense:"var(--bad)", defense:"var(--blue2)", brigade:"var(--ok)", utility:"var(--amber2)", special:"var(--amber)" };
 
+    // Функция рендера иконок слотов (общая для desktop и mobile)
+    function renderSlotIcons(a) {
+      return a.slots.map(sk => {
+        const sl = SLOTS.find(s => s.key === sk);
+        return `<span class="aff-slot-tag" style="--sc:${sl.color};" title="${sl.label}">${sl.icon}</span>`;
+      }).join("");
+    }
+
     root.querySelector("#affTableBody").innerHTML = list.map(a => {
       const cat    = CATEGORIES[a.cat];
-      const slotsH = showSlots ? `<div class="aff-col-slots">${
-        a.slots.map(sk => {
-          const sl = SLOTS.find(s => s.key === sk);
-          return `<span class="aff-slot-tag" style="--sc:${sl.color};" title="${sl.label}">${sl.icon}</span>`;
-        }).join("")
-      }</div>` : "";
+      // Desktop: отдельная правая колонка
+      const slotsH = showSlots ? `<div class="aff-col-slots">${renderSlotIcons(a)}</div>` : "";
+      // Mobile: слоты прячутся под названием аффикса
+      const slotsMobile = `<div class="aff-slots-mobile" style="display:none;">${renderSlotIcons(a)}</div>`;
 
       return `
         <div class="aff-row">
@@ -216,11 +222,12 @@ export async function renderAffixes() {
               ${cat.label.split(" ")[0]}
             </span>
           </div>
-          <div class="aff-col-name">
+          <div class="aff-col-name" style="flex-wrap:wrap;">
             <span class="aff-name-text">${esc(a.name)}</span>
             ${a.flat
               ? '<span class="aff-tag aff-tag-flat">плоск.</span>'
               : '<span class="aff-tag aff-tag-pct">%</span>'}
+            ${slotsMobile}
           </div>
           <div class="aff-col-max">
             <span class="aff-max-val" style="color:${maxColors[a.cat] || "var(--text)"};">${esc(a.max)}</span>

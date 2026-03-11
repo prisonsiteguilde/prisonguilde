@@ -1,4 +1,5 @@
 import { esc } from "../utils.js";
+import { openModal } from "../ui.js";
 
 const SETS = [
   {
@@ -290,11 +291,61 @@ export async function renderSets() {
 
     el.querySelectorAll("[data-set]").forEach(card => {
       card.addEventListener("click", () => {
-        state.selected = card.dataset.set;
-        renderGrid();
-        renderDetail(SETS.find(s => s.id === state.selected));
+        const set = SETS.find(s => s.id === card.dataset.set);
+        if (!set) return;
+
+        // На мобиле (≤768px) — модалка, на ПК — боковая панель
+        if (window.innerWidth <= 768) {
+          openSetModal(set);
+        } else {
+          state.selected = card.dataset.set;
+          renderGrid();
+          renderDetail(set);
+        }
       });
     });
+  }
+
+  function openSetModal(s) {
+    const body = document.createElement("div");
+    body.innerHTML = `
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;width:90px;flex-shrink:0;">
+          ${s.items.slice(0,4).map(it =>
+            `<img src="${esc(it.img)}" style="width:100%;aspect-ratio:1;object-fit:contain;border-radius:7px;background:var(--surface2);" loading="lazy" onerror="this.style.opacity='.2'" />`
+          ).join("")}
+        </div>
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;">${esc(s.name)}</div>
+          <div class="muted" style="font-size:12px;margin-top:2px;">${s.size} предмета в сете</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px;margin-bottom:16px;">
+        ${s.items.map((it, i) => `
+          <div style="text-align:center;">
+            <div style="position:relative;background:var(--surface2);border-radius:10px;overflow:hidden;border:1px solid var(--border);aspect-ratio:1;margin-bottom:5px;">
+              <img src="${esc(it.img)}" style="width:100%;height:100%;object-fit:contain;display:block;" loading="lazy" onerror="this.style.opacity='.2'" />
+              <span style="position:absolute;top:3px;left:5px;font-size:9px;font-weight:800;color:var(--accent);">${i+1}</span>
+            </div>
+            <div style="font-size:10px;color:var(--text-ghost);line-height:1.3;">${esc(it.code.replace(/_/g," "))}</div>
+          </div>
+        `).join("")}
+      </div>
+
+      ${s.bonus ? `
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:14px;background:var(--accent-dim);border:1px solid var(--accent-line);border-radius:var(--radius-sm);">
+          <span style="font-size:20px;flex-shrink:0;">⚡</span>
+          <div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:4px;">Бонус сета</div>
+            <div style="font-size:14px;line-height:1.55;">${esc(s.bonus)}</div>
+          </div>
+        </div>
+      ` : `
+        <div class="muted" style="text-align:center;padding:12px;">Бонус сета не задан</div>
+      `}
+    `;
+    openModal(s.name, body);
   }
 
   function renderDetail(s) {
