@@ -46,6 +46,22 @@
           <span class="tab-icon">🏪</span>
           <span class="tab-label">Барыга</span>
         </button>
+        <button class="tab" data-route="bosses" type="button">
+          <span class="tab-icon">👹</span>
+          <span class="tab-label">Боссы</span>
+        </button>
+        <button class="tab" data-route="minions" type="button">
+          <span class="tab-icon">👥</span>
+          <span class="tab-label">Шестёрки</span>
+        </button>
+        <button class="tab" data-route="sets" type="button">
+          <span class="tab-icon">👕</span>
+          <span class="tab-label">Сеты</span>
+        </button>
+        <button class="tab" data-route="effects" type="button">
+          <span class="tab-icon">⚔️</span>
+          <span class="tab-label">Эффекты</span>
+        </button>
       </nav>
 
       <div class="topbar-actions">
@@ -72,9 +88,25 @@
         <span class="bnav-icon">✨</span>
         <span class="bnav-label">Аффиксы</span>
       </button>
-      <button class="tab" data-route="baryga" type="button">
-        <span class="tab-icon">🏪</span>
-        <span class="tab-label">Барыга</span>
+      <button class="bnav-btn" data-route="baryga" type="button">
+        <span class="bnav-icon">🏪</span>
+        <span class="bnav-label">Барыга</span>
+      </button>
+      <button class="bnav-btn" data-route="bosses" type="button">
+        <span class="bnav-icon">👹</span>
+        <span class="bnav-label">Боссы</span>
+      </button>
+      <button class="bnav-btn" data-route="minions" type="button">
+        <span class="bnav-icon">👥</span>
+        <span class="bnav-label">Шестёрки</span>
+      </button>
+      <button class="bnav-btn" data-route="sets" type="button">
+        <span class="bnav-icon">👕</span>
+        <span class="bnav-label">Сеты</span>
+      </button>
+      <button class="bnav-btn" data-route="effects" type="button">
+        <span class="bnav-icon">⚔️</span>
+        <span class="bnav-label">Эффекты</span>
       </button>
     </nav>
 
@@ -83,6 +115,26 @@
   <div id="notifyHost" class="notify-host" aria-live="polite"></div>
   <div id="modalHost" class="modal-host hidden"></div>
 
-  <script type="module" src="./js/app.js?v=2.3"></script>
+  <button class="scroll-top-btn" id="scrollTopBtn" title="Наверх">↑</button>
+
+  <script type="module" src="./js/app.js?v=2.9"></script>
+  <script>
+    // Scroll-to-top logic
+    const scrollBtn = document.getElementById("scrollTopBtn");
+    const mainEl = document.querySelector(".app-main");
+    if (mainEl && scrollBtn) {
+      mainEl.addEventListener("scroll", () => {
+        scrollBtn.classList.toggle("visible", mainEl.scrollTop > 300);
+      }, { passive: true });
+      // Fallback: window scroll
+      window.addEventListener("scroll", () => {
+        scrollBtn.classList.toggle("visible", window.scrollY > 300);
+      }, { passive: true });
+      scrollBtn.addEventListener("click", () => {
+        mainEl.scrollTo({ top: 0, behavior: "smooth" });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    }
+  </script>
 </body>
 </html>

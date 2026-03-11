@@ -1,4 +1,4 @@
-
+import { esc } from '../utils.js';
 import { listRecipes } from "../db.js";
 import { notify } from "../notify.js";
 import { openModal } from "../ui.js";
@@ -30,9 +30,6 @@ const RARITY_ORDER = { gray: 1, green: 2, blue: 3, purple: 4 };
 
 const MULT_PRESETS = [1, 5, 10, 25, 50];
 
-function esc(s) {
-  return String(s ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-}
 function rarityLabel(r) { return RARITY.find(x => x.key === r)?.label || r || "—"; }
 function normSearch(s)  { return String(s || "").toLowerCase().trim(); }
 function clampQty(x)    { const n = Number(x); return (!Number.isFinite(n) || n < 0) ? 0 : Math.floor(n); }
@@ -144,15 +141,17 @@ export async function renderRecipes() {
           <div class="search-wrap" style="flex:1;">
             <span class="search-icon">🔍</span>
             <input class="input" id="q" placeholder="Поиск рецепта..." autocomplete="off" />
+            <button class="search-clear" id="searchClear" type="button" title="Очистить">✕</button>
             <span class="kbd-hint">Ctrl+K</span>
           </div>
           <select class="input" id="rar" style="width:160px;">
             <option value="">Все редкости</option>
             ${RARITY.map(r => `<option value="${r.key}">${r.label}</option>`).join("")}
           </select>
-          <button class="btn sm" id="compactToggle" title="Режим отображения">
-            ${state.compact ? "📋 Обычный" : "📑 Компактный"}
-          </button>
+          <div class="view-toggle">
+            <button class="vt-btn ${state.compact ? '' : 'active'}" id="vtFull"    type="button">📋 Подробно</button>
+            <button class="vt-btn ${state.compact ? 'active' : ''}" id="vtCompact" type="button">⚡ Компакт</button>
+          </div>
           <button class="btn sm" id="invBtn">📦 Ресурсы</button>
         </div>
 
@@ -188,8 +187,8 @@ export async function renderRecipes() {
               <div class="muted" id="sub">Кликните по предмету слева</div>
             </div>
             <div class="nav-btns">
-              <button class="btn sm" id="back" disabled title="Назад (Alt+←)">←</button>
-              <button class="btn sm" id="fwd"  disabled title="Вперёд (Alt+→)">→</button>
+              <button class="btn sm" id="back" disabled title="Назад · Alt+←">← <small style="font-size:9px;opacity:.45;font-family:monospace">Alt+←</small></button>
+              <button class="btn sm" id="fwd"  disabled title="Вперёд · Alt+→"><small style="font-size:9px;opacity:.45;font-family:monospace">Alt+→</small> →</button>
             </div>
           </div>
           <div class="hr" style="margin:12px 0;"></div>
@@ -210,6 +209,15 @@ export async function renderRecipes() {
     qEl.addEventListener("input", () => {
       clearTimeout(qEl._t);
       qEl._t = setTimeout(() => { state.q = qEl.value; renderCatalog(); }, 140);
+      // показать/скрыть кнопку сброса
+      const clr = root.querySelector("#searchClear");
+      if (clr) clr.classList.toggle("visible", !!qEl.value);
+    });
+
+    root.querySelector("#searchClear")?.addEventListener("click", () => {
+      qEl.value = ""; state.q = "";
+      root.querySelector("#searchClear")?.classList.remove("visible");
+      renderCatalog(); qEl.focus();
     });
     rarEl.addEventListener("change", () => { state.rar = rarEl.value; renderCatalog(); });
 
@@ -246,12 +254,17 @@ export async function renderRecipes() {
     });
 
     root.querySelector("#invBtn").addEventListener("click", openInvModal);
-    root.querySelector("#compactToggle").addEventListener("click", () => {
-      state.compact = !state.compact;
-      setCompact(state.compact);
-      root.querySelector("#compactToggle").textContent = state.compact ? "📋 Обычный" : "📑 Компактный";
-      renderCatalog();
-      if (state.selected) setActiveInCatalog(state.selected);
+    root.querySelector("#vtFull")?.addEventListener("click", () => {
+      state.compact = false; setCompact(false);
+      root.querySelector("#vtFull").classList.add("active");
+      root.querySelector("#vtCompact").classList.remove("active");
+      renderCatalog(); if (state.selected) setActiveInCatalog(state.selected);
+    });
+    root.querySelector("#vtCompact")?.addEventListener("click", () => {
+      state.compact = true; setCompact(true);
+      root.querySelector("#vtCompact").classList.add("active");
+      root.querySelector("#vtFull").classList.remove("active");
+      renderCatalog(); if (state.selected) setActiveInCatalog(state.selected);
     });
   }
 
@@ -316,8 +329,51 @@ export async function renderRecipes() {
       favBtn.innerHTML = `⭐ Избранное${fc > 0 ? `<span class="fav-count">${fc}</span>` : ""}`;
     }
 
+    // Обновить счётчики на всех чипах
+    const allList = state.recipes.filter(r => !r.hidden);
+    const inv = loadInv();
+    const chipCounts = {
+      cAll:    allList.length,
+      cFav:    loadFavs().filter(id => state.byId.has(id)).length,
+      cCraft:  allList.filter(r => canCraftWith(r.id, state.byId, inv)).length,
+      cWeapon: allList.filter(r => r.type === "weapon").length,
+      cCons:   allList.filter(r => r.type === "consumable").length,
+      cOther:  allList.filter(r => r.type === "other").length,
+    };
+    Object.entries(chipCounts).forEach(([id, count]) => {
+      const chip = root.querySelector(`#${id}`);
+      if (!chip) return;
+      // Убрать старый badge-count
+      chip.querySelectorAll(".chip-count, .fav-count").forEach(el => el.remove());
+      if (count > 0) {
+        const span = document.createElement("span");
+        span.className = id === "cFav" ? "fav-count" : "chip-count";
+        span.textContent = count;
+        chip.appendChild(span);
+      }
+    });
+
     if (!list.length) {
-      grid.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Ничего не найдено</div></div>`;
+      const hasFilters = state.q || state.rar || state.catType;
+      const qTxt = state.q ? ` по «${state.q}»` : "";
+      grid.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">${state.catType === "favorites" ? "⭐" : "🔍"}</div>
+          <div class="empty-text">Ничего не найдено${qTxt}</div>
+          ${hasFilters ? `
+            <div class="empty-actions">
+              <button class="btn sm" id="emptyReset">✕ Сбросить фильтры</button>
+              <button class="btn sm" id="emptyAll">🗂 Все рецепты</button>
+            </div>` : ""}
+        </div>`;
+      grid.querySelector("#emptyReset")?.addEventListener("click", () => {
+        state.q = ""; state.rar = ""; state.catType = "";
+        buildShell();
+      });
+      grid.querySelector("#emptyAll")?.addEventListener("click", () => {
+        state.q = ""; state.rar = ""; state.catType = "";
+        buildShell();
+      });
       return;
     }
 
@@ -673,7 +729,8 @@ export async function renderRecipes() {
         <button class="btn sm" id="impBtn">↑ Импорт</button>
         <button class="btn sm danger" id="clearBtn">🗑 Сбросить</button>
       </div>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="autosave-badge"><span class="autosave-dot"></span><span id="autosaveBadge">Автосохранение</span></span>
         <button class="btn sm primary" id="saveBtn">💾 Сохранить</button>
       </div>
     `;
@@ -684,6 +741,23 @@ export async function renderRecipes() {
     const rerender = () => {
       if (state.selected) renderPane(state.byId.get(state.selected));
     };
+
+    // Автосохранение с debounce
+    let autoSaveTimer;
+    const autoSave = () => {
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(() => {
+        const next = {};
+        node.querySelectorAll("input[data-k]").forEach(inp => {
+          next[inp.dataset.k] = clampQty(inp.value);
+        });
+        saveInv(next);
+        rerender(); renderCatalog();
+        const badge = node.querySelector("#autosaveBadge");
+        if (badge) { badge.textContent = "✓ Сохранено"; setTimeout(() => { badge.textContent = "Автосохранение"; }, 1500); }
+      }, 500);
+    };
+    node.querySelectorAll("input[data-k]").forEach(inp => inp.addEventListener("input", autoSave));
 
     node.querySelector("#saveBtn").addEventListener("click", () => {
       const next = {};
@@ -736,11 +810,27 @@ export async function renderRecipes() {
 
   buildShell();
 
+  // Показать skeleton пока грузятся данные
+  const grid = root.querySelector("#grid");
+  if (grid) {
+    const skRows = Array.from({length: 8}, () =>
+      `<div class="sk-row"><div class="sk-ico"></div><div class="sk-lines"><div class="sk-line"></div><div class="sk-line short"></div></div></div>`
+    ).join("");
+    grid.innerHTML = `<div class="skeleton-list">${skRows}</div>`;
+  }
+
   try {
     state.recipes = await listRecipes();
   } catch (e) {
     root.querySelector("#grid").innerHTML =
-      `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Ошибка загрузки: ${esc(e?.message || String(e))}</div></div>`;
+      `<div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <div class="empty-text">Ошибка загрузки</div>
+        <div class="muted" style="font-size:12px;margin-bottom:12px">${esc(e?.message || String(e))}</div>
+        <div class="empty-actions">
+          <button class="btn sm" onclick="location.reload()">🔄 Обновить страницу</button>
+        </div>
+      </div>`;
     return root;
   }
 

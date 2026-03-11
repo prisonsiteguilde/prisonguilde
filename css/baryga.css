@@ -279,3 +279,73 @@
   .bary-shop-head { display: none; }
   .bary-cmp-icon  { width: 42px; }
 }
+
+/* ── Spoiler / Collapsible ── */
+.bary-spoiler-wrap {
+  overflow: hidden;
+  padding: 0 !important;
+}
+
+.bary-spoiler-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  transition: background 0.15s, color 0.15s;
+}
+
+.bary-spoiler-btn:hover {
+  background: var(--surface);
+  color: var(--amber);
+}
+
+.bary-spoiler-arrow {
+  font-size: 11px;
+  transition: color 0.15s;
+}
+
+.bary-spoiler-body {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Level items (до 2 предметов) ── */
+.bary-lv-reward {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.bary-lv-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.bary-item-plus {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-ghost);
+  flex-shrink: 0;
+}
+
+.bary-rar-badge {
+  font-size: 9px !important;
+  padding: 1px 5px !important;
+  flex-shrink: 0;
+}

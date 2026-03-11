@@ -1,15 +1,4 @@
-// js/pages/calculator.js — v4.0
-//
-// ══ ФОРМУЛЫ (верифицированы по скриншотам) ══════════════════════
-//
-// Скорость шестёрки (сиг/ч на одну):
-//   rate_per_one = base_rate × (1 + respect / 100) × viti_mult
-//
-// Склад одного типа (суммарный):
-//   capacity = count × base_rate × (8 + 0.8 × mining) × viti_mult
-//
-// viti_mult = 1.5 если Сет Вити включён, иначе 1.0
-// mining и respect — статы персонажа (БЕЗ учёта Вити, игра показывает базу)
+import { esc, fmtNum, fmtDec, parseNum, getRuPlural, formatTime } from '../utils.js';
 
 const NPC_LIST = [
   { name: "Барыга",   sigPerHour:  25, maxCount: 7, icon: "🧢" },
@@ -28,33 +17,7 @@ function loadState() {
 }
 function saveState(s) { localStorage.setItem(LS_CALC, JSON.stringify(s)); }
 
-function esc(s) {
-  return String(s ?? "").replace(/[&<>"']/g, m =>
-    ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-}
-function fmtNum(n)    { return Number(n || 0).toLocaleString("ru-RU"); }
-function fmtDec(n, d) { return Number(n || 0).toFixed(d !== undefined ? d : 2).replace(".", ","); }
 
-function getRuPlural(n, f) {
-  const a = Math.abs(n) % 100, b = a % 10;
-  if (a > 10 && a < 20) return f[2];
-  if (b > 1  && b < 5)  return f[1];
-  if (b === 1)           return f[0];
-  return f[2];
-}
-function formatTime(totalMin) {
-  const t = Math.round(Math.abs(totalMin));
-  const h = Math.floor(t / 60), m = t % 60;
-  const hw = getRuPlural(h, ["час","часа","часов"]);
-  const mw = getRuPlural(m, ["минута","минуты","минут"]);
-  if (h === 0) return m + " " + mw;
-  if (m === 0) return h + " " + hw;
-  return h + " " + hw + " " + m + " " + mw;
-}
-function parseNum(v) {
-  const n = parseFloat(String(v).replace(",", "."));
-  return Number.isFinite(n) && n >= 0 ? n : 0;
-}
 
 export async function renderCalculator() {
   const root = document.createElement("div");
@@ -135,7 +98,7 @@ export async function renderCalculator() {
     </div>
   `;
 
-  // Viti toggle
+
   root.querySelector("#vitiToggle").addEventListener("click", () => {
     vitiActive = !vitiActive;
     root.querySelector("#vitiCheck").textContent = vitiActive ? "✓" : "";
@@ -145,10 +108,11 @@ export async function renderCalculator() {
     calculate();
   });
 
-  // Build NPC rows
+
   for (const npc of NPC_LIST) {
     const row = document.createElement("div");
     row.className = "npc-item";
+    const curVal = npcCounts[npc.name] || 0;
     row.innerHTML =
       '<span style="font-size:22px;flex-shrink:0;">' + npc.icon + '</span>' +
       '<div style="flex:1;min-width:0;">' +
@@ -159,20 +123,22 @@ export async function renderCalculator() {
         '<div class="npc-info" id="npcRate-' + esc(npc.name) + '">—</div>' +
         '<div class="npc-bar"><div class="npc-bar-fill" id="bar-' + esc(npc.name) + '" style="width:0%"></div></div>' +
       '</div>' +
-      '<select class="input npc-select" data-npc="' + esc(npc.name) + '"></select>';
+      '<div class="npc-stepper">' +
+        '<button class="npc-step-btn" data-dir="-1" data-npc="' + esc(npc.name) + '" type="button">−</button>' +
+        '<span class="npc-step-val" id="stepVal-' + esc(npc.name) + '">' + curVal + '<span class="npc-step-max">/' + npc.maxCount + '</span></span>' +
+        '<button class="npc-step-btn" data-dir="1" data-npc="' + esc(npc.name) + '" type="button">+</button>' +
+      '</div>';
 
-    const sel = row.querySelector("select");
-    for (let i = 0; i <= npc.maxCount; i++) {
-      const opt = document.createElement("option");
-      opt.value = String(i);
-      opt.textContent = i + "/" + npc.maxCount;
-      sel.appendChild(opt);
-    }
-    sel.value = String(npcCounts[npc.name] || 0);
-    sel.addEventListener("change", () => {
-      npcCounts[npc.name] = Math.max(0, Math.min(npc.maxCount, parseInt(sel.value, 10) || 0));
-      calculate();
+    row.querySelectorAll(".npc-step-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const dir = parseInt(btn.dataset.dir);
+        npcCounts[npc.name] = Math.max(0, Math.min(npc.maxCount, (npcCounts[npc.name] || 0) + dir));
+        const valEl = row.querySelector("#stepVal-" + CSS.escape(npc.name));
+        if (valEl) valEl.firstChild.textContent = npcCounts[npc.name];
+        calculate();
+      });
     });
+
     root.querySelector("#npcGrid").appendChild(row);
   }
 

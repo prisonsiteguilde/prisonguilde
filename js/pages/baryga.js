@@ -1,45 +1,41 @@
-
-function esc(s) {
-  return String(s ?? "").replace(/[&<>"']/g, m =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m]));
-}
+import { esc, fmtNum } from '../utils.js';
 
 const LEVELS = [
-  { lv:1,  sigs:5000,   kop:50,   silv:0,   chirk:0,   item:"Ботинки «Побег»",                    rar:"uncommon"  },
-  { lv:2,  sigs:10000,  kop:170,  silv:0,   chirk:0,   item:"Штаны «Побег»",                      rar:"uncommon"  },
-  { lv:3,  sigs:15000,  kop:290,  silv:0,   chirk:0,   item:"Рубашка «Побег»",                    rar:"uncommon"  },
-  { lv:4,  sigs:20000,  kop:410,  silv:0,   chirk:0,   item:"Шапка «Побег»",                      rar:"uncommon"  },
-  { lv:5,  sigs:0,      kop:530,  silv:110, chirk:0,   item:"Застывшая кровь + Медаль Кучерявого", rar:"legendary"},
-  { lv:6,  sigs:50000,  kop:650,  silv:130, chirk:0,   item:"Козырёк «Abibas Sharp»",             rar:"rare"      },
-  { lv:7,  sigs:0,      kop:770,  silv:150, chirk:0,   item:"Куртка «Abibas» + Медаль Банкира",   rar:"legendary" },
-  { lv:8,  sigs:60000,  kop:890,  silv:180, chirk:0,   item:"Шорты Ашаба",                        rar:"uncommon"  },
-  { lv:9,  sigs:0,      kop:1010, silv:200, chirk:50,  item:"Шорты Ашаба + Медаль Ашаба",         rar:"legendary" },
-  { lv:10, sigs:70000,  kop:1130, silv:230, chirk:60,  item:"99я проблема",                       rar:"uncommon"  },
-  { lv:11, sigs:0,      kop:1250, silv:250, chirk:60,  item:"Очки дежавю + Медаль Олега",         rar:"legendary" },
-  { lv:12, sigs:80000,  kop:1370, silv:270, chirk:70,  item:"Очки Макарона",                    rar:"uncommon"  },
-  { lv:13, sigs:0,      kop:1490, silv:300, chirk:70,  item:"Очки Макарона + Медаль Арсена",    rar:"legendary" },
-  { lv:14, sigs:90000,  kop:1610, silv:320, chirk:80,  item:"Куртка «Вечерка»",                   rar:"rare"      },
-  { lv:15, sigs:0,      kop:1730, silv:350, chirk:90,  item:"Медаль Мистера Бизнеса",             rar:"legendary" },
-  { lv:16, sigs:100000, kop:1850, silv:370, chirk:90,  item:"Куртка «Abibas»",                    rar:"rare"      },
-  { lv:17, sigs:0,      kop:1970, silv:390, chirk:100, item:"Спортивки «Abibas» + Медаль Жана",   rar:"legendary" },
-  { lv:18, sigs:120000, kop:2090, silv:420, chirk:100, item:"Куртка «Мавродий»",                  rar:"epic"      },
-  { lv:19, sigs:0,      kop:2210, silv:440, chirk:110, item:"Штаны «Мавродий» + Медаль Сергея",   rar:"legendary" },
-  { lv:20, sigs:140000, kop:2330, silv:470, chirk:120, item:"Чернильный клинок",                  rar:"rare"      },
-  { lv:21, sigs:0,      kop:2450, silv:490, chirk:120, item:"Штаны «Миллионер» + Медаль Нурлыза", rar:"legendary" },
-  { lv:22, sigs:160000, kop:2570, silv:510, chirk:130, item:"Очки Захара",                        rar:"uncommon"  },
-  { lv:23, sigs:0,      kop:2690, silv:540, chirk:130, item:"Очки Захара + Медаль Захара",        rar:"legendary" },
-  { lv:24, sigs:180000, kop:2810, silv:560, chirk:140, item:"Футболка павшего рэпера",            rar:"uncommon"  },
-  { lv:25, sigs:0,      kop:2930, silv:590, chirk:150, item:"Медаль ДиПиПи",                      rar:"legendary" },
-  { lv:26, sigs:200000, kop:3050, silv:610, chirk:150, item:"Стальная бита",                      rar:"uncommon"  },
-  { lv:27, sigs:0,      kop:3170, silv:630, chirk:160, item:"Стальная бита + Медаль Фомы",        rar:"legendary" },
-  { lv:28, sigs:250000, kop:3290, silv:660, chirk:170, item:"", rar:"" },
-  { lv:29, sigs:300000, kop:3410, silv:680, chirk:170, item:"", rar:"" },
-  { lv:30, sigs:350000, kop:3530, silv:710, chirk:180, item:"", rar:"" },
-  { lv:31, sigs:400000, kop:3650, silv:730, chirk:180, item:"", rar:"" },
-  { lv:32, sigs:450000, kop:3770, silv:750, chirk:190, item:"", rar:"" },
-  { lv:33, sigs:500000, kop:3890, silv:780, chirk:190, item:"", rar:"" },
-  { lv:34, sigs:600000, kop:4010, silv:800, chirk:200, item:"", rar:"" },
-  { lv:35, sigs:700000, kop:4130, silv:830, chirk:210, item:"", rar:"" },
+  { lv:1,  sigs:5000,   kop:50,   silv:0,   chirk:0,   items:[ {name:"Ботинки «Побег»",       rar:"uncommon",  img:"https://media.prison.coffee.agency/test455/items/body/striped/feet-striped.webp"} ] },
+  { lv:2,  sigs:10000,  kop:170,  silv:0,   chirk:0,   items:[ {name:"Штаны «Побег»",          rar:"uncommon",  img:"https://media.prison.coffee.agency/test455/items/body/striped/pants-striped.webp"} ] },
+  { lv:3,  sigs:15000,  kop:290,  silv:0,   chirk:0,   items:[ {name:"Рубашка «Побег»",        rar:"uncommon",  img:"https://media.prison.coffee.agency/test455/items/body/striped/body-striped.webp"} ] },
+  { lv:4,  sigs:20000,  kop:410,  silv:0,   chirk:0,   items:[ {name:"Шапка «Побег»",          rar:"uncommon",  img:"https://media.prison.coffee.agency/test455/items/body/striped/hat-striped.webp"} ] },
+  { lv:5,  sigs:0,      kop:530,  silv:110, chirk:0,   items:[ {name:"Застывшая кровь",        rar:"uncommon", img:"https://media.prison.coffee.agency/test455/items/weapons/blood_shank.png"}, {name:"Медаль Кучерявого", rar:"legendary", img:"https://media.prison.coffee.agency/items/other/medal_boss_homa.png"} ] },
+  { lv:6,  sigs:50000,  kop:650,  silv:130, chirk:0,   items:[ {name:"Козырёк «Abibas Sharp»", rar:"rare",      img:""} ] },
+  { lv:7,  sigs:0,      kop:770,  silv:150, chirk:0,   items:[ {name:"Куртка «Abibas»",        rar:"legendary", img:""}, {name:"Медаль Банкира",    rar:"legendary", img:""} ] },
+  { lv:8,  sigs:60000,  kop:890,  silv:180, chirk:0,   items:[ {name:"Шорты Ашаба",            rar:"uncommon",  img:""} ] },
+  { lv:9,  sigs:0,      kop:1010, silv:200, chirk:50,  items:[ {name:"Шорты Ашаба",            rar:"uncommon",  img:""}, {name:"Медаль Ашаба",      rar:"legendary", img:""} ] },
+  { lv:10, sigs:70000,  kop:1130, silv:230, chirk:60,  items:[ {name:"99я проблема",           rar:"uncommon",  img:""} ] },
+  { lv:11, sigs:0,      kop:1250, silv:250, chirk:60,  items:[ {name:"Очки дежавю",            rar:"legendary", img:""}, {name:"Медаль Олега",      rar:"legendary", img:""} ] },
+  { lv:12, sigs:80000,  kop:1370, silv:270, chirk:70,  items:[ {name:"Очки Макарона",          rar:"uncommon",  img:""} ] },
+  { lv:13, sigs:0,      kop:1490, silv:300, chirk:70,  items:[ {name:"Очки Макарона",          rar:"uncommon",  img:""}, {name:"Медаль Арсена",     rar:"legendary", img:""} ] },
+  { lv:14, sigs:90000,  kop:1610, silv:320, chirk:80,  items:[ {name:"Куртка «Вечерка»",       rar:"rare",      img:""} ] },
+  { lv:15, sigs:0,      kop:1730, silv:350, chirk:90,  items:[ {name:"Медаль Мистера Бизнеса", rar:"legendary", img:""} ] },
+  { lv:16, sigs:100000, kop:1850, silv:370, chirk:90,  items:[ {name:"Куртка «Abibas»",        rar:"rare",      img:""} ] },
+  { lv:17, sigs:0,      kop:1970, silv:390, chirk:100, items:[ {name:"Спортивки «Abibas»",     rar:"legendary", img:""}, {name:"Медаль Жана",       rar:"legendary", img:""} ] },
+  { lv:18, sigs:120000, kop:2090, silv:420, chirk:100, items:[ {name:"Куртка «Мавродий»",      rar:"epic",      img:""} ] },
+  { lv:19, sigs:0,      kop:2210, silv:440, chirk:110, items:[ {name:"Штаны «Мавродий»",       rar:"epic",      img:""}, {name:"Медаль Сергея",     rar:"legendary", img:""} ] },
+  { lv:20, sigs:140000, kop:2330, silv:470, chirk:120, items:[ {name:"Чернильный клинок",      rar:"rare",      img:""} ] },
+  { lv:21, sigs:0,      kop:2450, silv:490, chirk:120, items:[ {name:"Штаны «Миллионер»",      rar:"legendary", img:""}, {name:"Медаль Нурлыза",    rar:"legendary", img:""} ] },
+  { lv:22, sigs:160000, kop:2570, silv:510, chirk:130, items:[ {name:"Очки Захара",            rar:"uncommon",  img:""} ] },
+  { lv:23, sigs:0,      kop:2690, silv:540, chirk:130, items:[ {name:"Очки Захара",            rar:"uncommon",  img:""}, {name:"Медаль Захара",     rar:"legendary", img:""} ] },
+  { lv:24, sigs:180000, kop:2810, silv:560, chirk:140, items:[ {name:"Футболка павшего рэпера",rar:"uncommon",  img:""} ] },
+  { lv:25, sigs:0,      kop:2930, silv:590, chirk:150, items:[ {name:"Медаль ДиПиПи",          rar:"legendary", img:""} ] },
+  { lv:26, sigs:200000, kop:3050, silv:610, chirk:150, items:[ {name:"Стальная бита",          rar:"uncommon",  img:""} ] },
+  { lv:27, sigs:0,      kop:3170, silv:630, chirk:160, items:[ {name:"Стальная бита",          rar:"uncommon",  img:""}, {name:"Медаль Фомы",       rar:"legendary", img:""} ] },
+  { lv:28, sigs:250000, kop:3290, silv:660, chirk:170, items:[] },
+  { lv:29, sigs:300000, kop:3410, silv:680, chirk:170, items:[] },
+  { lv:30, sigs:350000, kop:3530, silv:710, chirk:180, items:[] },
+  { lv:31, sigs:400000, kop:3650, silv:730, chirk:180, items:[] },
+  { lv:32, sigs:450000, kop:3770, silv:750, chirk:190, items:[] },
+  { lv:33, sigs:500000, kop:3890, silv:780, chirk:190, items:[] },
+  { lv:34, sigs:600000, kop:4010, silv:800, chirk:200, items:[] },
+  { lv:35, sigs:700000, kop:4130, silv:830, chirk:210, items:[] },
 ];
 
 const LV_FIRST = {
@@ -172,7 +168,6 @@ const IC = {
   chirk: '<img class="cur-ico" src="https://media.prison.coffee.agency/test455/items/hustler/monetkaGold1.png" />',
 };
 
-function fmtNum(n) { return n > 0 ? n.toLocaleString("ru-RU") : "—"; }
 
 function costBadges(l, small) {
   const sz = small ? " small" : "";
@@ -229,21 +224,41 @@ export async function renderBarygа() {
     const tot = { sigs:0, kop:0, silv:0, chirk:0 };
     LEVELS.forEach(l => { tot.sigs+=l.sigs||0; tot.kop+=l.kop||0; tot.silv+=l.silv||0; tot.chirk+=l.chirk||0; });
 
+    // Рендер предметов уровня (до 2 шт.)
+    function renderItems(items) {
+      if (!items || !items.length) return `<span class="muted" style="font-size:12px;">—</span>`;
+      return items.map(it => {
+        const rc = it.rar ? RAR_COLOR[it.rar] : "var(--text-ghost)";
+        const rl = it.rar ? RAR_LABEL[it.rar] : "";
+        return `<div class="bary-lv-item">
+          ${it.img ? `<img class="bary-item-img" src="${it.img}" alt="${esc(it.name)}" onerror="this.style.display='none'" />` : ""}
+          <span class="bary-item-name">${esc(it.name)}</span>
+          ${rl ? `<span class="badge bary-rar-badge" style="background:${rc}22;color:${rc};border-color:${rc}44;">${rl}</span>` : ""}
+        </div>`;
+      }).join(`<span class="bary-item-plus">+</span>`);
+    }
+
     wrap.innerHTML = `
-      <div class="card no-accent" style="padding:14px 16px;">
-        <div class="section-title" style="margin-bottom:10px;">🧮 КАЛЬКУЛЯТОР</div>
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span class="muted" style="font-size:12px;">Текущий уровень</span>
-            <input class="input" id="lvFrom" type="number" min="0" max="34" value="0" style="width:54px;text-align:center;" />
+      <!-- ── Спойлер калькулятора ── -->
+      <div class="card no-accent bary-spoiler-wrap">
+        <button class="bary-spoiler-btn" id="calcToggle" type="button">
+          <span>🧮 КАЛЬКУЛЯТОР ПРОКАЧКИ</span>
+          <span class="bary-spoiler-arrow" id="calcArrow">▼</span>
+        </button>
+        <div class="bary-spoiler-body" id="calcBody" style="display:none;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="muted" style="font-size:12px;">Текущий уровень</span>
+              <input class="input" id="lvFrom" type="number" min="0" max="34" value="0" style="width:54px;text-align:center;" />
+            </div>
+            <span style="color:var(--amber);font-weight:700;">→</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="muted" style="font-size:12px;">Целевой уровень</span>
+              <input class="input" id="lvTo" type="number" min="1" max="35" value="35" style="width:54px;text-align:center;" />
+            </div>
           </div>
-          <span style="color:var(--amber);font-weight:700;">→</span>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span class="muted" style="font-size:12px;">Целевой уровень</span>
-            <input class="input" id="lvTo" type="number" min="1" max="35" value="35" style="width:54px;text-align:center;" />
-          </div>
+          <div id="calcResult"></div>
         </div>
-        <div id="calcResult" style="margin-top:12px;"></div>
       </div>
 
       <div class="card no-accent" style="padding:12px 16px;">
@@ -258,18 +273,14 @@ export async function renderBarygа() {
           <div class="bary-lv-reward">Требуемый предмет</div>
         </div>
         <div>${LEVELS.map(l => {
-          const rc = l.rar ? RAR_COLOR[l.rar] : "transparent";
-          const rl = l.rar ? RAR_LABEL[l.rar]  : "";
+          const hasItems = l.items && l.items.length > 0;
           const ft = LV_FIRST[l.lv] ? `<span class="bary-first-tag">${LV_FIRST[l.lv]}</span>` : "";
           return `
-            <div class="bary-lv-row ${l.item ? "has-reward" : ""}">
+            <div class="bary-lv-row ${hasItems ? "has-reward" : ""}">
               <div class="bary-lv-num">${l.lv}</div>
               <div class="bary-lv-costs">${costBadges(l)}</div>
               <div class="bary-lv-reward">
-                ${l.item
-                  ? `<span class="bary-item-name">${esc(l.item)}</span>
-                     <span class="badge" style="background:${rc}22;color:${rc};border-color:${rc}44;font-size:10px;">${rl}</span>`
-                  : `<span class="muted" style="font-size:12px;">—</span>`}
+                ${renderItems(l.items)}
                 ${ft}
               </div>
             </div>`;
@@ -286,6 +297,16 @@ export async function renderBarygа() {
       </div>
     `;
 
+    // Спойлер — переключение
+    wrap.querySelector("#calcToggle").addEventListener("click", () => {
+      const body  = wrap.querySelector("#calcBody");
+      const arrow = wrap.querySelector("#calcArrow");
+      const open  = body.style.display !== "none";
+      body.style.display = open ? "none" : "block";
+      arrow.textContent  = open ? "▼" : "▲";
+      arrow.style.color  = open ? "" : "var(--amber)";
+    });
+
     function updateCalc() {
       const from = Math.max(0, Math.min(34, parseInt(wrap.querySelector("#lvFrom").value)||0));
       const to   = Math.max(1, Math.min(35, parseInt(wrap.querySelector("#lvTo").value)||35));
@@ -297,19 +318,32 @@ export async function renderBarygа() {
       const slice = LEVELS.filter(l => l.lv > from && l.lv <= to);
       const s = {sigs:0,kop:0,silv:0,chirk:0};
       slice.forEach(l => { s.sigs+=l.sigs||0; s.kop+=l.kop||0; s.silv+=l.silv||0; s.chirk+=l.chirk||0; });
-      const items = slice.filter(l=>l.item).map(l=>
-        `<div style="font-size:12px;padding:2px 0;">• ${esc(l.item)}</div>`
-      );
+
+      // Собираем все предметы из диапазона
+      const allItems = [];
+      slice.forEach(l => { if (l.items) l.items.forEach(it => allItems.push({lv: l.lv, ...it})); });
+
       el.innerHTML = `
         <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text-ghost);margin-bottom:8px;">
           НУЖНО ДЛЯ УРОВНЕЙ ${from+1}–${to}
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;">${costBadges(s)}</div>
-        ${items.length ? `
+        ${allItems.length ? `
           <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text-ghost);margin:10px 0 6px;">
-            ПРЕДМЕТЫ (${items.length} шт.)
+            ПРЕДМЕТЫ (${allItems.length} шт.)
           </div>
-          <div style="color:var(--text-dim);">${items.join("")}</div>` : ""}
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            ${allItems.map(it => {
+              const rc = it.rar ? RAR_COLOR[it.rar] : "var(--text-ghost)";
+              const rl = it.rar ? RAR_LABEL[it.rar] : "";
+              return `<div style="display:flex;align-items:center;gap:6px;font-size:12px;">
+                ${it.img ? `<img style="width:20px;height:20px;object-fit:contain;flex-shrink:0;" src="${it.img}" onerror="this.style.display='none'" />` : `<span style="color:var(--amber);">•</span>`}
+                <span style="color:var(--text-dim);">${esc(it.name)}</span>
+                ${rl ? `<span class="badge" style="font-size:9px;background:${rc}22;color:${rc};border-color:${rc}44;">${rl}</span>` : ""}
+                <span class="muted" style="font-size:10px;">лв.${it.lv}</span>
+              </div>`;
+            }).join("")}
+          </div>` : ""}
       `;
     }
     wrap.querySelector("#lvFrom").addEventListener("input", updateCalc);

@@ -4,12 +4,20 @@ import { renderCalculator } from "./pages/calculator.js";
 import { notify } from "./notify.js";
 import { renderAffixes } from "./pages/affixes.js";
 import { renderBarygа } from "./pages/baryga.js";
+import { renderBosses } from "./pages/bosses.js";
+import { renderMinions } from "./pages/minions.js";
+import { renderSets } from "./pages/sets.js";
+import { renderEffects } from "./pages/effects.js";
 
 const routes = {
   recipes: renderRecipes,
   calculator: renderCalculator,
   affixes: renderAffixes,
   baryga: renderBarygа,
+  bosses: renderBosses,
+    minions: renderMinions,
+    sets: renderSets,
+    effects: renderEffects,
 };
 
 let currentRoute = "recipes";
@@ -40,6 +48,7 @@ async function navigate(route) {
   try {
     const content = await routes[route]();
     page.innerHTML = "";
+    content.classList.add("page-fade-in");
     page.appendChild(content);
   } catch (e) {
     console.error(e);
@@ -108,6 +117,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (e.ctrlKey && e.key === "1") { e.preventDefault(); navigate("recipes"); }
     if (e.ctrlKey && e.key === "2") { e.preventDefault(); navigate("calculator"); }
+    if (e.ctrlKey && e.key === "3") { e.preventDefault(); navigate("affixes"); }
+    if (e.ctrlKey && e.key === "4") { e.preventDefault(); navigate("baryga"); }
+    if (e.ctrlKey && e.key === "5") { e.preventDefault(); navigate("bosses"); }
 
 
     if (e.key === "Escape") {
