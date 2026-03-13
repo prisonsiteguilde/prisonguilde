@@ -18,6 +18,7 @@
 
   <div class="app-shell">
 
+    <!-- SIDEBAR desktop -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-brand">
         <div class="sidebar-logo-wrap">🔒</div>
@@ -38,6 +39,7 @@
         <button class="snav-btn"        data-route="minions"    type="button"><span class="snav-icon">👥</span><span class="snav-label">Шестёрки</span></button>
         <button class="snav-btn"        data-route="sets"       type="button"><span class="snav-icon">👕</span><span class="snav-label">Сеты</span></button>
         <button class="snav-btn"        data-route="effects"    type="button"><span class="snav-icon">⚔️</span><span class="snav-label">Эффекты</span></button>
+        <button class="snav-btn"        data-route="safe"       type="button"><span class="snav-icon">🔒</span><span class="snav-label">Сейф</span></button>
       </nav>
 
       <div class="sidebar-spacer"></div>
@@ -50,12 +52,14 @@
           <button class="theme-opt"        data-theme="theme-blood" title="Кровь">🩸</button>
           <button class="theme-opt"        data-theme="theme-light" title="Светлая">☀️</button>
         </div>
-        <div class="sidebar-ver">v4.1</div>
+        <div class="sidebar-ver">v3.1</div>
       </div>
     </aside>
 
+    <!-- CONTENT AREA -->
     <div class="app-content">
 
+      <!-- Mobile topbar -->
       <header class="topbar-mobile" id="topbarMobile">
         <div class="mobile-brand">
           <div class="mobile-logo">🔒</div>
@@ -66,12 +70,14 @@
         </button>
       </header>
 
+      <!-- Page content -->
       <main class="app-main" id="appMain">
         <div id="page" class="page-container"></div>
       </main>
 
-    </div>
+    </div><!-- /app-content -->
 
+    <!-- BOTTOM NAV mobile -->
     <nav class="bottom-nav" id="bottomNav">
       <button class="bnav-btn active" data-route="recipes"    type="button"><span class="bnav-icon">📋</span><span class="bnav-label">Рецепты</span></button>
       <button class="bnav-btn"        data-route="calculator" type="button"><span class="bnav-icon">🚬</span><span class="bnav-label">Расчёт</span></button>
@@ -81,9 +87,10 @@
       <button class="bnav-btn"        data-route="minions"    type="button"><span class="bnav-icon">👥</span><span class="bnav-label">Сечас</span></button>
       <button class="bnav-btn"        data-route="sets"       type="button"><span class="bnav-icon">👕</span><span class="bnav-label">Сеты</span></button>
       <button class="bnav-btn"        data-route="effects"    type="button"><span class="bnav-icon">⚔️</span><span class="bnav-label">Эффекты</span></button>
+      <button class="bnav-btn"        data-route="safe"       type="button"><span class="bnav-icon">🔒</span><span class="bnav-label">Сейф</span></button>
     </nav>
 
-  </div>
+  </div><!-- /app-shell -->
 
   <div id="notifyHost" class="notify-host" aria-live="polite"></div>
   <div id="modalHost" class="modal-host hidden"></div>

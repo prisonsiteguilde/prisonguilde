@@ -1,50 +1,50 @@
 
+
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  /* Accent */
+
   --accent:       #FF9500;
   --accent2:      #FFB340;
   --accent-dim:   rgba(255,149,0,0.18);
   --accent-glow:  0 0 24px rgba(255,149,0,0.25);
   --accent-line:  rgba(255,149,0,0.4);
 
-  /* Backgrounds */
   --bg:           #080a0e;
   --bg2:          #0d1018;
   --bg3:          #131820;
   --sidebar-bg:   #080a12;
 
-  /* Surfaces */
+
   --surface:      rgba(255,255,255,0.034);
   --surface2:     rgba(255,255,255,0.065);
   --surface-h:    rgba(255,255,255,0.095);
   --surface-act:  rgba(255,149,0,0.10);
 
-  /* Text */
+
   --text:         #edf0f7;
   --text-dim:     rgba(237,240,247,0.56);
   --text-ghost:   rgba(237,240,247,0.28);
 
-  /* Borders */
+
   --border:       rgba(255,255,255,0.07);
   --border2:      rgba(255,255,255,0.12);
   --border3:      rgba(255,255,255,0.18);
 
-  /* State */
+
   --ok:           #2ECC71;
   --bad:          #E74C3C;
   --warn:         #F39C12;
   --blue:         #00AAFF;
   --blue2:        #40CCFF;
 
-  /* Rarity */
+
   --r-gray:       #8A95A0;
   --r-green:      #2ECC71;
   --r-blue:       #4AA0FF;
   --r-purple:     #BF6FFF;
 
-  /* Layout */
+
   --sidebar-w:    224px;
   --topbar-mob-h: 58px;
   --bnav-h:       64px;
@@ -54,12 +54,12 @@
   --radius-lg:    20px;
   --radius-xl:    28px;
 
-  /* Shadows */
+
   --shadow:       0 4px 24px rgba(0,0,0,0.55);
   --shadow-lg:    0 8px 48px rgba(0,0,0,0.65);
   --shadow-xl:    0 16px 64px rgba(0,0,0,0.8);
 
-  /* Transition */
+
   --ease:         cubic-bezier(0.4, 0, 0.2, 1);
   --ease-spring:  cubic-bezier(0.22, 0.68, 0, 1.2);
 }
@@ -1842,3 +1842,371 @@ button.rcp-ing.rar-purple:hover { border-color: rgba(191,111,255,0.7); backgroun
 .minion-skill-badge.active  { background: rgba(52,152,219,0.18); color: var(--blue2); }
 .minion-skill-badge.passive { background: rgba(155,89,182,0.18); color: #bb8fce; }
 .minion-locked-badge { font-size: 9px; background: rgba(231,76,60,0.14); color: var(--bad); padding: 2px 7px; border-radius: 5px; font-weight: 700; }
+
+/* ================================================================
+
+/* ================================================================
+   SAFE PAGE v3 — mobile-first Mastermind solver
+   ================================================================ */
+
+.sf-wrap {
+  display: flex; flex-direction: column; gap: 12px;
+  padding-bottom: 24px;
+  /* max-width keeps it from going crazy on desktop */
+  max-width: 480px; margin: 0 auto;
+}
+
+/* ── Topbar ─────────────────────────────────────────── */
+.sf-top {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 4px 0 6px;
+}
+.sf-top-l { display: flex; align-items: center; gap: 12px; }
+.sf-icon  { font-size: 32px; line-height: 1; flex-shrink: 0; }
+.sf-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 28px;
+  letter-spacing: 3px; line-height: 1;
+}
+.sf-variants { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+.sf-open-badge {
+  background: rgba(46,204,113,0.15); border: 1px solid rgba(46,204,113,0.4);
+  color: #2ecc71; border-radius: 20px; padding: 4px 10px;
+  font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+
+/* ── Legend ─────────────────────────────────────────── */
+.sf-legend {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.sf-leg {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--text-dim);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 10px;
+}
+.sf-leg-d {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.sf-leg.gray   .sf-leg-d { background: #556677; }
+.sf-leg.yellow .sf-leg-d { background: #f0b429; }
+.sf-leg.green  .sf-leg-d { background: #2ecc71; }
+
+/* ── Solver card ─────────────────────────────────────── */
+.sf-solver {
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: var(--radius-lg); padding: 18px 16px 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.sf-code-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--text-ghost); align-self: stretch; text-align: center;
+}
+
+/* ── 4 Tiles ─────────────────────────────────────────── */
+.sf-tiles {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 10px; width: 100%;
+}
+.sf-tile {
+  aspect-ratio: 0.85;
+  border-radius: 14px;
+  border: 2.5px solid var(--border2);
+  background: var(--surface2);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 4px; cursor: pointer;
+  transition: all 0.18s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+  position: relative; overflow: hidden;
+}
+.sf-tile:active { transform: scale(0.93); }
+
+/* Color variants */
+.sf-tile.gray {
+  border-color: #445566;
+  background: var(--surface2);
+}
+.sf-tile.yellow {
+  border-color: #f0b429;
+  background: rgba(240,180,41,0.12);
+  box-shadow: 0 0 14px rgba(240,180,41,0.15);
+}
+.sf-tile.green {
+  border-color: #2ecc71;
+  background: rgba(46,204,113,0.12);
+  box-shadow: 0 0 14px rgba(46,204,113,0.2);
+}
+
+/* Digit */
+.sf-td {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(26px, 8vw, 36px);
+  font-weight: 900; line-height: 1;
+  transition: color 0.15s;
+}
+.sf-tile.gray   .sf-td { color: var(--text-dim); }
+.sf-tile.yellow .sf-td { color: #f0b429; }
+.sf-tile.green  .sf-td { color: #2ecc71; }
+
+/* Symbol badge */
+.sf-ts {
+  font-size: 13px; font-weight: 700; line-height: 1;
+  transition: color 0.15s;
+}
+.sf-tile.gray   .sf-ts { color: #556; }
+.sf-tile.yellow .sf-ts { color: #f0b429; }
+.sf-tile.green  .sf-ts { color: #2ecc71; }
+
+/* Position number badge on each tile */
+.sf-pos {
+  position: absolute; top: 5px; left: 7px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0;
+  color: var(--text-ghost); line-height: 1;
+  font-family: 'Outfit', sans-serif;
+}
+
+.sf-tap-hint {
+  font-size: 11px; color: var(--text-ghost); text-align: center;
+}
+
+/* ── Progress ────────────────────────────────────────── */
+.sf-prog-track {
+  width: 100%; height: 5px; background: var(--surface2);
+  border-radius: 3px; overflow: hidden;
+}
+.sf-prog-fill {
+  height: 100%; border-radius: 3px;
+  transition: width 0.5s var(--ease), background 0.3s;
+  background: var(--accent);
+}
+
+/* ── Apply btn ───────────────────────────────────────── */
+.sf-apply {
+  width: 100%; height: 50px;
+  background: var(--accent); color: #000;
+  border: none; border-radius: var(--radius-sm);
+  font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 800;
+  cursor: pointer; transition: all 0.15s var(--ease);
+  letter-spacing: 0.5px;
+}
+.sf-apply:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+.sf-apply:active:not(:disabled){ transform: scale(0.98); }
+.sf-apply:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Cooldown ────────────────────────────────────────── */
+.sf-cd {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; font-size: 13px;
+  background: rgba(241,196,15,0.1); border: 1px solid rgba(241,196,15,0.3);
+  color: #f1c40f; border-radius: 10px; padding: 9px 14px;
+  width: 100%;
+}
+
+/* ── Reset link ──────────────────────────────────────── */
+.sf-reset {
+  border: none; background: none; color: var(--text-ghost);
+  font-size: 12px; cursor: pointer; padding: 2px 0;
+  text-decoration: underline; font-family: 'Outfit', sans-serif;
+  transition: color 0.15s;
+}
+.sf-reset:hover { color: var(--bad); }
+
+/* ── Solved card ─────────────────────────────────────── */
+.sf-solved {
+  background: rgba(46,204,113,0.07); border: 1px solid rgba(46,204,113,0.35);
+  border-radius: var(--radius-lg); padding: 28px 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  animation: pageFadeIn 0.4s var(--ease-spring);
+}
+.sf-solved-e { font-size: 52px; }
+.sf-solved-t {
+  font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 3px;
+  color: #2ecc71; text-shadow: 0 0 24px rgba(46,204,113,0.5);
+}
+.sf-solved-s { font-size: 13px; color: var(--text-dim); }
+.sf-solved .sf-apply {
+  background: rgba(46,204,113,0.25); color: #2ecc71;
+  border: 1px solid rgba(46,204,113,0.5);
+}
+
+/* ── Done card ───────────────────────────────────────── */
+.sf-done {
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: var(--radius-lg); padding: 24px 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.sf-done-e   { font-size: 40px; }
+.sf-done-t   { font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:2px; color:var(--accent); }
+.sf-done-next{ font-size:11px; color:var(--text-ghost); text-transform:uppercase; letter-spacing:1px; }
+.sf-done-timer{
+  font-family:'JetBrains Mono',monospace; font-size:32px; font-weight:900;
+  color:var(--text); letter-spacing:2px;
+}
+
+/* ── History ─────────────────────────────────────────── */
+.sf-hist-wrap {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 14px 16px;
+}
+.sf-sec-title {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 10px;
+}
+.sf-att-ct { color: var(--accent); font-size: 12px; }
+.sf-hist-empty { font-size: 13px; color: var(--text-ghost); text-align: center; padding: 12px 0; }
+
+.sf-att-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.sf-att-row:last-child { border-bottom: none; }
+.sf-att-n  { width: 18px; font-size: 11px; color: var(--text-ghost); text-align: right; flex-shrink:0; }
+.sf-att-ds { display: flex; gap: 5px; flex-shrink:0; }
+.sf-att-d  {
+  width: 34px; height: 34px; border-radius: 8px; border: 1.5px solid var(--border);
+  background: var(--surface2); font-family:'JetBrains Mono',monospace;
+  font-size: 17px; font-weight: 800; display: grid; place-items: center;
+}
+.sf-att-d.green  { background:rgba(46,204,113,0.18); border-color:#2ecc71; color:#2ecc71; }
+.sf-att-d.yellow { background:rgba(240,180,41,0.18); border-color:#f0b429; color:#f0b429; }
+.sf-att-d.gray   { background:var(--surface2); border-color:#445; color:#6677; }
+.sf-att-r  { display:flex; gap:6px; font-size:12px; font-weight:800; margin-left:auto; }
+.sra-g  { color:#2ecc71; }
+.sra-y  { color:#f0b429; }
+.sra-n  { color:var(--text-ghost); }
+
+/* ── Rewards ─────────────────────────────────────────── */
+.sf-rews-wrap {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 14px 16px;
+}
+.sf-rews {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 6px;
+}
+.sf-rew {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface2); border-radius: 8px; padding: 6px 8px;
+  font-size: 11px; font-weight: 600; color: var(--text-dim);
+}
+.sf-rew-img {
+  width: 28px; height: 28px; object-fit: contain;
+  border-radius: 4px; flex-shrink: 0;
+  background: var(--bg2);
+}
+/* progress label */
+.sf-prog-label {
+  font-size: 10px; color: var(--text-ghost); text-align: right;
+  align-self: stretch; margin-top: -8px;
+}
+
+/* ── Bottom nav: 9 items — scroll & compact ──────────── */
+@media (max-width: 768px) {
+  .bottom-nav {
+    /* Allow horizontal scroll for 9 items */
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 0 4px;
+  }
+  .bottom-nav::-webkit-scrollbar { display: none; }
+
+  .bnav-btn {
+    min-width: 52px; /* shrink enough to fit 9 items */
+    padding: 6px 4px 4px;
+    flex-shrink: 0;
+  }
+  .bnav-label {
+    font-size: 9px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 52px;
+  }
+  .bnav-icon { font-size: 18px; }
+}
+
+@media (max-width: 380px) {
+  .bnav-btn { min-width: 44px; }
+  .bnav-icon { font-size: 16px; }
+  .bnav-label { font-size: 8px; max-width: 44px; }
+}
+
+/* ── Safe: note, actions row, reset-full button ─────────────── */
+.sf-note {
+  background: rgba(240,180,41,0.08);
+  border: 1px solid rgba(240,180,41,0.3);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.sf-actions-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.sf-reset-full {
+  flex: 1;
+  height: 44px;
+  background: var(--surface2);
+  color: var(--text-dim);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+}
+.sf-reset-full:hover {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--accent);
+}
+.sf-reset-full:active { transform: scale(0.97); }
+
+.sf-apply.full { max-width: none; width: 100%; }
+
+
+/* ── Safe howto hint ──────────────────────────────────────────── */
+.sf-howto {
+  background: rgba(240,180,41,0.07);
+  border: 1px solid rgba(240,180,41,0.25);
+  border-radius: 12px; padding: 10px 14px;
+}
+.sf-howto-row {
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.sf-howto-ex {
+  display: flex; gap: 4px; flex-shrink: 0; padding-top: 2px;
+}
+.sf-tile-mini {
+  width: 26px; height: 26px; border-radius: 6px;
+  border: 1.5px solid var(--border2);
+  display: grid; place-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 900;
+}
+.sf-tile-mini.gray   { background: var(--surface2); color: var(--text-dim); border-color: #445; }
+.sf-tile-mini.yellow { background: rgba(240,180,41,0.15); color: #f0b429; border-color: #f0b429; }
+.sf-tile-mini.green  { background: rgba(46,204,113,0.15); color: #2ecc71; border-color: #2ecc71; }
+
+.sf-howto-text {
+  font-size: 11.5px; color: var(--text-dim); line-height: 1.5;
+}
+
+/* ── sf-reset-full (если не добавлен ранее) ──────────────────── */
+.sf-reset-full {
+  width: 100%; height: 44px;
+  background: var(--surface2); color: var(--text-dim);
+  border: 1px solid var(--border2); border-radius: var(--radius-sm);
+  font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all 0.15s var(--ease);
+  margin-top: 0;
+}
+.sf-reset-full:hover { background: var(--surface); color: var(--text); border-color: var(--accent); }
+.sf-reset-full:active { transform: scale(0.97); }

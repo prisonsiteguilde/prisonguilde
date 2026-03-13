@@ -1,3 +1,4 @@
+// js/app.js v4.0 — sidebar + 4 themes
 import { renderRecipes }    from "./pages/recipes.js";
 import { renderCalculator } from "./pages/calculator.js";
 import { notify }           from "./notify.js";
@@ -7,6 +8,7 @@ import { renderBosses }     from "./pages/bosses.js";
 import { renderMinions }    from "./pages/minions.js";
 import { renderSets }       from "./pages/sets.js";
 import { renderEffects }    from "./pages/effects.js";
+import { renderSafe }       from "./pages/safe.js";
 
 const routes = {
   recipes:    renderRecipes,
@@ -17,16 +19,19 @@ const routes = {
   minions:    renderMinions,
   sets:       renderSets,
   effects:    renderEffects,
+  safe:       renderSafe,
 };
 
 let currentRoute = "recipes";
 
+/* ─── Navigation ─────────────────────────────── */
 
 async function navigate(route) {
   if (!routes[route]) route = "recipes";
   currentRoute = route;
   location.hash = route;
 
+  // Highlight all nav buttons
   document.querySelectorAll("[data-route]").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.route === route);
   });
@@ -56,11 +61,12 @@ async function navigate(route) {
   }
 }
 
+/* ─── Themes ──────────────────────────────────── */
 
 const THEMES = [
   { key: "theme-dark",  icon: "🌙", label: "Тёмная"  },
   { key: "theme-neon",  icon: "⚡",  label: "Неон"    },
-  { key: "theme-blood", icon: "🩸", label: "Красная"   },
+  { key: "theme-blood", icon: "🩸", label: "Кровь"   },
   { key: "theme-light", icon: "☀️",  label: "Светлая" },
 ];
 
@@ -143,6 +149,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.ctrlKey && e.key === "6") { e.preventDefault(); navigate("minions"); }
     if (e.ctrlKey && e.key === "7") { e.preventDefault(); navigate("sets"); }
     if (e.ctrlKey && e.key === "8") { e.preventDefault(); navigate("effects"); }
+    if (e.ctrlKey && e.key === "9") { e.preventDefault(); navigate("safe"); }
 
     if (e.key === "Escape") {
       const modal = document.getElementById("modalHost");

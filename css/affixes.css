@@ -1,4 +1,3 @@
-
 .affixes-page {
   display: flex;
   flex-direction: column;
@@ -185,11 +184,9 @@
 .aff-slot-tag:hover { transform: scale(1.2); }
 
 @media (max-width: 768px) {
-  /* Скрываем колонку слотов справа — показываем их под названием */
   .aff-col-slots { display: none; }
   .aff-row { flex-wrap: wrap; row-gap: 4px; }
 
-  /* Мобильные слоты — показываем inline блок под названием аффикса */
   .aff-slots-mobile {
     display: flex !important;
     flex-wrap: wrap;
@@ -205,5 +202,5 @@
   .aff-row { padding: 10px 12px; }
   .aff-name-text { font-size: 13px; }
   .aff-max-val { font-size: 14px; }
-  .aff-slots-mobile { padding-left: calc(32px + 8px); } /* без категории */
+  .aff-slots-mobile { padding-left: calc(32px + 8px); } 
 }

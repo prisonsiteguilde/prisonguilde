@@ -12,7 +12,6 @@ export function notify(type, title, desc) {
   `;
   host.appendChild(toast);
 
-  // Лимит — максимум 4 тоста одновременно
   const toasts = host.querySelectorAll(".toast");
   if (toasts.length > 4) toasts[0].remove();
 

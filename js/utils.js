@@ -1,4 +1,3 @@
-// js/utils.js — общие утилиты
 
 export function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, m =>
