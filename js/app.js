@@ -24,6 +24,10 @@ const routes = {
 
 let currentRoute = "recipes";
 
+// More menu elements (global scope for navigate function)
+let moreBtn = null;
+let moreMenu = null;
+
 /* ─── Navigation ─────────────────────────────── */
 
 async function navigate(route) {
@@ -32,9 +36,14 @@ async function navigate(route) {
   location.hash = route;
 
   // Highlight all nav buttons
+  const moreRoutes = ["baryga", "minions", "sets", "effects", "safe"];
   document.querySelectorAll("[data-route]").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.route === route);
   });
+  // Highlight "More" button if route is in dropdown
+  if (moreBtn) {
+    moreBtn.classList.toggle("active", moreRoutes.includes(route));
+  }
 
   const page = document.getElementById("page");
   page.innerHTML = `
@@ -130,7 +139,58 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // All nav buttons (sidebar + bottom nav)
   document.querySelectorAll("[data-route]").forEach(btn => {
-    btn.addEventListener("click", () => navigate(btn.dataset.route));
+    btn.addEventListener("click", () => {
+      navigate(btn.dataset.route);
+      closeMoreMenu();
+    });
+  });
+
+  // More dropdown menu
+  moreBtn = document.getElementById("bnavMoreBtn");
+  moreMenu = document.getElementById("bnavMoreMenu");
+  
+  function closeMoreMenu() {
+    if (moreMenu) moreMenu.classList.add("hidden");
+    const backdrop = document.querySelector(".bnav-backdrop");
+    if (backdrop) backdrop.remove();
+    if (moreBtn) moreBtn.classList.remove("active");
+  }
+  
+  function openMoreMenu() {
+    if (moreMenu) moreMenu.classList.remove("hidden");
+    if (moreBtn) moreBtn.classList.add("active");
+    // Add backdrop
+    const backdrop = document.createElement("div");
+    backdrop.className = "bnav-backdrop";
+    backdrop.addEventListener("click", closeMoreMenu);
+    document.body.appendChild(backdrop);
+  }
+  
+  if (moreBtn) {
+    moreBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (moreMenu && !moreMenu.classList.contains("hidden")) {
+        closeMoreMenu();
+      } else {
+        openMoreMenu();
+      }
+    });
+  }
+  
+  // Close menu when clicking outside
+  document.addEventListener("click", (e) => {
+    if (moreMenu && !moreMenu.classList.contains("hidden")) {
+      if (!moreMenu.contains(e.target) && !moreBtn.contains(e.target)) {
+        closeMoreMenu();
+      }
+    }
+  });
+  
+  // Close menu on escape
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeMoreMenu();
+    }
   });
 
   // Keyboard shortcuts

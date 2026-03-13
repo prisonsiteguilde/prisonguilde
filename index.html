@@ -77,18 +77,22 @@
 
     </div><!-- /app-content -->
 
-    <!-- BOTTOM NAV mobile -->
+    <!-- BOTTOM NAV mobile — 5 main + More dropdown -->
     <nav class="bottom-nav" id="bottomNav">
       <button class="bnav-btn active" data-route="recipes"    type="button"><span class="bnav-icon">📋</span><span class="bnav-label">Рецепты</span></button>
-      <button class="bnav-btn"        data-route="calculator" type="button"><span class="bnav-icon">🚬</span><span class="bnav-label">Расчёт</span></button>
-      <button class="bnav-btn"        data-route="affixes"    type="button"><span class="bnav-icon">✨</span><span class="bnav-label">Аффиксы</span></button>
-      <button class="bnav-btn"        data-route="baryga"     type="button"><span class="bnav-icon">🏪</span><span class="bnav-label">Барыга</span></button>
+      <button class="bnav-btn"        data-route="calculator" type="button"><span class="bnav-icon">🚬</span><span class="bnav-label">Кальк</span></button>
       <button class="bnav-btn"        data-route="bosses"     type="button"><span class="bnav-icon">👹</span><span class="bnav-label">Боссы</span></button>
-      <button class="bnav-btn"        data-route="minions"    type="button"><span class="bnav-icon">👥</span><span class="bnav-label">Сечас</span></button>
-      <button class="bnav-btn"        data-route="sets"       type="button"><span class="bnav-icon">👕</span><span class="bnav-label">Сеты</span></button>
-      <button class="bnav-btn"        data-route="effects"    type="button"><span class="bnav-icon">⚔️</span><span class="bnav-label">Эффекты</span></button>
-      <button class="bnav-btn"        data-route="safe"       type="button"><span class="bnav-icon">🔒</span><span class="bnav-label">Сейф</span></button>
+      <button class="bnav-btn"        data-route="affixes"    type="button"><span class="bnav-icon">✨</span><span class="bnav-label">Гайды</span></button>
+      <button class="bnav-btn bnav-more-btn" id="bnavMoreBtn" type="button"><span class="bnav-icon">⋯</span><span class="bnav-label">Ещё</span></button>
     </nav>
+    <!-- More dropdown menu -->
+    <div class="bnav-more-menu hidden" id="bnavMoreMenu">
+      <button class="bnav-more-item" data-route="baryga"  type="button"><span class="bnav-more-icon">🏪</span><span>Барыга</span></button>
+      <button class="bnav-more-item" data-route="minions" type="button"><span class="bnav-more-icon">👥</span><span>Шестёрки</span></button>
+      <button class="bnav-more-item" data-route="sets"    type="button"><span class="bnav-more-icon">👕</span><span>Сеты</span></button>
+      <button class="bnav-more-item" data-route="effects" type="button"><span class="bnav-more-icon">⚔️</span><span>Эффекты</span></button>
+      <button class="bnav-more-item" data-route="safe"    type="button"><span class="bnav-more-icon">🔒</span><span>Сейф</span></button>
+    </div>
 
   </div><!-- /app-shell -->
 
@@ -96,7 +100,7 @@
   <div id="modalHost" class="modal-host hidden"></div>
   <button class="scroll-top-btn" id="scrollTopBtn" title="Наверх">↑</button>
 
-  <script type="module" src="./js/app.js?v=5.0"></script>
+  <script type="module" src="./js/app.js?v=3.3.1"></script>
   <script>
     const scrollBtn = document.getElementById("scrollTopBtn");
     const mainEl   = document.getElementById("appMain");
