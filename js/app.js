@@ -1,4 +1,5 @@
 // js/app.js v4.0 — sidebar + 4 themes
+import { renderHome }       from "./pages/home.js";
 import { renderRecipes }    from "./pages/recipes.js";
 import { renderCalculator } from "./pages/calculator.js";
 import { notify }           from "./notify.js";
@@ -9,8 +10,13 @@ import { renderMinions }    from "./pages/minions.js";
 import { renderSets }       from "./pages/sets.js";
 import { renderEffects }    from "./pages/effects.js";
 import { renderSafe }       from "./pages/safe.js";
+import { initGlobalSearch } from "./search.js";
+import { initLazyLoading } from "./loading.js";
+import { initThemeScheduler, isScheduleEnabled, setScheduleEnabled, formatTimeUntilNextChange } from "./theme-scheduler.js";
+import { initPreferences } from "./preferences.js";
 
 const routes = {
+  home:       renderHome,
   recipes:    renderRecipes,
   calculator: renderCalculator,
   affixes:    renderAffixes,
@@ -22,7 +28,20 @@ const routes = {
   safe:       renderSafe,
 };
 
-let currentRoute = "recipes";
+const routeLabels = {
+  home: "Главная",
+  recipes: "Рецепты",
+  calculator: "Калькулятор",
+  affixes: "Аффиксы",
+  baryga: "Барыга",
+  bosses: "Боссы",
+  minions: "Шестёрки",
+  sets: "Сеты",
+  effects: "Эффекты",
+  safe: "Сейф",
+};
+
+let currentRoute = "home";
 
 // More menu elements (global scope for navigate function)
 let moreBtn = null;
@@ -31,7 +50,7 @@ let moreMenu = null;
 /* ─── Navigation ─────────────────────────────── */
 
 async function navigate(route) {
-  if (!routes[route]) route = "recipes";
+  if (!routes[route]) route = "home";
   currentRoute = route;
   location.hash = route;
 
@@ -44,6 +63,9 @@ async function navigate(route) {
   if (moreBtn) {
     moreBtn.classList.toggle("active", moreRoutes.includes(route));
   }
+
+  // Update breadcrumbs
+  updateBreadcrumbs(route);
 
   const page = document.getElementById("page");
   page.innerHTML = `
@@ -76,6 +98,11 @@ const THEMES = [
   { key: "theme-dark",  icon: "🌙", label: "Тёмная"  },
   { key: "theme-neon",  icon: "⚡",  label: "Неон"    },
   { key: "theme-blood", icon: "🩸", label: "Кровь"   },
+  { key: "theme-cosmic", icon: "🌌", label: "Космос" },
+  { key: "theme-nature", icon: "🌿", label: "Природа" },
+  { key: "theme-retro", icon: "📺", label: "Ретро" },
+  { key: "theme-ocean", icon: "🌊", label: "Океан" },
+  { key: "theme-sunset", icon: "🌅", label: "Закат" },
   { key: "theme-light", icon: "☀️",  label: "Светлая" },
 ];
 
@@ -103,6 +130,11 @@ function applyTheme(key) {
       "theme-dark":  "#080a0e",
       "theme-neon":  "#050810",
       "theme-blood": "#0c0508",
+      "theme-cosmic": "#0a0a14",
+      "theme-nature": "#0a140a",
+      "theme-retro": "#14100a",
+      "theme-ocean": "#0a1414",
+      "theme-sunset": "#140a10",
       "theme-light": "#f0f2f8",
     };
     metaTheme.content = colors[theme.key] || "#080a0e";
@@ -123,6 +155,48 @@ document.addEventListener("DOMContentLoaded", () => {
   // Apply saved or default theme
   const savedTheme = localStorage.getItem("theme") || "theme-dark";
   applyTheme(savedTheme);
+
+  // Initialize global search
+  initGlobalSearch();
+
+  // Initialize lazy loading
+  initLazyLoading();
+
+  // Initialize theme scheduler
+  initThemeScheduler();
+
+  // Initialize preferences
+  initPreferences();
+
+  // Setup theme schedule UI
+  const scheduleToggle = document.getElementById('themeScheduleToggle');
+  const nextChangeEl = document.getElementById('nextThemeChange');
+  
+  if (scheduleToggle) {
+    scheduleToggle.checked = isScheduleEnabled();
+    
+    scheduleToggle.addEventListener('change', () => {
+      const enabled = scheduleToggle.checked;
+      setScheduleEnabled(enabled);
+      
+      if (enabled) {
+        notify("ok", "Расписание", "Авто-переключение темы включено");
+        updateNextChangeTime();
+      } else {
+        notify("ok", "Расписание", "Авто-переключение темы выключено");
+      }
+    });
+  }
+  
+  function updateNextChangeTime() {
+    if (nextChangeEl && isScheduleEnabled()) {
+      nextChangeEl.textContent = formatTimeUntilNextChange();
+    }
+  }
+  
+  // Update next change time every minute
+  setInterval(updateNextChangeTime, 60000);
+  updateNextChangeTime();
 
   // Mobile theme toggle (cycle)
   document.getElementById("themeToggle")?.addEventListener("click", cycleTheme);
@@ -227,11 +301,11 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Initial route
-  const hash = location.hash.slice(1) || "recipes";
+  const hash = location.hash.slice(1) || "home";
   navigate(hash);
 
   window.addEventListener("hashchange", () => {
-    navigate(location.hash.slice(1) || "recipes");
+    navigate(location.hash.slice(1) || "home");
   });
 });
 
@@ -243,4 +317,36 @@ function isInputFocused() {
 function escHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, m =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m]));
+}
+
+/* ─── Breadcrumbs ─────────────────────────────── */
+
+function updateBreadcrumbs(route) {
+  const breadcrumbs = document.getElementById("breadcrumbs");
+  if (!breadcrumbs) return;
+
+  const label = routeLabels[route] || route;
+  
+  if (route === "home") {
+    // Home page - show only home
+    breadcrumbs.innerHTML = `
+      <span class="breadcrumb-current">🏠 ${escHtml(label)}</span>
+    `;
+  } else {
+    // Other pages - show home > current
+    breadcrumbs.innerHTML = `
+      <a href="#home" class="breadcrumb-item" data-route="home">🏠 Главная</a>
+      <span class="breadcrumb-separator">›</span>
+      <span class="breadcrumb-current">${escHtml(label)}</span>
+    `;
+    
+    // Add click handler for breadcrumb link
+    const homeLink = breadcrumbs.querySelector('[data-route="home"]');
+    if (homeLink) {
+      homeLink.addEventListener("click", (e) => {
+        e.preventDefault();
+        navigate("home");
+      });
+    }
+  }
 }

@@ -1250,10 +1250,11 @@ export async function renderBosses() {
     }).join("");
 
     el.innerHTML = `
+      ${b.imgFull ? `<div class="boss-full-img-wrap"><img src="${esc(b.imgFull)}" class="boss-full-img" alt="${esc(b.name)}" /></div>` : ""}
       <div class="boss-detail-head">
-        <div class="boss-detail-ico" style="position:relative;">
+        ${!b.imgFull ? `<div class="boss-detail-ico" style="position:relative;">
           ${b.img ? `<img src="${esc(b.img)}" class="boss-detail-img" />` : `<div class="boss-detail-placeholder">👹</div>`}
-        </div>
+        </div>` : ""}
         <div style="flex:1;min-width:0;">
           <div class="card-title" style="font-size:20px;">${esc(b.name)}</div>
           <div class="muted" style="font-size:11px;margin-top:2px;">Уровень ${b.requiredLvl}+ · Кулдаун ${b.cooldown}ч</div>

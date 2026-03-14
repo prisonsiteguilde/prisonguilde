@@ -28,10 +28,22 @@
         </div>
       </div>
 
+      <!-- Global search -->
+      <div class="sidebar-search">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="input" id="globalSearch" placeholder="Поиск..." autocomplete="off" />
+          <button class="search-clear" id="globalSearchClear" type="button" title="Очистить">✕</button>
+          <span class="kbd-hint">Ctrl+K</span>
+        </div>
+        <div class="search-results hidden" id="globalSearchResults"></div>
+      </div>
+
       <div class="sidebar-divider"></div>
 
       <nav class="sidebar-nav" id="sidebarNav">
-        <button class="snav-btn active" data-route="recipes"    type="button"><span class="snav-icon">📋</span><span class="snav-label">Рецепты</span></button>
+        <button class="snav-btn active" data-route="home"       type="button"><span class="snav-icon">🏠</span><span class="snav-label">Главная</span></button>
+        <button class="snav-btn"        data-route="recipes"    type="button"><span class="snav-icon">📋</span><span class="snav-label">Рецепты</span></button>
         <button class="snav-btn"        data-route="calculator" type="button"><span class="snav-icon">🚬</span><span class="snav-label">Калькулятор</span></button>
         <button class="snav-btn"        data-route="affixes"    type="button"><span class="snav-icon">✨</span><span class="snav-label">Аффиксы</span></button>
         <button class="snav-btn"        data-route="baryga"     type="button"><span class="snav-icon">🏪</span><span class="snav-label">Барыга</span></button>
@@ -50,8 +62,25 @@
           <button class="theme-opt active" data-theme="theme-dark"  title="Тёмная">🌙</button>
           <button class="theme-opt"        data-theme="theme-neon"  title="Неон">⚡</button>
           <button class="theme-opt"        data-theme="theme-blood" title="Кровь">🩸</button>
+          <button class="theme-opt"        data-theme="theme-cosmic" title="Космос">🌌</button>
+          <button class="theme-opt"        data-theme="theme-nature" title="Природа">🌿</button>
+          <button class="theme-opt"        data-theme="theme-retro" title="Ретро">📺</button>
+          <button class="theme-opt"        data-theme="theme-ocean" title="Океан">🌊</button>
+          <button class="theme-opt"        data-theme="theme-sunset" title="Закат">🌅</button>
           <button class="theme-opt"        data-theme="theme-light" title="Светлая">☀️</button>
         </div>
+        
+        <!-- Theme schedule -->
+        <div class="theme-schedule">
+          <label class="theme-schedule-toggle">
+            <input type="checkbox" id="themeScheduleToggle" />
+            <span class="theme-schedule-label">Авто по времени</span>
+          </label>
+          <div class="theme-schedule-info" id="themeScheduleInfo">
+            <span class="theme-schedule-next">Следующая смена: <span id="nextThemeChange">—</span></span>
+          </div>
+        </div>
+        
         <div class="sidebar-ver">v3.1</div>
       </div>
     </aside>
@@ -65,6 +94,10 @@
           <div class="mobile-logo">🔒</div>
           <span class="mobile-title">TON PRISON</span>
         </div>
+        <div class="mobile-search-wrap">
+          <input class="mobile-search-input" id="globalSearchMobile" placeholder="Поиск..." autocomplete="off" />
+          <button class="mobile-search-clear" id="globalSearchClearMobile" type="button" title="Очистить">✕</button>
+        </div>
         <button class="mobile-theme-btn" id="themeToggle" title="Сменить тему">
           <span id="themeIcon">🌙</span>
         </button>
@@ -72,6 +105,10 @@
 
       <!-- Page content -->
       <main class="app-main" id="appMain">
+        <!-- Breadcrumbs -->
+        <nav class="breadcrumbs" id="breadcrumbs" aria-label="Навигационная цепочка">
+          <a href="#recipes" class="breadcrumb-item" data-route="recipes">🏠 Главная</a>
+        </nav>
         <div id="page" class="page-container"></div>
       </main>
 
@@ -79,7 +116,8 @@
 
     <!-- BOTTOM NAV mobile — 5 main + More dropdown -->
     <nav class="bottom-nav" id="bottomNav">
-      <button class="bnav-btn active" data-route="recipes"    type="button"><span class="bnav-icon">📋</span><span class="bnav-label">Рецепты</span></button>
+      <button class="bnav-btn active" data-route="home"       type="button"><span class="bnav-icon">🏠</span><span class="bnav-label">Главная</span></button>
+      <button class="bnav-btn"        data-route="recipes"    type="button"><span class="bnav-icon">📋</span><span class="bnav-label">Рецепты</span></button>
       <button class="bnav-btn"        data-route="calculator" type="button"><span class="bnav-icon">🚬</span><span class="bnav-label">Кальк</span></button>
       <button class="bnav-btn"        data-route="bosses"     type="button"><span class="bnav-icon">👹</span><span class="bnav-label">Боссы</span></button>
       <button class="bnav-btn"        data-route="affixes"    type="button"><span class="bnav-icon">✨</span><span class="bnav-label">Гайды</span></button>
@@ -100,7 +138,7 @@
   <div id="modalHost" class="modal-host hidden"></div>
   <button class="scroll-top-btn" id="scrollTopBtn" title="Наверх">↑</button>
 
-  <script type="module" src="./js/app.js?v=3.3.1"></script>
+  <script type="module" src="./js/app.js?v=3.45"></script>
   <script>
     const scrollBtn = document.getElementById("scrollTopBtn");
     const mainEl   = document.getElementById("appMain");
