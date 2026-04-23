@@ -7,6 +7,7 @@ import { Home } from "./screens/Home.js";
 import { Toasts } from "./components/Toasts.js";
 import { TopBar } from "./components/TopBar.js";
 import { LootReveal } from "./components/LootReveal.js";
+import { BottomNav } from "./components/BottomNav.js";
 import { BossCinematic } from "./components/BossCinematic.js";
 
 const Inventory = lazy(() => import("./screens/Inventory.js").then((m) => ({ default: m.Inventory })));
@@ -38,6 +39,9 @@ const BattlePass = lazy(() => import("./screens/BattlePass.js").then((m) => ({ d
 const Lootboxes = lazy(() => import("./screens/Lootboxes.js").then((m) => ({ default: m.Lootboxes })));
 const ClanBosses = lazy(() => import("./screens/ClanBosses.js").then((m) => ({ default: m.ClanBosses })));
 const EchoRifts = lazy(() => import("./screens/EchoRifts.js").then((m) => ({ default: m.EchoRifts })));
+const Market = lazy(() => import("./screens/Market.js").then((m) => ({ default: m.Market })));
+const Auction = lazy(() => import("./screens/Auction.js").then((m) => ({ default: m.Auction })));
+const TradePost = lazy(() => import("./screens/TradePost.js").then((m) => ({ default: m.TradePost })));
 
 export function App() {
   const screen = useGame((s) => s.screen);
@@ -96,6 +100,9 @@ export function App() {
             {screen === "lootboxes" && <Lootboxes />}
             {screen === "clan_bosses" && <ClanBosses />}
             {screen === "echo_rifts" && <EchoRifts />}
+            {screen === "market" && <Market />}
+            {screen === "auction" && <Auction />}
+            {screen === "trade_post" && <TradePost />}
             </Suspense>
           </motion.div>
         </AnimatePresence>
@@ -103,6 +110,7 @@ export function App() {
       <Toasts />
       <LootReveal />
       <BossCinematic />
+      <BottomNav />
     </div>
   );
 }

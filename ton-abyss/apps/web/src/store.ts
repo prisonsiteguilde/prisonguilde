@@ -135,7 +135,10 @@ export type Screen =
   | "battlepass"
   | "lootboxes"
   | "clan_bosses"
-  | "echo_rifts";
+  | "echo_rifts"
+  | "market"
+  | "auction"
+  | "trade_post";
 
 export interface Toast {
   id: string;
@@ -277,6 +280,83 @@ export interface ClanWarRecord {
   at: number;
 }
 
+// Marketplace — instant buy/sell board.
+export interface MarketListing {
+  id: string;
+  item: ItemInstance;
+  price: number;
+  sellerId: string;
+  sellerName: string;
+  listedAt: number;
+  expiresAt: number;
+  isMine: boolean;
+}
+
+export interface MarketSale {
+  id: string;
+  itemBaseId: string;
+  itemName: string;
+  rarity: string;
+  price: number;
+  buyerName: string;
+  at: number;
+}
+
+export interface MarketState {
+  listings: MarketListing[];
+  history: MarketSale[];
+  maxActiveListings: number;
+}
+
+// Auction House — bid-based with anti-snipe.
+export interface AuctionBid {
+  bidderName: string;
+  amount: number;
+  at: number;
+}
+
+export interface AuctionLot {
+  id: string;
+  item: ItemInstance;
+  startPrice: number;
+  buyoutPrice: number | null;
+  currentBid: number;
+  bids: AuctionBid[];
+  sellerId: string;
+  sellerName: string;
+  startedAt: number;
+  endsAt: number;
+  isMine: boolean;
+}
+
+export interface AuctionState {
+  lots: AuctionLot[];
+  history: { id: string; itemName: string; finalPrice: number; won: boolean; at: number }[];
+}
+
+// Trade Post — NPC barter.
+export interface TradeOffer {
+  id: string;
+  npcName: string;
+  npcFlavor: string;
+  givesItemBaseId?: string;
+  givesGold?: number;
+  givesMaterial?: { id: string; qty: number };
+  wantsItemBaseId?: string;
+  wantsRarity?: string;
+  wantsGold?: number;
+  wantsMaterial?: { id: string; qty: number };
+  rarity: "common" | "rare" | "legendary";
+  expiresAt: number;
+}
+
+export interface TradePostState {
+  offers: TradeOffer[];
+  refreshAt: number;
+  acceptedToday: number;
+  lastResetAt: number;
+}
+
 export interface GameState {
   screen: Screen;
   character: Character | null;
@@ -293,6 +373,9 @@ export interface GameState {
 
   // god-mode v2 state
   echoRifts: { highestTier: number; clears: number; pityCounter: number; bestRunGold: number };
+  market: MarketState;
+  auction: AuctionState;
+  tradePost: TradePostState;
   tower: TowerState;
   arena: ArenaState;
   bounties: BountiesState;
@@ -369,6 +452,20 @@ export interface GameState {
   enterTower: () => void;
   towerNext: () => void;
   runEchoRift: (tier: number) => { ok: boolean; error?: string; gold?: number; xp?: number };
+  // Marketplace
+  marketRefresh: () => void;
+  marketList: (uid: string, price: number) => { ok: boolean; error?: string };
+  marketBuy: (listingId: string) => { ok: boolean; error?: string };
+  marketCancel: (listingId: string) => { ok: boolean; error?: string };
+  // Auction
+  auctionRefresh: () => void;
+  auctionCreate: (uid: string, startPrice: number, buyoutPrice: number | null, durationHours: number) => { ok: boolean; error?: string };
+  auctionBid: (lotId: string, amount: number) => { ok: boolean; error?: string };
+  auctionBuyout: (lotId: string) => { ok: boolean; error?: string };
+  auctionResolve: () => void;
+  // Trade post
+  tradeRefresh: () => void;
+  tradeAccept: (offerId: string) => { ok: boolean; error?: string };
   exitTower: (save: boolean) => void;
   fightArena: (opponentId: string) => { won: boolean; eloDelta: number };
   rerollBounties: () => void;
@@ -693,6 +790,9 @@ export const useGame = create<GameState>()(
       toasts: [],
       lastDungeonLog: [],
       echoRifts: { highestTier: 0, clears: 0, pityCounter: 0, bestRunGold: 0 },
+      market: { listings: [], history: [], maxActiveListings: 8 },
+      auction: { lots: [], history: [] },
+      tradePost: { offers: [], refreshAt: 0, acceptedToday: 0, lastResetAt: 0 },
       tower: { currentFloor: 0, highestFloor: 0, active: false, currentScore: 0, bestScore: 0, lastEntryAt: 0 },
       arena: { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
       bounties: { active: [], refreshAt: 0, completedToday: 0 },
@@ -800,6 +900,9 @@ export const useGame = create<GameState>()(
           gems: {},
           tower: { currentFloor: 0, highestFloor: 0, active: false, currentScore: 0, bestScore: 0, lastEntryAt: 0 },
           echoRifts: { highestTier: 0, clears: 0, pityCounter: 0, bestRunGold: 0 },
+          market: { listings: [], history: [], maxActiveListings: 8 },
+          auction: { lots: [], history: [] },
+          tradePost: { offers: [], refreshAt: 0, acceptedToday: 0, lastResetAt: 0 },
           arena: { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
           bounties: { active: [], refreshAt: 0, completedToday: 0 },
           hunts: { active: [], completed: [] },
@@ -1954,6 +2057,399 @@ export const useGame = create<GameState>()(
         return { ok: true, gold, xp };
       },
 
+      // ================ MARKETPLACE ================
+      marketRefresh: () => {
+        const s = get();
+        const now = Date.now();
+        // Drop expired listings (refund to stash for owner; NPC ones disappear)
+        const live = s.market.listings.filter((l) => l.expiresAt > now);
+        const expired = s.market.listings.filter((l) => l.expiresAt <= now);
+        let stash = s.stash;
+        let toasts = s.toasts;
+        for (const l of expired) {
+          if (l.isMine) {
+            stash = [...stash, l.item];
+            toasts = [...toasts, { id: genId("tst"), text: `Лот «${ITEMS[l.item.baseId]?.name ?? "предмет"}» истёк, возвращён в стэш.`, tone: "info" as const }];
+          }
+        }
+        // NPC sells: every minute remove ~10% of mine if priced under 1.5x sellValue
+        const myListings = live.filter((l) => l.isMine);
+        const otherListings = live.filter((l) => !l.isMine);
+        let goldEarned = 0;
+        let salesAdded: MarketSale[] = [];
+        const remainingMine: MarketListing[] = [];
+        for (const l of myListings) {
+          const base = ITEMS[l.item.baseId];
+          const fairPrice = (base?.sellValue ?? 100) * 4 * (1 + (["common","uncommon","rare","epic","legendary","mythic","abyssal"].indexOf(l.item.rarity) * 0.5));
+          const undercut = Math.max(0, (fairPrice - l.price) / fairPrice);
+          const ageHours = (now - l.listedAt) / 3_600_000;
+          const sellChance = Math.min(0.6, undercut * 0.4 + ageHours * 0.05);
+          if (Math.random() < sellChance) {
+            // Sold!
+            const tax = Math.floor(l.price * 0.10);
+            const net = l.price - tax;
+            goldEarned += net;
+            const buyerNames = ["Аноним", "Кузнец Тим", "Авантюрист", "Стрелок Зак", "Маг Лин", "Жнец", "Старатель"];
+            const buyerName = buyerNames[Math.floor(Math.random() * buyerNames.length)] ?? "NPC";
+            salesAdded.push({
+              id: genId("ms"),
+              itemBaseId: l.item.baseId,
+              itemName: ITEMS[l.item.baseId]?.name ?? "предмет",
+              rarity: l.item.rarity,
+              price: l.price,
+              buyerName,
+              at: now,
+            });
+          } else {
+            remainingMine.push(l);
+          }
+        }
+        // Refresh NPC seed listings: keep up to 12 NPC listings
+        let seeded = otherListings;
+        if (seeded.length < 12) {
+          const pool = Object.values(ITEMS).filter((it) => it.slot !== "consumable" && it.slot !== "material" && it.slot !== "rune" && (it.levelReq ?? 1) <= (s.character?.level ?? 1) + 8);
+          for (let i = seeded.length; i < 12 && pool.length > 0; i++) {
+            const base = pool[Math.floor(Math.random() * pool.length)];
+            if (!base) continue;
+            const rng = new RNG(seedFrom(`mkt_${now}_${i}`));
+            const inst = createItemInstance(rng, base, { level: base.levelReq ?? 1, magicFindPct: 0 });
+            const fairPrice = (base.sellValue ?? 100) * 4 * (1 + (["common","uncommon","rare","epic","legendary","mythic","abyssal"].indexOf(inst.rarity) * 0.5));
+            const variance = 0.6 + Math.random() * 0.8;
+            seeded.push({
+              id: genId("mkt"),
+              item: inst,
+              price: Math.round(fairPrice * variance),
+              sellerId: `npc_${i}`,
+              sellerName: ["Купец", "Торговец", "Авантюрист", "Старьёвщик", "Кузнец"][i % 5] ?? "NPC",
+              listedAt: now - Math.floor(Math.random() * 3_600_000),
+              expiresAt: now + Math.floor(Math.random() * 48 * 3_600_000),
+              isMine: false,
+            });
+          }
+        }
+        const newHistory = [...salesAdded, ...s.market.history].slice(0, 50);
+        if (goldEarned > 0 && s.character) {
+          toasts = [...toasts, { id: genId("tst"), text: `Маркет: продано ${salesAdded.length} лотов. +${goldEarned}g.`, tone: "good" as const }];
+        }
+        set({
+          market: { ...s.market, listings: [...remainingMine, ...seeded], history: newHistory },
+          stash,
+          character: s.character && goldEarned > 0 ? { ...s.character, gold: s.character.gold + goldEarned } : s.character,
+          toasts,
+        });
+      },
+
+      marketList: (uid, price) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const it = s.inventory.find((i) => i.uid === uid) ?? s.stash.find((i) => i.uid === uid);
+        if (!it) return { ok: false, error: "Предмет не найден." };
+        if (Object.values(s.equipped).includes(uid)) return { ok: false, error: "Снимите экипировку." };
+        if (s.lockedItems.includes(uid)) return { ok: false, error: "Предмет заблокирован." };
+        if (price < 10) return { ok: false, error: "Минимальная цена 10g." };
+        const myActive = s.market.listings.filter((l) => l.isMine).length;
+        if (myActive >= s.market.maxActiveListings) return { ok: false, error: `Лимит активных лотов: ${s.market.maxActiveListings}.` };
+        const listingFee = Math.max(50, Math.floor(price * 0.05));
+        if (s.character.gold < listingFee) return { ok: false, error: `Нужно ${listingFee}g для оплаты комиссии.` };
+        const now = Date.now();
+        const listing: MarketListing = {
+          id: genId("mkt"),
+          item: it,
+          price,
+          sellerId: s.character.id,
+          sellerName: s.character.classId,
+          listedAt: now,
+          expiresAt: now + 48 * 3_600_000,
+          isMine: true,
+        };
+        set({
+          inventory: s.inventory.filter((i) => i.uid !== uid),
+          stash: s.stash.filter((i) => i.uid !== uid),
+          character: { ...s.character, gold: s.character.gold - listingFee },
+          market: { ...s.market, listings: [listing, ...s.market.listings] },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Лот выставлен. Комиссия: ${listingFee}g.`, tone: "info" as const }],
+        });
+        return { ok: true };
+      },
+
+      marketBuy: (listingId) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const l = s.market.listings.find((x) => x.id === listingId);
+        if (!l) return { ok: false, error: "Лот не найден." };
+        if (l.isMine) return { ok: false, error: "Это ваш лот." };
+        if (s.character.gold < l.price) return { ok: false, error: `Не хватает золота: ${l.price}g.` };
+        set({
+          character: { ...s.character, gold: s.character.gold - l.price },
+          inventory: [...s.inventory, l.item],
+          market: { ...s.market, listings: s.market.listings.filter((x) => x.id !== listingId) },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Куплено: ${ITEMS[l.item.baseId]?.name ?? "предмет"} за ${l.price}g.`, tone: "good" as const }],
+        });
+        return { ok: true };
+      },
+
+      marketCancel: (listingId) => {
+        const s = get();
+        const l = s.market.listings.find((x) => x.id === listingId);
+        if (!l || !l.isMine) return { ok: false, error: "Лот не найден." };
+        set({
+          stash: [...s.stash, l.item],
+          market: { ...s.market, listings: s.market.listings.filter((x) => x.id !== listingId) },
+          toasts: [...s.toasts, { id: genId("tst"), text: "Лот снят, предмет в стэше.", tone: "info" as const }],
+        });
+        return { ok: true };
+      },
+
+      // ================ AUCTION ================
+      auctionRefresh: () => {
+        const s = get();
+        const now = Date.now();
+        // Resolve ended lots first
+        const ended = s.auction.lots.filter((l) => l.endsAt <= now);
+        const live = s.auction.lots.filter((l) => l.endsAt > now);
+        let goldDelta = 0;
+        let stash = s.stash;
+        let inventory = s.inventory;
+        let toasts = s.toasts;
+        const historyAdds: AuctionState["history"] = [];
+        for (const lot of ended) {
+          if (lot.isMine) {
+            // I was selling
+            if (lot.bids.length > 0) {
+              const tax = Math.floor(lot.currentBid * 0.08);
+              const net = lot.currentBid - tax;
+              goldDelta += net;
+              historyAdds.push({ id: genId("auc"), itemName: ITEMS[lot.item.baseId]?.name ?? "предмет", finalPrice: lot.currentBid, won: true, at: now });
+              toasts = [...toasts, { id: genId("tst"), text: `Аукцион завершён: продано за ${lot.currentBid}g (после налога: ${net}g).`, tone: "good" as const }];
+            } else {
+              stash = [...stash, lot.item];
+              historyAdds.push({ id: genId("auc"), itemName: ITEMS[lot.item.baseId]?.name ?? "предмет", finalPrice: 0, won: false, at: now });
+              toasts = [...toasts, { id: genId("tst"), text: "Аукцион завершён без ставок, предмет в стэше.", tone: "info" as const }];
+            }
+          } else {
+            // NPC was selling — if I had highest bid, I get it (simulate)
+            const mine = lot.bids.length > 0 && lot.bids[0]?.bidderName === (s.character?.classId ?? "");
+            if (mine) {
+              inventory = [...inventory, lot.item];
+              historyAdds.push({ id: genId("auc"), itemName: ITEMS[lot.item.baseId]?.name ?? "предмет", finalPrice: lot.currentBid, won: true, at: now });
+              toasts = [...toasts, { id: genId("tst"), text: `Вы выиграли аукцион: ${ITEMS[lot.item.baseId]?.name}.`, tone: "epic" as const }];
+            }
+          }
+        }
+        // NPC bidder activity on live lots
+        const updated = live.map((lot) => {
+          // 30% chance per refresh that NPC bids if currentBid is below fair value
+          const base = ITEMS[lot.item.baseId];
+          const fair = (base?.sellValue ?? 100) * 5;
+          if (Math.random() < 0.35 && lot.currentBid < fair * 1.5) {
+            const inc = Math.max(50, Math.floor(lot.currentBid * 0.08));
+            const newBid = lot.currentBid + inc;
+            const npcNames = ["Гильдмастер", "Купец Бездны", "Авантюрист", "Старьёвщик", "Контрабандист"];
+            const bidderName = npcNames[Math.floor(Math.random() * npcNames.length)] ?? "NPC";
+            // Anti-snipe: if < 5min remaining, extend
+            const remaining = lot.endsAt - now;
+            const newEnd = remaining < 5 * 60_000 ? now + 5 * 60_000 : lot.endsAt;
+            return { ...lot, currentBid: newBid, endsAt: newEnd, bids: [{ bidderName, amount: newBid, at: now }, ...lot.bids].slice(0, 10) };
+          }
+          return lot;
+        });
+        // Seed NPC lots if low
+        let seeded = updated;
+        if (seeded.length < 6) {
+          const pool = Object.values(ITEMS).filter((it) => it.slot !== "consumable" && it.slot !== "material" && it.slot !== "rune" && (it.levelReq ?? 1) <= (s.character?.level ?? 1) + 10 && (it.levelReq ?? 1) >= Math.max(1, (s.character?.level ?? 1) - 5));
+          for (let i = seeded.length; i < 6 && pool.length > 0; i++) {
+            const base = pool[Math.floor(Math.random() * pool.length)];
+            if (!base) continue;
+            const rng = new RNG(seedFrom(`auc_${now}_${i}`));
+            const inst = createItemInstance(rng, base, { level: base.levelReq ?? 1, magicFindPct: 50 });
+            const fair = (base.sellValue ?? 100) * 5 * (1 + ["common","uncommon","rare","epic","legendary","mythic","abyssal"].indexOf(inst.rarity) * 0.4);
+            const start = Math.round(fair * 0.4);
+            const buyout = Math.round(fair * 1.8);
+            seeded.push({
+              id: genId("auc"),
+              item: inst,
+              startPrice: start,
+              buyoutPrice: buyout,
+              currentBid: start,
+              bids: [],
+              sellerId: `npc_${i}`,
+              sellerName: ["Купец", "Торговец", "Реликварий"][i % 3] ?? "NPC",
+              startedAt: now,
+              endsAt: now + (1 + Math.floor(Math.random() * 24)) * 3_600_000,
+              isMine: false,
+            });
+          }
+        }
+        set({
+          auction: { lots: seeded, history: [...historyAdds, ...s.auction.history].slice(0, 50) },
+          stash,
+          inventory,
+          character: s.character && goldDelta !== 0 ? { ...s.character, gold: s.character.gold + goldDelta } : s.character,
+          toasts,
+        });
+      },
+
+      auctionCreate: (uid, startPrice, buyoutPrice, durationHours) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const it = s.inventory.find((i) => i.uid === uid) ?? s.stash.find((i) => i.uid === uid);
+        if (!it) return { ok: false, error: "Предмет не найден." };
+        if (Object.values(s.equipped).includes(uid)) return { ok: false, error: "Снимите экипировку." };
+        if (s.lockedItems.includes(uid)) return { ok: false, error: "Предмет заблокирован." };
+        if (startPrice < 50) return { ok: false, error: "Стартовая цена ≥ 50g." };
+        if (buyoutPrice && buyoutPrice <= startPrice) return { ok: false, error: "Цена выкупа должна быть выше старта." };
+        const fee = Math.max(100, Math.floor(startPrice * 0.05));
+        if (s.character.gold < fee) return { ok: false, error: `Нужно ${fee}g комиссии.` };
+        const now = Date.now();
+        const lot: AuctionLot = {
+          id: genId("auc"),
+          item: it,
+          startPrice,
+          buyoutPrice,
+          currentBid: startPrice,
+          bids: [],
+          sellerId: s.character.id,
+          sellerName: s.character.classId,
+          startedAt: now,
+          endsAt: now + durationHours * 3_600_000,
+          isMine: true,
+        };
+        set({
+          inventory: s.inventory.filter((i) => i.uid !== uid),
+          stash: s.stash.filter((i) => i.uid !== uid),
+          character: { ...s.character, gold: s.character.gold - fee },
+          auction: { ...s.auction, lots: [lot, ...s.auction.lots] },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Лот на аукционе. Комиссия: ${fee}g.`, tone: "info" as const }],
+        });
+        return { ok: true };
+      },
+
+      auctionBid: (lotId, amount) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const lot = s.auction.lots.find((l) => l.id === lotId);
+        if (!lot) return { ok: false, error: "Лот не найден." };
+        if (lot.isMine) return { ok: false, error: "Нельзя ставить на свой лот." };
+        if (amount <= lot.currentBid) return { ok: false, error: `Ставка должна быть > ${lot.currentBid}g.` };
+        if (s.character.gold < amount) return { ok: false, error: "Не хватает золота." };
+        const now = Date.now();
+        const remaining = lot.endsAt - now;
+        const newEnd = remaining < 5 * 60_000 ? now + 5 * 60_000 : lot.endsAt;
+        const bidderName = s.character.classId;
+        // Refund previous top bidder if it was me; here we don't refund others (NPCs)
+        // But block the gold (escrow): for simplicity, just deduct now and refund if outbid later (omitted).
+        // Practical compromise: deduct increment from previous me-bid only.
+        const myPrevBid = lot.bids.find((b) => b.bidderName === bidderName)?.amount ?? 0;
+        const goldDelta = -(amount - myPrevBid);
+        set({
+          character: { ...s.character, gold: s.character.gold + goldDelta },
+          auction: {
+            ...s.auction,
+            lots: s.auction.lots.map((l) =>
+              l.id === lotId
+                ? { ...l, currentBid: amount, endsAt: newEnd, bids: [{ bidderName, amount, at: now }, ...l.bids].slice(0, 10) }
+                : l,
+            ),
+          },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Ваша ставка: ${amount}g.`, tone: "info" as const }],
+        });
+        return { ok: true };
+      },
+
+      auctionBuyout: (lotId) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const lot = s.auction.lots.find((l) => l.id === lotId);
+        if (!lot) return { ok: false, error: "Лот не найден." };
+        if (!lot.buyoutPrice) return { ok: false, error: "У лота нет выкупа." };
+        if (lot.isMine) return { ok: false, error: "Нельзя выкупать свой лот." };
+        if (s.character.gold < lot.buyoutPrice) return { ok: false, error: "Не хватает золота." };
+        set({
+          character: { ...s.character, gold: s.character.gold - lot.buyoutPrice },
+          inventory: [...s.inventory, lot.item],
+          auction: {
+            lots: s.auction.lots.filter((l) => l.id !== lotId),
+            history: [{ id: genId("auc"), itemName: ITEMS[lot.item.baseId]?.name ?? "предмет", finalPrice: lot.buyoutPrice, won: true, at: Date.now() }, ...s.auction.history].slice(0, 50),
+          },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Выкуплено за ${lot.buyoutPrice}g!`, tone: "good" as const }],
+        });
+        return { ok: true };
+      },
+
+      auctionResolve: () => {
+        // Alias for refresh (cron-like).
+        get().auctionRefresh();
+      },
+
+      // ================ TRADE POST ================
+      tradeRefresh: () => {
+        const s = get();
+        const now = Date.now();
+        const dayMs = 24 * 3_600_000;
+        let acceptedToday = s.tradePost.acceptedToday;
+        let lastResetAt = s.tradePost.lastResetAt;
+        if (now - lastResetAt > dayMs) {
+          acceptedToday = 0;
+          lastResetAt = now;
+        }
+        // Refresh offers if past TTL or empty
+        let offers = s.tradePost.offers.filter((o) => o.expiresAt > now);
+        if (offers.length < 3 || now > s.tradePost.refreshAt) {
+          const pool = Object.values(ITEMS).filter((it) => (it.slot === "weapon" || it.slot === "amulet" || it.slot === "ring" || it.slot === "relic") && (it.levelReq ?? 1) <= (s.character?.level ?? 1) + 5);
+          while (offers.length < 3 && pool.length > 0) {
+            const wantBase = pool[Math.floor(Math.random() * pool.length)];
+            const giveBase = pool[Math.floor(Math.random() * pool.length)];
+            if (!wantBase || !giveBase) break;
+            const wantRarity = ["rare", "epic", "legendary"][Math.floor(Math.random() * 3)] ?? "rare";
+            const npcs = [
+              { name: "Странствующий торговец", flavor: "Караван путешествий, предлагает обмен." },
+              { name: "Контрабандист Зак", flavor: "Тёмные товары по сниженной цене." },
+              { name: "Реликварий", flavor: "Собиратель древних артефактов." },
+              { name: "Кузнец Ронан", flavor: "Меняет оружие на оружие." },
+              { name: "Авантюрист Лина", flavor: "Ищет редкие материалы." },
+            ];
+            const npc = npcs[Math.floor(Math.random() * npcs.length)] ?? npcs[0]!;
+            offers.push({
+              id: genId("trd"),
+              npcName: npc.name,
+              npcFlavor: npc.flavor,
+              givesItemBaseId: giveBase.id,
+              wantsItemBaseId: wantBase.id,
+              wantsRarity: wantRarity,
+              rarity: Math.random() < 0.7 ? "common" : Math.random() < 0.7 ? "rare" : "legendary",
+              expiresAt: now + 24 * 3_600_000,
+            });
+          }
+        }
+        set({ tradePost: { offers, refreshAt: now + 6 * 3_600_000, acceptedToday, lastResetAt } });
+      },
+
+      tradeAccept: (offerId) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        if (s.tradePost.acceptedToday >= 5) return { ok: false, error: "Лимит обменов: 5 в сутки." };
+        const offer = s.tradePost.offers.find((o) => o.id === offerId);
+        if (!offer) return { ok: false, error: "Предложение не найдено." };
+        if (!offer.wantsItemBaseId || !offer.givesItemBaseId) return { ok: false, error: "Некорректное предложение." };
+        const wantedRarity = offer.wantsRarity ?? "rare";
+        const candidate = s.inventory.find((it) => it.baseId === offer.wantsItemBaseId && it.rarity === wantedRarity && !s.lockedItems.includes(it.uid));
+        if (!candidate) return { ok: false, error: `Нужен ${ITEMS[offer.wantsItemBaseId]?.name} (${wantedRarity}).` };
+        const giveBase = ITEMS[offer.givesItemBaseId];
+        if (!giveBase) return { ok: false, error: "Предмет не доступен." };
+        const rng = new RNG(seedFrom(`trade_${offerId}_${Date.now()}`));
+        const newItem = createItemInstance(rng, giveBase, { level: giveBase.levelReq ?? 1, magicFindPct: 30 });
+        set({
+          inventory: [...s.inventory.filter((it) => it.uid !== candidate.uid), newItem],
+          tradePost: {
+            ...s.tradePost,
+            offers: s.tradePost.offers.filter((o) => o.id !== offerId),
+            acceptedToday: s.tradePost.acceptedToday + 1,
+          },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Обмен с ${offer.npcName}: получено ${giveBase.name}.`, tone: "good" as const }],
+        });
+        return { ok: true };
+      },
+
       // ================ ARENA ================
       fightArena: (opponentId) => {
         const s = get();
@@ -2820,6 +3316,9 @@ export const useGame = create<GameState>()(
           lastDungeonLog: [],
           tower: { currentFloor: 0, highestFloor: 0, active: false, currentScore: 0, bestScore: 0, lastEntryAt: 0 },
           echoRifts: { highestTier: 0, clears: 0, pityCounter: 0, bestRunGold: 0 },
+          market: { listings: [], history: [], maxActiveListings: 8 },
+          auction: { lots: [], history: [] },
+          tradePost: { offers: [], refreshAt: 0, acceptedToday: 0, lastResetAt: 0 },
           arena: { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
           bounties: { active: [], refreshAt: 0, completedToday: 0 },
           hunts: { active: [], completed: [] },
@@ -2870,7 +3369,7 @@ export const useGame = create<GameState>()(
     }),
     {
       name: "ton-abyss-save",
-      version: 7,
+      version: 8,
       partialize: (s) => ({
         character: s.character,
         inventory: s.inventory,
@@ -2900,6 +3399,9 @@ export const useGame = create<GameState>()(
         hardcoreStreak: s.hardcoreStreak,
         tower: s.tower,
         echoRifts: s.echoRifts,
+        market: s.market,
+        auction: s.auction,
+        tradePost: s.tradePost,
         arena: s.arena,
         bounties: s.bounties,
         hunts: s.hunts,
@@ -2935,6 +3437,9 @@ export const useGame = create<GameState>()(
           petStates: base.petStates ?? {},
           tower: base.tower ?? { currentFloor: 0, highestFloor: 0, active: false, currentScore: 0, bestScore: 0, lastEntryAt: 0 },
           echoRifts: base.echoRifts ?? { highestTier: 0, clears: 0, pityCounter: 0, bestRunGold: 0 },
+          market: base.market ?? { listings: [], history: [], maxActiveListings: 8 },
+          auction: base.auction ?? { lots: [], history: [] },
+          tradePost: base.tradePost ?? { offers: [], refreshAt: 0, acceptedToday: 0, lastResetAt: 0 },
           arena: base.arena ?? { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
           bounties: base.bounties ?? { active: [], refreshAt: 0, completedToday: 0 },
           hunts: base.hunts ?? { active: [], completed: [] },

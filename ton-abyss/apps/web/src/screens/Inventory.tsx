@@ -199,27 +199,49 @@ function rarityOrder(r: RarityId): number {
   return ["common", "uncommon", "rare", "epic", "legendary", "mythic", "abyssal"].indexOf(r);
 }
 
+const STAT_RU: Record<string, string> = {
+  attack: "Атака", spellPower: "Сила закл.", defense: "Защита", maxHp: "HP", maxMana: "Мана",
+  critChance: "Крит. шанс", critMultiplier: "Крит. урон", dodge: "Уклонение", accuracy: "Точность",
+  blockChance: "Блок-шанс", blockAmount: "Блок-сила", lifesteal: "Вампиризм", speed: "Скорость",
+  luck: "Удача", strength: "Сила", agility: "Ловкость", intellect: "Интеллект",
+  vitality: "Выносливость", spirit: "Дух", gold_find: "Золото %", xp_gain: "Опыт %",
+  elemental_damage: "Стихия+",
+};
+
+const RARITY_RU: Record<string, string> = {
+  common: "обычный", uncommon: "необычный", rare: "редкий", epic: "эпический",
+  legendary: "легендарный", mythic: "мифический", abyssal: "абиссальный",
+};
+
 function ItemDetails({ item, onEquip, onClose }: { item: ItemInstance; onEquip: () => void; onClose: () => void }) {
   const base = ITEMS[item.baseId];
+  const setScreen = useGame((s) => s.setScreen);
+  const lockItem = useGame((s) => s.lockItem);
+  const unlockItem = useGame((s) => s.unlockItem);
+  const lockedItems = useGame((s) => s.lockedItems);
+  const moveToStash = useGame((s) => s.moveToStash);
+  const salvage = useGame((s) => s.salvage);
   if (!base) return null;
+  const locked = lockedItems.includes(item.uid);
+  const isGear = ["weapon", "offhand", "head", "chest", "legs", "hands", "feet", "ring", "amulet", "neck", "waist", "back", "trinket", "relic"].includes(base.slot);
   return (
     <div className="rarity-border">
       <div className="flex items-center gap-3">
         <div data-rarity={item.rarity} className="w-12 h-12 grid place-items-center rounded-lg bg-white/5 rarity-glow">
           <span className="text-2xl">{slotIcon(base.slot)}</span>
         </div>
-        <div className="flex-1">
-          <div className="font-display text-xl tracking-wider" style={{ color: RARITY_COLOR[item.rarity] }}>
+        <div className="flex-1 min-w-0">
+          <div className="font-display text-xl tracking-wider truncate" style={{ color: RARITY_COLOR[item.rarity] }}>
             {base.name} {item.upgradeLevel > 0 && <span className="text-amber-300 font-mono">+{item.upgradeLevel}</span>}
           </div>
-          <div className="text-xs text-white/60 uppercase tracking-widest">{item.rarity} · ур. {item.level}</div>
+          <div className="text-xs text-white/60 tracking-widest">{RARITY_RU[item.rarity] ?? item.rarity} · ур. {item.level}{locked ? " · 🔒" : ""}</div>
         </div>
       </div>
-      {base.baseStats && (
-        <div className="mt-3 text-xs text-white/80 space-y-1">
+      {base.baseStats && Object.keys(base.baseStats).length > 0 && (
+        <div className="mt-3 text-xs text-white/85 space-y-1">
           {Object.entries(base.baseStats).map(([k, v]) => (
             <div key={k} className="flex justify-between">
-              <span>{k}</span>
+              <span className="text-white/70">{STAT_RU[k] ?? k}</span>
               <span className="font-mono text-white">{formatStat(k, v)}</span>
             </div>
           ))}
@@ -227,23 +249,47 @@ function ItemDetails({ item, onEquip, onClose }: { item: ItemInstance; onEquip: 
       )}
       {item.affixes.length > 0 && (
         <div className="mt-3">
-          <div className="text-[11px] uppercase text-white/50 mb-1">Аффиксы</div>
+          <div className="text-[11px] uppercase text-white/55 mb-1">Аффиксы</div>
           <div className="space-y-1 text-xs">
             {item.affixes.map((a, i) => (
               <div key={i} className="flex justify-between rounded bg-white/5 px-2 py-1">
-                <span>{a.id} (T{a.tier}){a.element ? ` [${a.element}]` : ""}</span>
-                <span className="font-mono text-emerald-300">+{typeof a.value === "number" && a.value < 1 ? (a.value * 100).toFixed(1) + "%" : a.value}</span>
+                <span className="text-emerald-300/80">{STAT_RU[a.stat] ?? a.stat} (T{a.tier}){a.element ? ` [${a.element}]` : ""}</span>
+                <span className="font-mono text-emerald-200">{formatStat(a.stat, a.value)}</span>
               </div>
             ))}
           </div>
         </div>
       )}
-      {base.flavor && <div className="mt-3 text-[11px] italic text-white/50">„{base.flavor}"</div>}
-      <div className="mt-4 flex gap-2">
-        {["weapon", "offhand", "head", "chest", "legs", "hands", "feet", "ring", "amulet", "relic"].includes(base.slot) && (
-          <button className="btn-primary flex-1" onClick={onEquip}>Экипировать</button>
+      {base.flavor && <div className="mt-3 text-[11px] italic text-white/55">„{base.flavor}"</div>}
+
+      <div className="mt-4 space-y-2">
+        <div className="flex gap-2">
+          {isGear && (
+            <button className="btn-primary flex-1" onClick={onEquip}>Экипировать</button>
+          )}
+          <button className="btn-ghost" onClick={onClose}>Закрыть</button>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <button className="btn-ghost text-xs" onClick={() => { locked ? unlockItem(item.uid) : lockItem(item.uid); }}>
+            {locked ? "🔓 Разблок." : "🔒 Заблок."}
+          </button>
+          <button className="btn-ghost text-xs" onClick={() => { moveToStash(item.uid); onClose(); }}>В стэш</button>
+          <button className="btn-ghost text-xs" onClick={() => { setScreen("market"); onClose(); }}>Маркет →</button>
+          <button className="btn-ghost text-xs" onClick={() => { setScreen("auction"); onClose(); }}>Аукцион →</button>
+        </div>
+        {!locked && (
+          <button
+            className="w-full py-2 text-xs rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+            onClick={() => {
+              if (window.confirm(`Распылить ${base.name}? Получите эссенцию и материалы.`)) {
+                salvage([item.uid]);
+                onClose();
+              }
+            }}
+          >
+            ♻ Распылить
+          </button>
         )}
-        <button className="btn-ghost" onClick={onClose}>Закрыть</button>
       </div>
     </div>
   );
@@ -251,7 +297,8 @@ function ItemDetails({ item, onEquip, onClose }: { item: ItemInstance; onEquip: 
 
 function formatStat(key: string, v: unknown): string {
   if (typeof v === "number") {
-    if (key === "critChance" || key === "dodge" || key === "critMultiplier") return (v * 100).toFixed(1) + "%";
+    if (["critChance", "dodge", "accuracy", "blockChance", "lifesteal", "gold_find", "xp_gain"].includes(key)) return (v * 100).toFixed(1) + "%";
+    if (key === "critMultiplier") return `+${(v * 100).toFixed(0)}%`;
     return `+${v}`;
   }
   return JSON.stringify(v);

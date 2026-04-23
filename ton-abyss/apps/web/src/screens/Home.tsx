@@ -60,13 +60,21 @@ const MENU: MenuGroup[] = [
     ],
   },
   {
-    key: "world", title: "Мир и услуги", icon: "relic", tint: "#d6bcfa",
+    key: "economy", title: "Экономика", icon: "shop", tint: "#fbbf24",
+    tiles: [
+      { id: "market",     label: "Маркет",      icon: "shop",        hint: "Купля/продажа",   accent: "#fbbf24" },
+      { id: "auction",    label: "Аукцион",     icon: "achievement", hint: "Ставки, выкуп",   accent: "#d946ef" },
+      { id: "trade_post", label: "Торг. пост",  icon: "shop",        hint: "NPC-обмен",       accent: "#22d3ee" },
+      { id: "shop",       label: "Лавка",       icon: "shop",        hint: "Продать/купить",  accent: "#94a3b8" },
+      { id: "lootboxes",  label: "Сундуки",     icon: "achievement", hint: "Pity, лут",       accent: "#fb923c" },
+    ],
+  },
+  {
+    key: "world", title: "Мир и прогресс", icon: "relic", tint: "#d6bcfa",
     tiles: [
       { id: "relics",     label: "Реликвии",   icon: "relic",       hint: "Перман. бонусы", accent: "#d6bcfa" },
-      { id: "shop",       label: "Лавка",      icon: "shop",        hint: "Продать/купить", accent: "#94a3b8" },
       { id: "codex",      label: "Кодекс",     icon: "codex",       hint: "Гид по миру",    accent: "#a78bfa" },
       { id: "battlepass", label: "Боевой Пропуск", icon: "achievement", hint: "Сезон, награды", accent: "#fbbf24" },
-      { id: "lootboxes",  label: "Сундуки",    icon: "achievement", hint: "Pity, лут",       accent: "#fb923c" },
     ],
   },
 ];
