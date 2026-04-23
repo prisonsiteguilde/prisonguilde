@@ -21,6 +21,7 @@ const MENU: MenuGroup[] = [
       { id: "arena",       label: "Арена",   icon: "arena",    hint: "PvP ELO",      accent: "#fb7185" },
       { id: "hunts",       label: "Охота",   icon: "hunt",     hint: "Редкие цели",  accent: "#22d3ee" },
       { id: "clan_bosses", label: "Клан-боссы", icon: "skull",  hint: "Рейды клана",  accent: "#fb7185" },
+      { id: "echo_rifts",  label: "Эхо-Рифты",  icon: "gem",    hint: "Эндгейм, аффиксы", accent: "#d946ef" },
     ],
   },
   {

@@ -19,6 +19,7 @@ import type {
   LootboxState,
   LootboxKind,
   ClanBossInstance,
+  RarityId,
 } from "@ton-abyss/shared";
 import {
   defaultLootboxState,
@@ -96,6 +97,9 @@ import {
   NPC_CLANS,
   clanWarReward,
   CURRENT_SEASON,
+  ECHO_RIFT_TIERS,
+  ECHO_RIFT_PITY_INTERVAL,
+  rollEchoRiftAffixes,
 } from "@ton-abyss/content";
 
 export type Screen =
@@ -130,7 +134,8 @@ export type Screen =
   | "clan"
   | "battlepass"
   | "lootboxes"
-  | "clan_bosses";
+  | "clan_bosses"
+  | "echo_rifts";
 
 export interface Toast {
   id: string;
@@ -287,6 +292,7 @@ export interface GameState {
   lastDungeonLog: import("@ton-abyss/shared").CombatEvent[];
 
   // god-mode v2 state
+  echoRifts: { highestTier: number; clears: number; pityCounter: number; bestRunGold: number };
   tower: TowerState;
   arena: ArenaState;
   bounties: BountiesState;
@@ -362,6 +368,7 @@ export interface GameState {
   deleteLoadout: (id: string) => void;
   enterTower: () => void;
   towerNext: () => void;
+  runEchoRift: (tier: number) => { ok: boolean; error?: string; gold?: number; xp?: number };
   exitTower: (save: boolean) => void;
   fightArena: (opponentId: string) => { won: boolean; eloDelta: number };
   rerollBounties: () => void;
@@ -685,6 +692,7 @@ export const useGame = create<GameState>()(
       petStates: {},
       toasts: [],
       lastDungeonLog: [],
+      echoRifts: { highestTier: 0, clears: 0, pityCounter: 0, bestRunGold: 0 },
       tower: { currentFloor: 0, highestFloor: 0, active: false, currentScore: 0, bestScore: 0, lastEntryAt: 0 },
       arena: { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
       bounties: { active: [], refreshAt: 0, completedToday: 0 },
@@ -791,6 +799,7 @@ export const useGame = create<GameState>()(
           hardcoreStreak: 0,
           gems: {},
           tower: { currentFloor: 0, highestFloor: 0, active: false, currentScore: 0, bestScore: 0, lastEntryAt: 0 },
+          echoRifts: { highestTier: 0, clears: 0, pityCounter: 0, bestRunGold: 0 },
           arena: { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
           bounties: { active: [], refreshAt: 0, completedToday: 0 },
           hunts: { active: [], completed: [] },
@@ -1859,6 +1868,91 @@ export const useGame = create<GameState>()(
         };
       }),
 
+      // ================ ECHO RIFTS ================
+      runEchoRift: (tier) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const t = ECHO_RIFT_TIERS.find((x) => x.tier === tier);
+        if (!t) return { ok: false, error: "Тир не найден." };
+        if (s.character.level < t.levelMin) return { ok: false, error: `Нужен уровень ${t.levelMin}.` };
+        if (s.echoRifts.highestTier + 1 < tier) return { ok: false, error: `Сначала пройди тир ${s.echoRifts.highestTier + 1}.` };
+
+        const seed = Date.now() + tier * 1000;
+        const rngFn = (() => {
+          let x: number = seed;
+          return () => {
+            x = (x * 1664525 + 1013904223) | 0;
+            return ((x >>> 0) / 0x100000000);
+          };
+        })();
+        const affixes = rollEchoRiftAffixes(t, rngFn);
+
+        // Combine multipliers
+        let goldMult = 1, xpMult = 1, qualityMult = 1, quantityMult = 1;
+        for (const a of affixes) {
+          if (a.goldMult) goldMult *= a.goldMult;
+          if (a.xpMult) xpMult *= a.xpMult;
+          if (a.lootQualityMult) qualityMult *= a.lootQualityMult;
+          if (a.lootQuantityMult) quantityMult *= a.lootQuantityMult;
+        }
+
+        // Rough simulation: success based on player level vs tier scaling
+        const derived = buildDerived(s.character, s.inventory, s.equipped, s.skillAllocation, s.paragon);
+        const playerPower = derived.attack + derived.spellPower * 0.7 + derived.maxHp * 0.5 + derived.defense * 2;
+        const targetPower = 200 + tier * 250;
+        const successRoll = Math.random() + (playerPower - targetPower) / Math.max(1, targetPower) * 0.4;
+        const success = successRoll > 0.5;
+
+        if (!success) {
+          // Failed — small consolation, lose hp
+          const goldLoss = Math.floor(s.character.gold * 0.05);
+          set({
+            character: { ...s.character, gold: Math.max(0, s.character.gold - goldLoss), hpCurrent: 1 },
+            toasts: [...s.toasts, { id: genId("tst"), text: `Поражение в Эхо-Рифте ${t.ru}. Потеря: ${goldLoss}g.`, tone: "bad" as const }],
+          });
+          return { ok: true, gold: -goldLoss, xp: 0 };
+        }
+
+        // Success
+        const gold = Math.round(t.baseGold * goldMult);
+        const xp = Math.round(t.baseXp * xpMult);
+        const newPity = s.echoRifts.pityCounter + 1;
+        const pityTriggered = newPity >= ECHO_RIFT_PITY_INTERVAL;
+
+        // Roll loot
+        const charLevel = s.character.level;
+        const lootRng = new RNG(seedFrom(`rift_${tier}_${Date.now()}`));
+        const newLoot: ItemInstance[] = [];
+        const lootCount = Math.max(1, Math.round(2 * quantityMult));
+        for (let i = 0; i < lootCount; i++) {
+          const pool = Object.values(ITEMS).filter((it) => it.slot !== "consumable" && it.slot !== "material" && it.slot !== "rune" && (it.levelReq ?? 1) <= charLevel + 5 && (it.levelReq ?? 1) >= Math.max(1, charLevel - 10));
+          if (pool.length === 0) continue;
+          const base = pool[Math.floor(lootRng.next() * pool.length)];
+          if (!base) continue;
+          let rarityFloor = t.rarityFloor;
+          if (pityTriggered && i === 0) rarityFloor = "mythic";
+          const inst = createItemInstance(lootRng, base, { level: base.levelReq ?? charLevel, magicFindPct: s.character.stats.luck * 3 + Math.round((qualityMult - 1) * 100), rarityOverride: { [rarityFloor]: 100 } as Partial<Record<RarityId, number>> });
+          newLoot.push(inst);
+        }
+
+        const updatedRifts = {
+          highestTier: Math.max(s.echoRifts.highestTier, tier),
+          clears: s.echoRifts.clears + 1,
+          pityCounter: pityTriggered ? 0 : newPity,
+          bestRunGold: Math.max(s.echoRifts.bestRunGold, gold),
+        };
+
+        set({
+          character: { ...s.character, gold: s.character.gold + gold, xp: s.character.xp + xp },
+          inventory: [...s.inventory, ...newLoot],
+          echoRifts: updatedRifts,
+          lootReveal: newLoot.length ? newLoot : null,
+          toasts: [...s.toasts, { id: genId("tst"), text: `Эхо-Рифт ${t.ru}: +${gold}g, +${xp} XP, +${newLoot.length} предметов.${pityTriggered ? " 🌟 PITY!" : ""}`, tone: "epic" as const }],
+        });
+
+        return { ok: true, gold, xp };
+      },
+
       // ================ ARENA ================
       fightArena: (opponentId) => {
         const s = get();
@@ -2724,6 +2818,7 @@ export const useGame = create<GameState>()(
           toasts: [],
           lastDungeonLog: [],
           tower: { currentFloor: 0, highestFloor: 0, active: false, currentScore: 0, bestScore: 0, lastEntryAt: 0 },
+          echoRifts: { highestTier: 0, clears: 0, pityCounter: 0, bestRunGold: 0 },
           arena: { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
           bounties: { active: [], refreshAt: 0, completedToday: 0 },
           hunts: { active: [], completed: [] },
@@ -2774,7 +2869,7 @@ export const useGame = create<GameState>()(
     }),
     {
       name: "ton-abyss-save",
-      version: 6,
+      version: 7,
       partialize: (s) => ({
         character: s.character,
         inventory: s.inventory,
@@ -2803,6 +2898,7 @@ export const useGame = create<GameState>()(
         totalDamageDealt: s.totalDamageDealt,
         hardcoreStreak: s.hardcoreStreak,
         tower: s.tower,
+        echoRifts: s.echoRifts,
         arena: s.arena,
         bounties: s.bounties,
         hunts: s.hunts,
@@ -2837,6 +2933,7 @@ export const useGame = create<GameState>()(
           stash: base.stash ?? [],
           petStates: base.petStates ?? {},
           tower: base.tower ?? { currentFloor: 0, highestFloor: 0, active: false, currentScore: 0, bestScore: 0, lastEntryAt: 0 },
+          echoRifts: base.echoRifts ?? { highestTier: 0, clears: 0, pityCounter: 0, bestRunGold: 0 },
           arena: base.arena ?? { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
           bounties: base.bounties ?? { active: [], refreshAt: 0, completedToday: 0 },
           hunts: base.hunts ?? { active: [], completed: [] },

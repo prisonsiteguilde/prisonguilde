@@ -37,6 +37,7 @@ const Clan = lazy(() => import("./screens/Clan.js").then((m) => ({ default: m.Cl
 const BattlePass = lazy(() => import("./screens/BattlePass.js").then((m) => ({ default: m.BattlePass })));
 const Lootboxes = lazy(() => import("./screens/Lootboxes.js").then((m) => ({ default: m.Lootboxes })));
 const ClanBosses = lazy(() => import("./screens/ClanBosses.js").then((m) => ({ default: m.ClanBosses })));
+const EchoRifts = lazy(() => import("./screens/EchoRifts.js").then((m) => ({ default: m.EchoRifts })));
 
 export function App() {
   const screen = useGame((s) => s.screen);
@@ -94,6 +95,7 @@ export function App() {
             {screen === "battlepass" && <BattlePass />}
             {screen === "lootboxes" && <Lootboxes />}
             {screen === "clan_bosses" && <ClanBosses />}
+            {screen === "echo_rifts" && <EchoRifts />}
             </Suspense>
           </motion.div>
         </AnimatePresence>

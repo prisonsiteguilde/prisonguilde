@@ -28,6 +28,9 @@ export function Inventory() {
   const unequip = useGame((s) => s.unequip);
   const setScreen = useGame((s) => s.setScreen);
   const [filter, setFilter] = useState<"all" | "gear" | "consumables" | "materials">("all");
+  const [rarityFilter, setRarityFilter] = useState<RarityId | "all">("all");
+  const [sortBy, setSortBy] = useState<"rarity" | "level" | "name">("rarity");
+  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<ItemInstance | null>(null);
 
   const equippedSet = useMemo(
@@ -36,19 +39,25 @@ export function Inventory() {
   );
 
   const items = useMemo(() => {
+    const q = search.trim().toLowerCase();
     return inv
       .filter((i) => !equippedSet.has(i.uid))
       .filter((i) => {
         const b = ITEMS[i.baseId];
         if (!b) return false;
-        if (filter === "all") return true;
-        if (filter === "consumables") return b.slot === "consumable";
-        if (filter === "materials") return b.slot === "material" || b.slot === "rune";
-        if (filter === "gear") return ["weapon", "offhand", "head", "chest", "legs", "hands", "feet", "ring", "amulet", "relic"].includes(b.slot);
+        if (filter === "consumables" && b.slot !== "consumable") return false;
+        if (filter === "materials" && b.slot !== "material" && b.slot !== "rune") return false;
+        if (filter === "gear" && !["weapon", "offhand", "head", "chest", "legs", "hands", "feet", "ring", "amulet", "relic"].includes(b.slot)) return false;
+        if (rarityFilter !== "all" && i.rarity !== rarityFilter) return false;
+        if (q && !b.name.toLowerCase().includes(q)) return false;
         return true;
       })
-      .sort((a, b) => rarityOrder(b.rarity) - rarityOrder(a.rarity) || (b.level - a.level));
-  }, [inv, equippedSet, filter]);
+      .sort((a, b) => {
+        if (sortBy === "name") return (ITEMS[a.baseId]?.name ?? "").localeCompare(ITEMS[b.baseId]?.name ?? "");
+        if (sortBy === "level") return (b.level - a.level) || rarityOrder(b.rarity) - rarityOrder(a.rarity);
+        return rarityOrder(b.rarity) - rarityOrder(a.rarity) || (b.level - a.level);
+      });
+  }, [inv, equippedSet, filter, rarityFilter, sortBy, search]);
 
   return (
     <div className="px-4 py-4 space-y-4">
@@ -96,16 +105,49 @@ export function Inventory() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 text-sm">
-        {(["all", "gear", "consumables", "materials"] as const).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg border ${filter === f ? "border-abyss-500 bg-abyss-500/20 text-white" : "border-white/10 bg-white/5 text-white/60"}`}
+      <div className="space-y-2">
+        <div className="flex gap-2 text-sm flex-wrap">
+          {(["all", "gear", "consumables", "materials"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-3 py-1.5 rounded-lg border ${filter === f ? "border-abyss-500 bg-abyss-500/20 text-white" : "border-white/10 bg-white/5 text-white/60"}`}
+            >
+              {f === "all" ? "Всё" : f === "gear" ? "Снаряж." : f === "consumables" ? "Расх." : "Ресурсы"}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 items-center flex-wrap text-[11px]">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Поиск…"
+            className="flex-1 min-w-[120px] bg-slate-900/60 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-abyss-500"
+          />
+          <select
+            value={rarityFilter}
+            onChange={(e) => setRarityFilter(e.target.value as RarityId | "all")}
+            className="bg-slate-900/60 border border-white/10 rounded px-2 py-1 text-xs text-white"
           >
-            {f === "all" ? "Всё" : f === "gear" ? "Снаряж." : f === "consumables" ? "Расх." : "Ресурсы"}
-          </button>
-        ))}
+            <option value="all">Любая редкость</option>
+            <option value="common">Обычное</option>
+            <option value="uncommon">Необычное</option>
+            <option value="rare">Редкое</option>
+            <option value="epic">Эпическое</option>
+            <option value="legendary">Легендарное</option>
+            <option value="mythic">Мифическое</option>
+            <option value="abyssal">Абиссальное</option>
+          </select>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as "rarity" | "level" | "name")}
+            className="bg-slate-900/60 border border-white/10 rounded px-2 py-1 text-xs text-white"
+          >
+            <option value="rarity">По редкости</option>
+            <option value="level">По уровню</option>
+            <option value="name">По имени</option>
+          </select>
+        </div>
       </div>
 
       {/* Grid */}
