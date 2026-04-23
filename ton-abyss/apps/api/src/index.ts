@@ -5,6 +5,9 @@ import { registerGameRoutes } from "./routes/game.js";
 import { registerDungeonRoutes } from "./routes/dungeon.js";
 import { registerCraftRoutes } from "./routes/craft.js";
 import { registerShopRoutes } from "./routes/shop.js";
+import { registerClanRoutes } from "./routes/clan.js";
+import { registerArenaRoutes } from "./routes/arena.js";
+import { registerLeaderboardRoutes } from "./routes/leaderboard.js";
 import { db, initDb } from "./db.js";
 
 const PORT = Number(process.env.PORT ?? 3030);
@@ -24,6 +27,9 @@ async function main() {
   await registerDungeonRoutes(app);
   await registerCraftRoutes(app);
   await registerShopRoutes(app);
+  await registerClanRoutes(app);
+  await registerArenaRoutes(app);
+  await registerLeaderboardRoutes(app);
 
   app.get("/health", async () => ({ ok: true, db: db ? "up" : "down", ts: Date.now() }));
 

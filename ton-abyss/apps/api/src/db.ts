@@ -52,6 +52,62 @@ export function initDb(): void {
       created_at INTEGER NOT NULL,
       finished_at INTEGER
     );
+    CREATE TABLE IF NOT EXISTS clans (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      tag TEXT NOT NULL,
+      motto TEXT,
+      leader_char_id TEXT NOT NULL,
+      treasury_gold INTEGER NOT NULL DEFAULT 0,
+      rank INTEGER NOT NULL DEFAULT 1,
+      xp INTEGER NOT NULL DEFAULT 0,
+      perks TEXT NOT NULL DEFAULT '[]',
+      created_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS clan_members (
+      clan_id TEXT NOT NULL REFERENCES clans(id) ON DELETE CASCADE,
+      char_id TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'recruit',
+      contribution INTEGER NOT NULL DEFAULT 0,
+      joined_at INTEGER NOT NULL,
+      last_donation_at INTEGER,
+      PRIMARY KEY (clan_id, char_id)
+    );
+    CREATE TABLE IF NOT EXISTS arena_snapshots (
+      char_id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      class_id TEXT NOT NULL,
+      level INTEGER NOT NULL,
+      elo INTEGER NOT NULL DEFAULT 1000,
+      stats TEXT NOT NULL,
+      equipment TEXT NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS arena_matches (
+      id TEXT PRIMARY KEY,
+      attacker_id TEXT NOT NULL,
+      defender_id TEXT NOT NULL,
+      result TEXT NOT NULL,
+      elo_delta INTEGER NOT NULL,
+      log TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS leaderboard (
+      char_id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      class_id TEXT NOT NULL,
+      level INTEGER NOT NULL,
+      score INTEGER NOT NULL DEFAULT 0,
+      tower_floor INTEGER NOT NULL DEFAULT 0,
+      arena_elo INTEGER NOT NULL DEFAULT 1000,
+      boss_kills INTEGER NOT NULL DEFAULT 0,
+      deaths INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_leaderboard_score ON leaderboard(score DESC);
+    CREATE INDEX IF NOT EXISTS idx_leaderboard_tower ON leaderboard(tower_floor DESC);
+    CREATE INDEX IF NOT EXISTS idx_leaderboard_elo ON leaderboard(arena_elo DESC);
+    CREATE INDEX IF NOT EXISTS idx_clan_members_char ON clan_members(char_id);
   `);
 }
 
