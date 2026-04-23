@@ -18,6 +18,16 @@ import { Sockets } from "./screens/Sockets.js";
 import { Quests } from "./screens/Quests.js";
 import { Achievements } from "./screens/Achievements.js";
 import { Leaderboard } from "./screens/Leaderboard.js";
+import { Tower } from "./screens/Tower.js";
+import { Arena } from "./screens/Arena.js";
+import { Bounties } from "./screens/Bounties.js";
+import { Hunts } from "./screens/Hunts.js";
+import { Expeditions } from "./screens/Expeditions.js";
+import { Factions } from "./screens/Factions.js";
+import { Stash } from "./screens/Stash.js";
+import { Mounts } from "./screens/Mounts.js";
+import { Relics } from "./screens/Relics.js";
+import { Enchanting } from "./screens/Enchanting.js";
 import { Toasts } from "./components/Toasts.js";
 import { TopBar } from "./components/TopBar.js";
 import { LootReveal } from "./components/LootReveal.js";
@@ -64,6 +74,16 @@ export function App() {
             {screen === "quests" && <Quests />}
             {screen === "achievements" && <Achievements />}
             {screen === "leaderboard" && <Leaderboard />}
+            {screen === "tower" && <Tower />}
+            {screen === "arena" && <Arena />}
+            {screen === "bounties" && <Bounties />}
+            {screen === "hunts" && <Hunts />}
+            {screen === "expeditions" && <Expeditions />}
+            {screen === "factions" && <Factions />}
+            {screen === "stash" && <Stash />}
+            {screen === "mounts" && <Mounts />}
+            {screen === "relics" && <Relics />}
+            {screen === "enchanting" && <Enchanting />}
           </motion.div>
         </AnimatePresence>
       </div>

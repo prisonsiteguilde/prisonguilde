@@ -47,6 +47,26 @@ import {
   ACHIEVEMENTS,
   SKILLS,
   WORLD_MAP,
+  FACTIONS,
+  TOWER_CONFIG,
+  TOWER_BOSS_FLOORS,
+  TOWER_MODIFIERS,
+  towerBiomeForFloor,
+  towerScaling,
+  ARENA_OPPONENTS,
+  arenaRankFor,
+  arenaEloDelta,
+  BOUNTIES_POOL,
+  BOUNTIES_PER_DAY,
+  BOUNTY_REROLL_COST,
+  HUNTS,
+  EXPEDITIONS,
+  RUNEWORDS,
+  RELICS,
+  MOUNTS,
+  ENCHANTS,
+  WORLD_EVENTS,
+  PETS,
 } from "@ton-abyss/content";
 
 export type Screen =
@@ -67,7 +87,17 @@ export type Screen =
   | "sockets"
   | "quests"
   | "achievements"
-  | "leaderboard";
+  | "leaderboard"
+  | "stash"
+  | "tower"
+  | "arena"
+  | "factions"
+  | "expeditions"
+  | "bounties"
+  | "hunts"
+  | "mounts"
+  | "enchanting"
+  | "relics";
 
 export interface Toast {
   id: string;
@@ -107,17 +137,102 @@ export interface ActiveCombatState {
   rewardsApplied: boolean;
 }
 
+export interface TowerState {
+  currentFloor: number;
+  highestFloor: number;
+  active: boolean;
+  currentScore: number;
+  bestScore: number;
+  lastEntryAt: number;
+}
+
+export interface ArenaState {
+  elo: number;
+  wins: number;
+  losses: number;
+  streak: number;
+  lastFightAt: number;
+  dailyFights: number;
+}
+
+export interface BountyActive {
+  id: string;
+  progress: number;
+  expiresAt: number;
+  completed: boolean;
+  claimed: boolean;
+}
+
+export interface BountiesState {
+  active: BountyActive[];
+  refreshAt: number;
+  completedToday: number;
+}
+
+export interface ExpeditionActive {
+  id: string; // unique uid
+  expId: string; // expedition def id
+  petUid: string;
+  startedAt: number;
+  endsAt: number;
+}
+
+export interface ExpeditionsState {
+  active: ExpeditionActive[];
+  history: { expId: string; success: boolean; at: number }[];
+}
+
+export interface HuntActive {
+  huntId: string;
+  startedAt: number;
+  endsAt: number;
+  progress: number; // 0..1
+}
+
+export interface PetState {
+  happiness: number; // 0..100
+  lastFedAt: number;
+  stage: 1 | 2 | 3;
+  collarBaseId?: string;
+  skillPoints: number;
+}
+
+export interface Loadout {
+  id: string;
+  name: string;
+  equipped: Record<string, string | null>;
+}
+
 export interface GameState {
   screen: Screen;
   character: Character | null;
   inventory: ItemInstance[];
+  stash: ItemInstance[];
   equipped: Record<string, string | null>;
   materials: Record<string, number>;
   gems: Record<string, number>; // gem base id -> count
   pets: PetInstance[];
   activePetUid: string | null;
+  petStates: Record<string, PetState>;
   toasts: Toast[];
   lastDungeonLog: import("@ton-abyss/shared").CombatEvent[];
+
+  // god-mode v2 state
+  tower: TowerState;
+  arena: ArenaState;
+  bounties: BountiesState;
+  hunts: { active: HuntActive[]; completed: string[] };
+  expeditions: ExpeditionsState;
+  factionRep: Record<string, number>;
+  factionClaimedTiers: Record<string, number[]>;
+  relicsUnlocked: string[];
+  mountsOwned: string[];
+  activeMount: string | null;
+  loadouts: Loadout[];
+  lockedItems: string[];
+  activeEvent: { id: string; endsAt: number } | null;
+  prestigeCount: number;
+  craftingStats: { itemsCrafted: number; itemsSalvaged: number; itemsUpgraded: number };
 
   // expansion state
   skillAllocation: SkillAllocation;
@@ -150,6 +265,42 @@ export interface GameState {
   allocatePoint: (stat: keyof Character["stats"]) => void;
   equipItem: (uid: string) => void;
   unequip: (slot: string) => void;
+
+  // god-mode v2 actions
+  moveToStash: (uid: string) => void;
+  takeFromStash: (uid: string) => void;
+  lockItem: (uid: string) => void;
+  unlockItem: (uid: string) => void;
+  saveLoadout: (name: string) => void;
+  equipLoadout: (id: string) => void;
+  deleteLoadout: (id: string) => void;
+  enterTower: () => void;
+  towerNext: () => void;
+  exitTower: (save: boolean) => void;
+  fightArena: (opponentId: string) => { won: boolean; eloDelta: number };
+  rerollBounties: () => void;
+  refreshBountiesIfNeeded: () => void;
+  claimBounty: (bountyId: string) => { ok: boolean };
+  startHunt: (huntId: string) => void;
+  progressHunt: () => void;
+  claimHunt: (huntId: string) => { ok: boolean };
+  sendExpedition: (expId: string, petUid: string) => { ok: boolean; error?: string };
+  claimExpedition: (activeId: string) => { ok: boolean };
+  tickExpeditions: () => void;
+  joinFaction: (factionId: string) => void;
+  claimFactionTier: (factionId: string, tier: number) => { ok: boolean };
+  feedPet: (petUid: string, materialBaseId: string) => void;
+  evolvePet: (petUid: string) => { ok: boolean; error?: string };
+  fusePets: (petUidA: string, petUidB: string) => { ok: boolean; error?: string };
+  hatchEgg: (eggBaseId: string) => { ok: boolean };
+  applyEnchant: (itemUid: string, enchantId: string) => { ok: boolean; error?: string };
+  applyRuneword: (itemUid: string, runewordId: string) => { ok: boolean; error?: string };
+  buyMount: (mountId: string) => { ok: boolean; error?: string };
+  setActiveMount: (mountId: string | null) => void;
+  claimRelic: (bossId: string) => { ok: boolean };
+  triggerWorldEvent: () => void;
+  prestigeAscend: () => { ok: boolean; error?: string };
+  salvageMany: (uids: string[]) => { materials: number; dust: number; shards: number };
 
   // Combat
   beginDungeon: (dungeonId: string) => void;
@@ -401,13 +552,30 @@ export const useGame = create<GameState>()(
       screen: "splash",
       character: null,
       inventory: [],
+      stash: [],
       equipped: {},
       materials: {},
       gems: {},
       pets: [],
       activePetUid: null,
+      petStates: {},
       toasts: [],
       lastDungeonLog: [],
+      tower: { currentFloor: 0, highestFloor: 0, active: false, currentScore: 0, bestScore: 0, lastEntryAt: 0 },
+      arena: { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
+      bounties: { active: [], refreshAt: 0, completedToday: 0 },
+      hunts: { active: [], completed: [] },
+      expeditions: { active: [], history: [] },
+      factionRep: {},
+      factionClaimedTiers: {},
+      relicsUnlocked: [],
+      mountsOwned: [],
+      activeMount: null,
+      loadouts: [],
+      lockedItems: [],
+      activeEvent: null,
+      prestigeCount: 0,
+      craftingStats: { itemsCrafted: 0, itemsSalvaged: 0, itemsUpgraded: 0 },
       skillAllocation: {},
       skillPoints: 0,
       paragon: { offense: 0, defense: 0, utility: 0, treasure: 0 },
@@ -456,9 +624,11 @@ export const useGame = create<GameState>()(
         set({
           character: char,
           inventory: starter.inv,
+          stash: [],
           equipped: starter.equipped,
           materials: starter.mats,
           pets: [],
+          petStates: {},
           skillPoints: 1,
           skillAllocation: {},
           paragon: { offense: 0, defense: 0, utility: 0, treasure: 0 },
@@ -478,6 +648,21 @@ export const useGame = create<GameState>()(
           totalDamageDealt: 0,
           hardcoreStreak: 0,
           gems: {},
+          tower: { currentFloor: 0, highestFloor: 0, active: false, currentScore: 0, bestScore: 0, lastEntryAt: 0 },
+          arena: { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
+          bounties: { active: [], refreshAt: 0, completedToday: 0 },
+          hunts: { active: [], completed: [] },
+          expeditions: { active: [], history: [] },
+          factionRep: {},
+          factionClaimedTiers: {},
+          relicsUnlocked: [],
+          mountsOwned: [],
+          activeMount: null,
+          loadouts: [],
+          lockedItems: [],
+          activeEvent: { id: "evt_harvest", endsAt: Date.now() + 24 * 60 * 60 * 1000 },
+          prestigeCount: 0,
+          craftingStats: { itemsCrafted: 0, itemsSalvaged: 0, itemsUpgraded: 0 },
           screen: "home",
         });
       },
@@ -1299,6 +1484,516 @@ export const useGame = create<GameState>()(
         set({ leaderboard: all });
       },
 
+      // ================ STASH / LOCK / LOADOUTS ================
+      moveToStash: (uid) => set((s) => {
+        const it = s.inventory.find((i) => i.uid === uid);
+        if (!it) return s;
+        if (Object.values(s.equipped).includes(uid)) {
+          return { toasts: [...s.toasts, { id: genId("tst"), text: "Снимите предмет перед переносом в стэш.", tone: "bad" as const }] };
+        }
+        return { inventory: s.inventory.filter((i) => i.uid !== uid), stash: [...s.stash, it] };
+      }),
+      takeFromStash: (uid) => set((s) => {
+        const it = s.stash.find((i) => i.uid === uid);
+        if (!it) return s;
+        return { stash: s.stash.filter((i) => i.uid !== uid), inventory: [...s.inventory, it] };
+      }),
+      lockItem: (uid) => set((s) => ({ lockedItems: s.lockedItems.includes(uid) ? s.lockedItems : [...s.lockedItems, uid] })),
+      unlockItem: (uid) => set((s) => ({ lockedItems: s.lockedItems.filter((x) => x !== uid) })),
+      saveLoadout: (name) => set((s) => {
+        const loadout: Loadout = { id: genId("ld"), name, equipped: { ...s.equipped } };
+        const next = [...s.loadouts.slice(-2), loadout];
+        return { loadouts: next, toasts: [...s.toasts, { id: genId("tst"), text: `Комплект «${name}» сохранён.`, tone: "good" as const }] };
+      }),
+      equipLoadout: (id) => set((s) => {
+        const ld = s.loadouts.find((l) => l.id === id);
+        if (!ld) return s;
+        // Only equip items that still exist in inventory
+        const nextEq: Record<string, string | null> = {};
+        for (const [slot, uid] of Object.entries(ld.equipped)) {
+          if (uid && s.inventory.some((i) => i.uid === uid)) nextEq[slot] = uid;
+          else nextEq[slot] = null;
+        }
+        return { equipped: nextEq, toasts: [...s.toasts, { id: genId("tst"), text: `Комплект «${ld.name}» надет.`, tone: "good" as const }] };
+      }),
+      deleteLoadout: (id) => set((s) => ({ loadouts: s.loadouts.filter((l) => l.id !== id) })),
+
+      // ================ TOWER ================
+      enterTower: () => {
+        const s = get();
+        if (!s.character) return;
+        if (s.tower.active) { s.pushToast({ text: "Вы уже в Башне.", tone: "info" }); return; }
+        if (s.character.gold < TOWER_CONFIG.entryCost.gold) { s.pushToast({ text: `Нужно ${TOWER_CONFIG.entryCost.gold} золота для входа.`, tone: "bad" }); return; }
+        set({
+          character: { ...s.character, gold: s.character.gold - TOWER_CONFIG.entryCost.gold },
+          tower: { ...s.tower, currentFloor: 1, active: true, currentScore: 0, lastEntryAt: Date.now() },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Вы входите в Башню Бездны. Этаж 1.`, tone: "epic" as const }],
+        });
+      },
+      towerNext: () => {
+        const s = get();
+        if (!s.tower.active || !s.character) return;
+        const nextFloor = s.tower.currentFloor + 1;
+        const biome = towerBiomeForFloor(nextFloor);
+        const scaling = towerScaling(nextFloor);
+        const bossId = TOWER_BOSS_FLOORS[nextFloor];
+        const enemyId = bossId ?? biome.monsterPool[Math.floor(Math.random() * biome.monsterPool.length)]!;
+        const enemy = (bossId ? BOSSES[enemyId] : MONSTERS[enemyId]) ?? MONSTERS[enemyId];
+        if (!enemy) { s.pushToast({ text: "Ошибка генерации этажа.", tone: "bad" }); return; }
+        const enemyMaxHp = Math.round(enemy.stats.maxHp * scaling.hpMult);
+        const derived = buildDerived(s.character, s.inventory, s.equipped, s.skillAllocation, s.paragon);
+        set({
+          tower: { ...s.tower, currentFloor: nextFloor, highestFloor: Math.max(s.tower.highestFloor, nextFloor) },
+          combat: {
+            dungeonId: `tower_${nextFloor}`,
+            room: nextFloor,
+            totalRooms: 999,
+            isBossRoom: !!bossId,
+            player: {
+              id: "player", name: s.character.classId,
+              hp: s.combat?.player.hp ?? derived.maxHp,
+              maxHp: derived.maxHp,
+              mana: s.combat?.player.mana ?? derived.maxMana,
+              maxMana: derived.maxMana,
+              statuses: [], abilityCooldowns: {},
+            },
+            enemy: {
+              id: enemy.id, name: enemy.name, hp: enemyMaxHp, maxHp: enemyMaxHp,
+              mana: enemy.stats.maxMana, maxMana: enemy.stats.maxMana,
+              statuses: [], abilityCooldowns: {},
+            },
+            enemyDef: enemy as MonsterDef,
+            rngSeed: seedFrom(s.character.id, "tower", nextFloor),
+            turn: 0,
+            log: [{ turn: 0, text: `Этаж ${nextFloor}: ${biome.biome}. ${enemy.name} ждёт.`, tone: "info" }],
+            aggregatedLoot: [], aggregatedGold: 0, aggregatedXp: 0, aggregatedMats: {},
+            damageDealtTotal: 0, ended: false, victory: false, rewardsApplied: false,
+          },
+          screen: "active_combat",
+        });
+      },
+      exitTower: (save) => set((s) => {
+        const score = s.tower.currentScore;
+        const newBest = Math.max(s.tower.bestScore, score);
+        if (save && s.character) {
+          const goldBonus = Math.floor(score * 1.5);
+          const xpBonus = Math.floor(score * 0.8);
+          const newGold = s.character.gold + goldBonus;
+          const newXp = s.character.xp + xpBonus;
+          return {
+            character: { ...s.character, gold: newGold, xp: newXp },
+            tower: { ...s.tower, active: false, currentFloor: 0, bestScore: newBest, currentScore: 0 },
+            toasts: [...s.toasts, { id: genId("tst"), text: `Выход из Башни: +${goldBonus}g, +${xpBonus}xp.`, tone: "good" as const }],
+          };
+        }
+        return {
+          tower: { ...s.tower, active: false, currentFloor: 0, bestScore: newBest, currentScore: 0 },
+        };
+      }),
+
+      // ================ ARENA ================
+      fightArena: (opponentId) => {
+        const s = get();
+        if (!s.character) return { won: false, eloDelta: 0 };
+        const opp = ARENA_OPPONENTS.find((o) => o.id === opponentId);
+        if (!opp) return { won: false, eloDelta: 0 };
+        const derived = buildDerived(s.character, s.inventory, s.equipped, s.skillAllocation, s.paragon);
+        // Power comparison with RNG
+        const playerPower = derived.attack + derived.spellPower + derived.defense + derived.maxHp / 10;
+        const oppPower = opp.power + Math.random() * 100 - 50;
+        const won = playerPower + Math.random() * 50 > oppPower;
+        const eloDelta = arenaEloDelta(s.arena.elo, opp.elo, won);
+        const goldReward = won ? 200 + Math.floor(opp.power * 0.3) : 50;
+        const xpReward = won ? 80 + Math.floor(opp.power * 0.2) : 20;
+        set({
+          arena: {
+            ...s.arena,
+            elo: Math.max(0, s.arena.elo + eloDelta),
+            wins: s.arena.wins + (won ? 1 : 0),
+            losses: s.arena.losses + (won ? 0 : 1),
+            streak: won ? s.arena.streak + 1 : 0,
+            lastFightAt: Date.now(),
+            dailyFights: s.arena.dailyFights + 1,
+          },
+          character: { ...s.character, gold: s.character.gold + goldReward, xp: s.character.xp + xpReward },
+          toasts: [...s.toasts, { id: genId("tst"), text: won ? `Победа! +${eloDelta} ELO, +${goldReward}g.` : `Поражение. ${eloDelta} ELO.`, tone: won ? "epic" as const : "bad" as const }],
+        });
+        return { won, eloDelta };
+      },
+
+      // ================ BOUNTIES ================
+      refreshBountiesIfNeeded: () => {
+        const s = get();
+        if (s.bounties.refreshAt > Date.now()) return;
+        // Pick BOUNTIES_PER_DAY random bounties
+        const shuffled = [...BOUNTIES_POOL].sort(() => Math.random() - 0.5);
+        const picks = shuffled.slice(0, BOUNTIES_PER_DAY);
+        const now = Date.now();
+        set({
+          bounties: {
+            active: picks.map((b) => ({ id: b.id, progress: 0, expiresAt: now + b.expiresAfterHours * 3600 * 1000, completed: false, claimed: false })),
+            refreshAt: now + 24 * 3600 * 1000,
+            completedToday: 0,
+          },
+        });
+      },
+      rerollBounties: () => {
+        const s = get();
+        if (!s.character || s.character.gold < BOUNTY_REROLL_COST) { s.pushToast({ text: "Не хватает золота.", tone: "bad" }); return; }
+        const shuffled = [...BOUNTIES_POOL].sort(() => Math.random() - 0.5);
+        const picks = shuffled.slice(0, BOUNTIES_PER_DAY);
+        const now = Date.now();
+        set({
+          character: { ...s.character, gold: s.character.gold - BOUNTY_REROLL_COST },
+          bounties: { ...s.bounties, active: picks.map((b) => ({ id: b.id, progress: 0, expiresAt: now + b.expiresAfterHours * 3600 * 1000, completed: false, claimed: false })) },
+        });
+      },
+      claimBounty: (bountyId) => {
+        const s = get();
+        if (!s.character) return { ok: false };
+        const active = s.bounties.active.find((b) => b.id === bountyId);
+        if (!active || active.claimed) return { ok: false };
+        const def = BOUNTIES_POOL.find((b) => b.id === bountyId);
+        if (!def) return { ok: false };
+        // For demo — allow claim anytime (progress tracked loosely)
+        const reward = def.rewards;
+        const newRep = { ...s.factionRep };
+        if (reward.reputation) {
+          newRep[reward.reputation.factionId] = (newRep[reward.reputation.factionId] ?? 0) + reward.reputation.amount;
+        }
+        set({
+          character: { ...s.character, gold: s.character.gold + reward.gold, xp: s.character.xp + reward.xp, shards: s.character.shards + (reward.shards ?? 0), abyssDust: s.character.abyssDust + (reward.dust ?? 0) },
+          bounties: { ...s.bounties, active: s.bounties.active.map((b) => b.id === bountyId ? { ...b, claimed: true, completed: true } : b), completedToday: s.bounties.completedToday + 1 },
+          factionRep: newRep,
+          toasts: [...s.toasts, { id: genId("tst"), text: `Баунти «${def.name}» выполнено! +${reward.gold}g, +${reward.xp}xp${reward.reputation ? `, +${reward.reputation.amount} реп.` : ""}.`, tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+
+      // ================ HUNTS ================
+      startHunt: (huntId) => set((s) => {
+        const hunt = HUNTS.find((h) => h.id === huntId);
+        if (!hunt || !s.character) return s;
+        if (s.character.level < hunt.levelReq) return { toasts: [...s.toasts, { id: genId("tst"), text: `Требуется уровень ${hunt.levelReq}.`, tone: "bad" as const }] };
+        if (s.hunts.active.some((a) => a.huntId === huntId)) return s;
+        const now = Date.now();
+        return { hunts: { ...s.hunts, active: [...s.hunts.active, { huntId, startedAt: now, endsAt: now + hunt.trackDurationMinutes * 60000, progress: 0 }] }, toasts: [...s.toasts, { id: genId("tst"), text: `Охота «${hunt.name}» начата.`, tone: "info" as const }] };
+      }),
+      progressHunt: () => set((s) => {
+        const now = Date.now();
+        const updated = s.hunts.active.map((a) => {
+          const hunt = HUNTS.find((h) => h.id === a.huntId);
+          if (!hunt) return a;
+          const pct = Math.min(1, (now - a.startedAt) / (hunt.trackDurationMinutes * 60000));
+          return { ...a, progress: pct };
+        });
+        return { hunts: { ...s.hunts, active: updated } };
+      }),
+      claimHunt: (huntId) => {
+        const s = get();
+        if (!s.character) return { ok: false };
+        const hunt = HUNTS.find((h) => h.id === huntId);
+        const active = s.hunts.active.find((a) => a.huntId === huntId);
+        if (!hunt || !active || active.progress < 1) return { ok: false };
+        const reward = hunt.rewards;
+        const items: ItemInstance[] = reward.itemBaseId ? [{ uid: genId("it"), baseId: reward.itemBaseId, rarity: "rare", level: hunt.levelReq, affixes: [], upgradeLevel: 0, createdAt: Date.now(), sockets: [] }] : [];
+        const newRep = { ...s.factionRep };
+        if (reward.reputation) newRep[reward.reputation.factionId] = (newRep[reward.reputation.factionId] ?? 0) + reward.reputation.amount;
+        set({
+          character: { ...s.character, gold: s.character.gold + reward.gold, xp: s.character.xp + reward.xp, abyssDust: s.character.abyssDust + (reward.dust ?? 0) },
+          inventory: [...s.inventory, ...items],
+          hunts: { active: s.hunts.active.filter((a) => a.huntId !== huntId), completed: [...s.hunts.completed, huntId] },
+          factionRep: newRep,
+          toasts: [...s.toasts, { id: genId("tst"), text: `Охота завершена: ${hunt.name}! +${reward.gold}g, +${reward.xp}xp.`, tone: "epic" as const }],
+          lootReveal: items.length ? items : s.lootReveal,
+        });
+        return { ok: true };
+      },
+
+      // ================ EXPEDITIONS ================
+      sendExpedition: (expId, petUid) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "no character" };
+        const exp = EXPEDITIONS.find((e) => e.id === expId);
+        const pet = s.pets.find((p) => p.uid === petUid);
+        if (!exp) return { ok: false, error: "no expedition" };
+        if (!pet) return { ok: false, error: "no pet" };
+        if (pet.level < exp.petLevelReq) return { ok: false, error: `Питомец должен быть ${exp.petLevelReq} уровня.` };
+        if (s.expeditions.active.some((a) => a.petUid === petUid)) return { ok: false, error: "Питомец уже в экспедиции." };
+        const now = Date.now();
+        set({ expeditions: { ...s.expeditions, active: [...s.expeditions.active, { id: genId("exp"), expId, petUid, startedAt: now, endsAt: now + exp.durationMinutes * 60000 }] } });
+        return { ok: true };
+      },
+      claimExpedition: (activeId) => {
+        const s = get();
+        if (!s.character) return { ok: false };
+        const active = s.expeditions.active.find((a) => a.id === activeId);
+        if (!active) return { ok: false };
+        if (Date.now() < active.endsAt) return { ok: false };
+        const def = EXPEDITIONS.find((e) => e.id === active.expId);
+        if (!def) return { ok: false };
+        const success = Math.random() < def.successBaseChance;
+        const history = [...s.expeditions.history, { expId: active.expId, success, at: Date.now() }];
+        const remaining = s.expeditions.active.filter((a) => a.id !== activeId);
+        if (!success) {
+          set({ expeditions: { active: remaining, history }, toasts: [...s.toasts, { id: genId("tst"), text: `Экспедиция провалена. Питомец вернулся пустым.`, tone: "bad" as const }] });
+          return { ok: true };
+        }
+        const gold = def.rewards.gold[0] + Math.floor(Math.random() * (def.rewards.gold[1] - def.rewards.gold[0]));
+        const xp = def.rewards.xp[0] + Math.floor(Math.random() * (def.rewards.xp[1] - def.rewards.xp[0]));
+        const newMats = { ...s.materials };
+        if (def.rewards.material) {
+          const qty = def.rewards.material.qty[0] + Math.floor(Math.random() * (def.rewards.material.qty[1] - def.rewards.material.qty[0]));
+          newMats[def.rewards.material.baseId] = (newMats[def.rewards.material.baseId] ?? 0) + qty;
+        }
+        let newInv = s.inventory;
+        if (def.rewards.itemChance && Math.random() < def.rewards.itemChance && def.rewards.itemPool?.length) {
+          const pick = def.rewards.itemPool[Math.floor(Math.random() * def.rewards.itemPool.length)]!;
+          newInv = [...newInv, { uid: genId("it"), baseId: pick, rarity: "uncommon", level: 1, affixes: [], upgradeLevel: 0, createdAt: Date.now(), sockets: [] }];
+        }
+        set({
+          character: { ...s.character, gold: s.character.gold + gold, xp: s.character.xp + xp },
+          materials: newMats,
+          inventory: newInv,
+          expeditions: { active: remaining, history },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Экспедиция успешна: +${gold}g, +${xp}xp.`, tone: "good" as const }],
+        });
+        return { ok: true };
+      },
+      tickExpeditions: () => {
+        // No-op placeholder — UI polls endsAt directly.
+      },
+
+      // ================ FACTIONS ================
+      joinFaction: (factionId) => set((s) => ({ factionRep: { ...s.factionRep, [factionId]: Math.max(0, s.factionRep[factionId] ?? 0) } })),
+      claimFactionTier: (factionId, tier) => {
+        const s = get();
+        if (!s.character) return { ok: false };
+        const def = FACTIONS[factionId];
+        if (!def) return { ok: false };
+        const rep = s.factionRep[factionId] ?? 0;
+        const tierDef = def.tiers.find((t) => t.tier === tier);
+        if (!tierDef) return { ok: false };
+        if (rep < tierDef.repRequired) return { ok: false };
+        const claimed = s.factionClaimedTiers[factionId] ?? [];
+        if (claimed.includes(tier)) return { ok: false };
+        const r = tierDef.rewards;
+        const newInv = [...s.inventory];
+        if (r.itemBaseId) newInv.push({ uid: genId("it"), baseId: r.itemBaseId, rarity: "epic", level: Math.max(1, Math.floor(rep / 500)), affixes: [], upgradeLevel: 0, createdAt: Date.now(), sockets: [] });
+        const titles = r.title ? [...new Set([...s.unlockedTitles, r.title])] : s.unlockedTitles;
+        set({
+          character: { ...s.character, gold: s.character.gold + (r.gold ?? 0) },
+          inventory: newInv,
+          factionClaimedTiers: { ...s.factionClaimedTiers, [factionId]: [...claimed, tier] },
+          unlockedTitles: titles,
+          toasts: [...s.toasts, { id: genId("tst"), text: `Награда фракции ${def.name}: ${tierDef.name} получена!`, tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+
+      // ================ PETS DEEP ================
+      feedPet: (petUid, materialBaseId) => set((s) => {
+        const pet = s.pets.find((p) => p.uid === petUid);
+        if (!pet) return s;
+        const have = s.materials[materialBaseId] ?? 0;
+        if (have < 1) return { toasts: [...s.toasts, { id: genId("tst"), text: "Нет этого материала.", tone: "bad" as const }] };
+        const state = s.petStates[petUid] ?? { happiness: 50, lastFedAt: 0, stage: 1 as const, skillPoints: 0 };
+        const xpGain = 25;
+        const newLevel = Math.min(60, pet.level + (pet.xp + xpGain >= 100 ? 1 : 0));
+        const newXp = newLevel > pet.level ? 0 : pet.xp + xpGain;
+        return {
+          materials: { ...s.materials, [materialBaseId]: have - 1 },
+          pets: s.pets.map((p) => p.uid === petUid ? { ...p, level: newLevel, xp: newXp, bondLevel: Math.min(10, p.bondLevel + 1) } : p),
+          petStates: { ...s.petStates, [petUid]: { ...state, happiness: Math.min(100, state.happiness + 15), lastFedAt: Date.now(), skillPoints: state.skillPoints + (newLevel > pet.level ? 1 : 0) } },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Питомец накормлен. +${xpGain} XP, +15 счастья.`, tone: "good" as const }],
+        };
+      }),
+      evolvePet: (petUid) => {
+        const s = get();
+        const pet = s.pets.find((p) => p.uid === petUid);
+        if (!pet) return { ok: false, error: "Не найден." };
+        const state = s.petStates[petUid] ?? { happiness: 50, lastFedAt: 0, stage: 1 as const, skillPoints: 0 };
+        if (state.stage === 3) return { ok: false, error: "Максимальная стадия." };
+        const reqLvl = state.stage === 1 ? 10 : 25;
+        const reqHappy = state.stage === 1 ? 60 : 80;
+        if (pet.level < reqLvl) return { ok: false, error: `Нужен уровень ${reqLvl}.` };
+        if (state.happiness < reqHappy) return { ok: false, error: `Нужно счастье ${reqHappy}.` };
+        const nextStage: 1 | 2 | 3 = (state.stage + 1) as 1 | 2 | 3;
+        set({
+          petStates: { ...s.petStates, [petUid]: { ...state, stage: nextStage } },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Питомец эволюционировал до стадии ${nextStage}!`, tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+      fusePets: (petUidA, petUidB) => {
+        const s = get();
+        const a = s.pets.find((p) => p.uid === petUidA);
+        const b = s.pets.find((p) => p.uid === petUidB);
+        if (!a || !b) return { ok: false, error: "Питомцы не найдены." };
+        if (a.defId !== b.defId) return { ok: false, error: "Можно сливать только одинаковых питомцев." };
+        const fused: PetInstance = {
+          ...a,
+          uid: genId("pet"),
+          level: Math.min(60, Math.max(a.level, b.level) + 5),
+          xp: 0,
+          bondLevel: Math.min(10, a.bondLevel + 2),
+          traits: [...a.traits, ...b.traits],
+          createdAt: Date.now(),
+        };
+        set({
+          pets: [...s.pets.filter((p) => p.uid !== petUidA && p.uid !== petUidB), fused],
+          petStates: { ...Object.fromEntries(Object.entries(s.petStates).filter(([k]) => k !== petUidA && k !== petUidB)), [fused.uid]: { happiness: 80, lastFedAt: Date.now(), stage: 3, skillPoints: 3 } },
+          activePetUid: s.activePetUid === petUidA || s.activePetUid === petUidB ? fused.uid : s.activePetUid,
+          toasts: [...s.toasts, { id: genId("tst"), text: `Питомцы слиты! Получен Apex-питомец.`, tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+      hatchEgg: (eggBaseId) => {
+        const s = get();
+        const eggInv = s.inventory.find((i) => i.baseId === eggBaseId);
+        if (!eggInv) return { ok: false };
+        // Pick random pet def
+        const petIds = Object.keys(PETS);
+        const petDefId = petIds[Math.floor(Math.random() * petIds.length)]!;
+        const petDef = PETS[petDefId]!;
+        const newPet: PetInstance = {
+          uid: genId("pet"),
+          defId: petDefId,
+          level: 1, xp: 0, bondLevel: 0, hp: petDef.baseStats.maxHp ?? 50,
+          nickname: petDef.name,
+          traits: [],
+          createdAt: Date.now(),
+        };
+        set({
+          inventory: s.inventory.filter((i) => i.uid !== eggInv.uid),
+          pets: [...s.pets, newPet],
+          petStates: { ...s.petStates, [newPet.uid]: { happiness: 70, lastFedAt: Date.now(), stage: 1, skillPoints: 0 } },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Вылупился: ${petDef.name}!`, tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+
+      // ================ ENCHANT / RUNEWORD ================
+      applyEnchant: (itemUid, enchantId) => {
+        const s = get();
+        if (!s.character) return { ok: false };
+        const item = s.inventory.find((i) => i.uid === itemUid);
+        const ench = ENCHANTS[enchantId];
+        if (!item || !ench) return { ok: false, error: "Не найдено." };
+        const base = ITEMS[item.baseId];
+        if (!base || !ench.slotRestriction.includes(base.slot)) return { ok: false, error: "Неподходящий слот." };
+        if (s.character.gold < ench.costGold) return { ok: false, error: "Мало золота." };
+        if (s.character.abyssDust < ench.costDust) return { ok: false, error: "Мало пыли." };
+        // Append affix
+        const newAffix = { id: `ench_${Date.now()}`, stat: Object.keys(ench.bonus)[0] ?? "attack" as any, value: Object.values(ench.bonus)[0] as number ?? 10, tier: 3 } as any;
+        const next = { ...item, affixes: [...item.affixes, newAffix] };
+        set({
+          character: { ...s.character, gold: s.character.gold - ench.costGold, abyssDust: s.character.abyssDust - ench.costDust },
+          inventory: s.inventory.map((i) => i.uid === itemUid ? next : i),
+          toasts: [...s.toasts, { id: genId("tst"), text: `Энчант «${ench.name}» нанесён.`, tone: "good" as const }],
+        });
+        return { ok: true };
+      },
+      applyRuneword: (itemUid, runewordId) => {
+        const s = get();
+        if (!s.character) return { ok: false };
+        const item = s.inventory.find((i) => i.uid === itemUid);
+        const rw = RUNEWORDS[runewordId];
+        if (!item || !rw) return { ok: false, error: "Не найдено." };
+        // Check materials
+        for (const r of rw.runeSequence) {
+          if ((s.materials[r] ?? 0) < 1) return { ok: false, error: `Нужен ${r}.` };
+        }
+        const newMats = { ...s.materials };
+        for (const r of rw.runeSequence) newMats[r] = newMats[r]! - 1;
+        const newAffixes = Object.entries(rw.bonus).map(([k, v], idx) => ({ id: `rw_${runewordId}_${idx}`, stat: k as any, value: v as number, tier: 5 }));
+        set({
+          materials: newMats,
+          inventory: s.inventory.map((i) => i.uid === itemUid ? { ...i, affixes: [...i.affixes, ...newAffixes] } : i),
+          toasts: [...s.toasts, { id: genId("tst"), text: `Runeword «${rw.name}» активирован!`, tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+
+      // ================ MOUNTS ================
+      buyMount: (mountId) => {
+        const s = get();
+        if (!s.character) return { ok: false };
+        const m = MOUNTS[mountId];
+        if (!m) return { ok: false, error: "Не найдено." };
+        if (s.mountsOwned.includes(mountId)) return { ok: false, error: "Уже владеете." };
+        if (m.costGold && s.character.gold < m.costGold) return { ok: false, error: "Мало золота." };
+        if (m.costShards && s.character.shards < m.costShards) return { ok: false, error: "Мало шардов." };
+        set({
+          character: { ...s.character, gold: s.character.gold - (m.costGold ?? 0), shards: s.character.shards - (m.costShards ?? 0) },
+          mountsOwned: [...s.mountsOwned, mountId],
+          activeMount: s.activeMount ?? mountId,
+          toasts: [...s.toasts, { id: genId("tst"), text: `Скакун «${m.name}» куплен!`, tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+      setActiveMount: (mountId) => set((s) => ({ activeMount: mountId })),
+
+      // ================ RELICS ================
+      claimRelic: (bossId) => {
+        const s = get();
+        const relicId = Object.keys(RELICS).find((id) => RELICS[id]!.sourceBossId === bossId);
+        if (!relicId) return { ok: false };
+        if (s.relicsUnlocked.includes(relicId)) return { ok: false };
+        if ((s.bossesKilled[bossId] ?? 0) < 1) return { ok: false };
+        set({
+          relicsUnlocked: [...s.relicsUnlocked, relicId],
+          toasts: [...s.toasts, { id: genId("tst"), text: `Реликвия получена: ${RELICS[relicId]!.name}!`, tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+
+      // ================ EVENTS ================
+      triggerWorldEvent: () => set((s) => {
+        const evt = WORLD_EVENTS[Math.floor(Math.random() * WORLD_EVENTS.length)]!;
+        return {
+          activeEvent: { id: evt.id, endsAt: Date.now() + evt.durationHours * 3600 * 1000 },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Событие: ${evt.name} активно на ${evt.durationHours}ч!`, tone: "epic" as const }],
+        };
+      }),
+
+      // ================ PRESTIGE ================
+      prestigeAscend: () => {
+        const s = get();
+        if (!s.character) return { ok: false };
+        if (s.character.level < 50) return { ok: false, error: "Нужен уровень 50." };
+        // Reset character but keep prestige count and a bonus
+        const bonusShards = 10 + s.prestigeCount * 5;
+        const primary = primaryStatsFor(s.character.classId, 1, {});
+        const derived = derivedFromPrimary(s.character.classId, primary);
+        set({
+          character: {
+            ...s.character,
+            level: 1, xp: 0, stats: primary, unspentPoints: 0,
+            hpCurrent: derived.maxHp, manaCurrent: derived.maxMana,
+            shards: s.character.shards + bonusShards,
+            deaths: 0,
+          },
+          prestigeCount: s.prestigeCount + 1,
+          skillAllocation: {},
+          skillPoints: 3, // bonus starting skill points per prestige
+          paragon: { offense: 0, defense: 0, utility: 0, treasure: 0 },
+          paragonPoints: 0,
+          toasts: [...s.toasts, { id: genId("tst"), text: `Вознесение! Prestige-ранг ${s.prestigeCount + 1}. +${bonusShards} шардов, +3 скилл-поинта.`, tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+
+      salvageMany: (uids) => {
+        const s = get();
+        let mats = 0, dust = 0, shards = 0;
+        for (const uid of uids) {
+          const r = s.salvage([uid]);
+          mats += r.materials; dust += r.dust; shards += r.shards;
+        }
+        return { materials: mats, dust, shards };
+      },
+
       pushToast: (t) => set((s) => ({ toasts: [...s.toasts, { ...t, id: genId("tst") }].slice(-6) })),
       dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 
@@ -1307,13 +2002,30 @@ export const useGame = create<GameState>()(
           screen: "splash",
           character: null,
           inventory: [],
+          stash: [],
           equipped: {},
           materials: {},
           gems: {},
           pets: [],
           activePetUid: null,
+          petStates: {},
           toasts: [],
           lastDungeonLog: [],
+          tower: { currentFloor: 0, highestFloor: 0, active: false, currentScore: 0, bestScore: 0, lastEntryAt: 0 },
+          arena: { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
+          bounties: { active: [], refreshAt: 0, completedToday: 0 },
+          hunts: { active: [], completed: [] },
+          expeditions: { active: [], history: [] },
+          factionRep: {},
+          factionClaimedTiers: {},
+          relicsUnlocked: [],
+          mountsOwned: [],
+          activeMount: null,
+          loadouts: [],
+          lockedItems: [],
+          activeEvent: null,
+          prestigeCount: 0,
+          craftingStats: { itemsCrafted: 0, itemsSalvaged: 0, itemsUpgraded: 0 },
           skillAllocation: {},
           skillPoints: 0,
           paragon: { offense: 0, defense: 0, utility: 0, treasure: 0 },
@@ -1339,15 +2051,17 @@ export const useGame = create<GameState>()(
     }),
     {
       name: "ton-abyss-save",
-      version: 2,
+      version: 3,
       partialize: (s) => ({
         character: s.character,
         inventory: s.inventory,
+        stash: s.stash,
         equipped: s.equipped,
         materials: s.materials,
         gems: s.gems,
         pets: s.pets,
         activePetUid: s.activePetUid,
+        petStates: s.petStates,
         skillAllocation: s.skillAllocation,
         skillPoints: s.skillPoints,
         paragon: s.paragon,
@@ -1365,6 +2079,21 @@ export const useGame = create<GameState>()(
         totalItemsLooted: s.totalItemsLooted,
         totalDamageDealt: s.totalDamageDealt,
         hardcoreStreak: s.hardcoreStreak,
+        tower: s.tower,
+        arena: s.arena,
+        bounties: s.bounties,
+        hunts: s.hunts,
+        expeditions: s.expeditions,
+        factionRep: s.factionRep,
+        factionClaimedTiers: s.factionClaimedTiers,
+        relicsUnlocked: s.relicsUnlocked,
+        mountsOwned: s.mountsOwned,
+        activeMount: s.activeMount,
+        loadouts: s.loadouts,
+        lockedItems: s.lockedItems,
+        activeEvent: s.activeEvent,
+        prestigeCount: s.prestigeCount,
+        craftingStats: s.craftingStats,
         screen: s.character ? (s.screen === "active_combat" ? "home" : s.screen) : "splash",
       }),
     },
