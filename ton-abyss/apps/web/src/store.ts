@@ -100,6 +100,8 @@ import {
   ECHO_RIFT_TIERS,
   ECHO_RIFT_PITY_INTERVAL,
   rollEchoRiftAffixes,
+  PET_TREATS,
+  FORGE_STATIONS,
 } from "@ton-abyss/content";
 
 export type Screen =
@@ -138,7 +140,9 @@ export type Screen =
   | "echo_rifts"
   | "market"
   | "auction"
-  | "trade_post";
+  | "trade_post"
+  | "blueprints"
+  | "forge_stations";
 
 export interface Toast {
   id: string;
@@ -236,6 +240,7 @@ export interface PetState {
   stage: 1 | 2 | 3;
   collarBaseId?: string;
   skillPoints: number;
+  activeBuff?: { treatId: string; expiresAt: number; description: string };
 }
 
 export interface Loadout {
@@ -382,6 +387,10 @@ export interface GameState {
   pets: PetInstance[];
   activePetUid: string | null;
   petStates: Record<string, PetState>;
+
+  // Forge stations (Plan v8)
+  activeForgeStation: string;
+  unlockedForgeStations: string[];
   toasts: Toast[];
   lastDungeonLog: import("@ton-abyss/shared").CombatEvent[];
 
@@ -500,6 +509,9 @@ export interface GameState {
   joinFaction: (factionId: string) => void;
   claimFactionTier: (factionId: string, tier: number) => { ok: boolean };
   feedPet: (petUid: string, materialBaseId: string) => void;
+  feedPetTreat: (petUid: string, treatId: string) => { ok: boolean; error?: string; bondGained?: number; xpGained?: number };
+  setActiveForgeStation: (stationId: string) => void;
+  unlockForgeStation: (stationId: string) => { ok: boolean; error?: string };
   evolvePet: (petUid: string) => { ok: boolean; error?: string };
   fusePets: (petUidA: string, petUidB: string) => { ok: boolean; error?: string };
   hatchEgg: (eggBaseId: string) => { ok: boolean };
@@ -638,7 +650,13 @@ function starterKit(classId: ClassId): { inv: ItemInstance[]; equipped: Record<s
     amulet: null,
     relic: null,
   };
-  const mats: Record<string, number> = { mat_linen: 3, mat_leather: 3, mat_iron: 2 };
+  const mats: Record<string, number> = {
+    mat_linen: 3,
+    mat_leather: 3,
+    mat_iron: 2,
+    treat_jerky: 3,
+    treat_honey: 1,
+  };
   return { inv, equipped, mats };
 }
 
@@ -732,6 +750,7 @@ export function buildDerived(
   equipped: Record<string, string | null>,
   skillAllocation: SkillAllocation,
   paragon: ParagonAllocation,
+  opts?: { activePet?: PetInstance | null; petState?: PetState | null },
 ) {
   const primary = primaryStatsFor(character.classId, character.level, {});
   Object.assign(primary, character.stats);
@@ -757,6 +776,18 @@ export function buildDerived(
           merged[k][kk] = (merged[k][kk] ?? 0) + (vv as number);
         }
       }
+    }
+  }
+  // Pet bond bonus — active pet contributes a passive % boost based on bondLevel
+  if (opts?.activePet) {
+    const bond = Math.min(10, opts.activePet.bondLevel ?? 0);
+    const happy = opts.petState?.happiness ?? 0;
+    const happyMult = 0.5 + (happy / 100) * 0.5; // 0.5..1.0 based on happiness
+    const bondPct = (bond / 10) * 0.15 * happyMult; // up to +15% at bond 10 + 100 happy
+    if (bondPct > 0) {
+      merged.attack = Math.round((merged.attack ?? 0) * (1 + bondPct));
+      merged.spellPower = Math.round((merged.spellPower ?? 0) * (1 + bondPct));
+      merged.maxHp = Math.round((merged.maxHp ?? 0) * (1 + bondPct * 0.5));
     }
   }
   return merged as ReturnType<typeof derivedFromPrimary>;
@@ -807,6 +838,8 @@ export const useGame = create<GameState>()(
       pets: [],
       activePetUid: null,
       petStates: {},
+      activeForgeStation: "neutral",
+      unlockedForgeStations: ["neutral"],
       toasts: [],
       lastDungeonLog: [],
       echoRifts: { highestTier: 0, clears: 0, pityCounter: 0, bestRunGold: 0 },
@@ -1449,8 +1482,19 @@ export const useGame = create<GameState>()(
       craftRecipe: (recipeId) => {
         const s = get();
         if (!s.character) return { ok: false, error: "no character" };
-        const recipe = RECIPES[recipeId];
-        if (!recipe) return { ok: false, error: "no recipe" };
+        const baseRecipe = RECIPES[recipeId];
+        if (!baseRecipe) return { ok: false, error: "no recipe" };
+        // Apply active forge station bonuses
+        const station = FORGE_STATIONS[s.activeForgeStation] ?? FORGE_STATIONS.neutral;
+        const discountedCost = Math.floor(baseRecipe.goldCost * (1 - (station?.goldDiscount ?? 0)));
+        const boostedBias: Partial<Record<import("@ton-abyss/shared").RarityId, number>> = { ...(baseRecipe.rarityBias ?? {}) };
+        if (station?.rarityBoost) {
+          for (const [rk, mult] of Object.entries(station.rarityBoost)) {
+            const k = rk as import("@ton-abyss/shared").RarityId;
+            if (boostedBias[k] !== undefined) boostedBias[k] = boostedBias[k]! * mult;
+          }
+        }
+        const recipe = { ...baseRecipe, goldCost: discountedCost, rarityBias: boostedBias };
         if (!canCraft(recipe, s.materials, s.character.gold)) {
           s.pushToast({ text: "Недостаточно ресурсов.", tone: "bad" });
           return { ok: false, error: "insufficient" };
@@ -1465,13 +1509,19 @@ export const useGame = create<GameState>()(
         }
         const mats = { ...s.materials };
         for (const inp of recipe.inputs) mats[inp.baseId] = (mats[inp.baseId] ?? 0) - inp.qty;
+        // Forge station T5 (void) chance to double output
+        let extraItem: import("@ton-abyss/shared").ItemInstance | null = null;
+        if (s.activeForgeStation === "void" && Math.random() < 0.05) {
+          extraItem = craft(recipe, new RNG(seedFrom(s.character.id, recipe.id, Date.now() + 1)), base, { magicFindPct: s.character.stats.luck * 3 });
+        }
+        const newInv = extraItem ? [...s.inventory, item, extraItem] : [...s.inventory, item];
         set({
           character: { ...s.character, gold: s.character.gold - recipe.goldCost },
           materials: mats,
-          inventory: [...s.inventory, item],
-          lootReveal: [item],
+          inventory: newInv,
+          lootReveal: extraItem ? [item, extraItem] : [item],
         });
-        s.pushToast({ text: `Создано: ${base.name} (${item.rarity})`, tone: item.rarity === "legendary" || item.rarity === "mythic" || item.rarity === "abyssal" ? "epic" : "good" });
+        s.pushToast({ text: `Создано: ${base.name} (${item.rarity})${extraItem ? " ×2 (Бездна!)" : ""}`, tone: item.rarity === "legendary" || item.rarity === "mythic" || item.rarity === "abyssal" ? "epic" : "good" });
         get().progressBpMission("bm_d_craft_3", 1);
         get().progressBpMission("bm_w_craft_25", 1);
         return { ok: true };
@@ -2070,9 +2120,19 @@ export const useGame = create<GameState>()(
           bestRunGold: Math.max(s.echoRifts.bestRunGold, gold),
         };
 
+        // Treat drops scale with tier
+        const newMats = { ...s.materials };
+        const treatPool = ["treat_jerky", "treat_honey", "treat_emberberry", "treat_iceshard_candy", "treat_phoenix_feast", "treat_arcane_cookie", "treat_void_truffle", "treat_golem_grit", "treat_eternal_ambrosia"];
+        const treatTier = Math.min(treatPool.length - 1, Math.floor(tier / 2));
+        const treatId = treatPool[treatTier]!;
+        if (Math.random() < 0.6) {
+          newMats[treatId] = (newMats[treatId] ?? 0) + 1;
+        }
+
         set({
           character: { ...s.character, gold: s.character.gold + gold, xp: s.character.xp + xp },
           inventory: [...s.inventory, ...newLoot],
+          materials: newMats,
           echoRifts: updatedRifts,
           lootReveal: newLoot.length ? newLoot : null,
           toasts: [...s.toasts, { id: genId("tst"), text: `Эхо-Рифт ${t.ru}: +${gold}g, +${xp} XP, +${newLoot.length} предметов.${pityTriggered ? " 🌟 PITY!" : ""}`, tone: "epic" as const }],
@@ -2774,6 +2834,93 @@ export const useGame = create<GameState>()(
           toasts: [...s.toasts, { id: genId("tst"), text: `Питомец накормлен. +${xpGain} XP, +15 счастья.`, tone: "good" as const }],
         };
       }),
+      feedPetTreat: (petUid, treatId) => {
+        const s = get();
+        const pet = s.pets.find((p) => p.uid === petUid);
+        if (!pet) return { ok: false, error: "Питомец не найден." };
+        const have = s.materials[treatId] ?? 0;
+        if (have < 1) return { ok: false, error: "Нет этого лакомства." };
+        const treat = (PET_TREATS as Record<string, import("@ton-abyss/content").PetTreatDef>)[treatId];
+        if (!treat) return { ok: false, error: "Неизвестное лакомство." };
+        const state = s.petStates[petUid] ?? { happiness: 50, lastFedAt: 0, stage: 1 as const, skillPoints: 0 };
+        const petDef = PETS[pet.defId];
+        const familyMatch = treat.preferredFamily && petDef && petDef.family === treat.preferredFamily;
+        const mult = familyMatch ? 1.5 : 1;
+        const xpGained = Math.round(treat.xpGain * mult);
+        const bondGained = Math.min(10 - pet.bondLevel, Math.round(treat.bondGain * mult));
+        const happyGained = Math.round(treat.happinessGain * mult);
+        const xpToLevel = 100;
+        let newLevel = pet.level;
+        let newXp = pet.xp + xpGained;
+        while (newXp >= xpToLevel && newLevel < 60) {
+          newXp -= xpToLevel;
+          newLevel += 1;
+        }
+        const newPets = s.pets.map((p) => p.uid === petUid ? { ...p, level: newLevel, xp: newXp, bondLevel: Math.min(10, p.bondLevel + bondGained) } : p);
+        const newState: PetState = {
+          ...state,
+          happiness: Math.min(100, state.happiness + happyGained),
+          lastFedAt: Date.now(),
+          skillPoints: state.skillPoints + Math.max(0, newLevel - pet.level),
+          activeBuff: treat.buffMinutes > 0 ? { treatId, expiresAt: Date.now() + treat.buffMinutes * 60_000, description: treat.buffDescription } : state.activeBuff,
+        };
+        set({
+          materials: { ...s.materials, [treatId]: have - 1 },
+          pets: newPets,
+          petStates: { ...s.petStates, [petUid]: newState },
+          toasts: [...s.toasts, { id: genId("tst"), text: `${treat.ru}: +${xpGained} XP, +${bondGained} bond${familyMatch ? " (×1.5 семья!)" : ""}`, tone: "good" as const }],
+        });
+        return { ok: true, bondGained, xpGained };
+      },
+
+      setActiveForgeStation: (stationId) => {
+        const s = get();
+        if (!s.unlockedForgeStations.includes(stationId)) {
+          set({ toasts: [...s.toasts, { id: genId("tst"), text: "Кузня заблокирована.", tone: "bad" as const }] });
+          return;
+        }
+        const def = (FORGE_STATIONS as Record<string, import("@ton-abyss/content").ForgeStationDef>)[stationId];
+        set({
+          activeForgeStation: stationId,
+          toasts: [...s.toasts, { id: genId("tst"), text: `Активна: ${def?.ru ?? stationId}`, tone: "info" as const }],
+        });
+      },
+      unlockForgeStation: (stationId) => {
+        const s = get();
+        if (s.unlockedForgeStations.includes(stationId)) return { ok: false, error: "Уже открыта." };
+        const def = (FORGE_STATIONS as Record<string, import("@ton-abyss/content").ForgeStationDef>)[stationId];
+        if (!def) return { ok: false, error: "Не существует." };
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const cost = def.unlockCost;
+        if (cost.gold && s.character.gold < cost.gold) return { ok: false, error: `Нужно ${cost.gold}g.` };
+        if (cost.shards && s.character.shards < cost.shards) return { ok: false, error: `Нужно ${cost.shards}🔹.` };
+        if (cost.materials) {
+          for (const [matId, qty] of Object.entries(cost.materials)) {
+            if ((s.materials[matId] ?? 0) < qty) {
+              return { ok: false, error: `Нужно ${qty}× ${matId}.` };
+            }
+          }
+        }
+        const newMats = { ...s.materials };
+        if (cost.materials) {
+          for (const [matId, qty] of Object.entries(cost.materials)) {
+            newMats[matId] = (newMats[matId] ?? 0) - qty;
+          }
+        }
+        set({
+          character: {
+            ...s.character,
+            gold: s.character.gold - (cost.gold ?? 0),
+            shards: s.character.shards - (cost.shards ?? 0),
+          },
+          materials: newMats,
+          unlockedForgeStations: [...s.unlockedForgeStations, stationId],
+          activeForgeStation: stationId,
+          toasts: [...s.toasts, { id: genId("tst"), text: `🔥 ${def.ru} открыта и активирована!`, tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+
       evolvePet: (petUid) => {
         const s = get();
         const pet = s.pets.find((p) => p.uid === petUid);
@@ -3415,6 +3562,8 @@ export const useGame = create<GameState>()(
           pets: [],
           activePetUid: null,
           petStates: {},
+          activeForgeStation: "neutral",
+          unlockedForgeStations: ["neutral"],
           toasts: [],
           lastDungeonLog: [],
           tower: { currentFloor: 0, highestFloor: 0, active: false, currentScore: 0, bestScore: 0, lastEntryAt: 0 },
@@ -3474,7 +3623,7 @@ export const useGame = create<GameState>()(
     }),
     {
       name: "ton-abyss-save",
-      version: 9,
+      version: 10,
       partialize: (s) => ({
         character: s.character,
         inventory: s.inventory,
@@ -3485,6 +3634,8 @@ export const useGame = create<GameState>()(
         pets: s.pets,
         activePetUid: s.activePetUid,
         petStates: s.petStates,
+        activeForgeStation: s.activeForgeStation,
+        unlockedForgeStations: s.unlockedForgeStations,
         skillAllocation: s.skillAllocation,
         skillPoints: s.skillPoints,
         paragon: s.paragon,
@@ -3596,6 +3747,8 @@ export const useGame = create<GameState>()(
           totalItemsLooted: base.totalItemsLooted ?? 0,
           totalDamageDealt: base.totalDamageDealt ?? 0,
           hardcoreStreak: base.hardcoreStreak ?? 0,
+          activeForgeStation: base.activeForgeStation ?? "neutral",
+          unlockedForgeStations: base.unlockedForgeStations ?? ["neutral"],
         };
       },
     },
@@ -3610,8 +3763,13 @@ export function useDerivedStats() {
   const equipped = useGame((s) => s.equipped);
   const skillAllocation = useGame((s) => s.skillAllocation);
   const paragon = useGame((s) => s.paragon);
+  const pets = useGame((s) => s.pets);
+  const petStates = useGame((s) => s.petStates);
+  const activePetUid = useGame((s) => s.activePetUid);
   return useMemo(() => {
     if (!character) return null;
-    return buildDerived(character, inventory, equipped, skillAllocation, paragon);
-  }, [character, inventory, equipped, skillAllocation, paragon]);
+    const activePet = activePetUid ? pets.find((p) => p.uid === activePetUid) ?? null : null;
+    const petState = activePetUid ? petStates[activePetUid] ?? null : null;
+    return buildDerived(character, inventory, equipped, skillAllocation, paragon, { activePet, petState });
+  }, [character, inventory, equipped, skillAllocation, paragon, pets, petStates, activePetUid]);
 }

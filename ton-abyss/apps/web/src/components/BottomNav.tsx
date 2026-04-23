@@ -19,9 +19,23 @@ export function BottomNav() {
   const screen = useGame((s) => s.screen);
   const setScreen = useGame((s) => s.setScreen);
   const character = useGame((s) => s.character);
+  const dailyRewards = useGame((s) => s.dailyRewards);
+  const market = useGame((s) => s.market);
+  const auction = useGame((s) => s.auction);
+  const battlepass = useGame((s) => s.battlepass);
 
   if (!character) return null;
   if (HIDDEN_ON.includes(screen)) return null;
+
+  // Compute claimable badges per nav item
+  const recentSales = market.history.filter((h) => h.at > Date.now() - 5 * 60_000).length;
+  const myAuctionsLeading = auction.lots.filter((l) => l.isMine && (l.bids?.length ?? 0) > 0).length;
+  const badges: Partial<Record<Screen, number>> = {
+    home: dailyRewards && !dailyRewards.claimedToday ? 1 : 0,
+    market: recentSales,
+    battlepass: battlepass && (battlepass.claimedFree?.length ?? 0) < battlepass.level ? 1 : 0,
+    inventory: myAuctionsLeading,
+  };
 
   return (
     <motion.nav
@@ -38,13 +52,22 @@ export function BottomNav() {
               <button
                 key={n.id}
                 onClick={() => setScreen(n.id)}
-                className={`flex flex-col items-center gap-0.5 py-2 rounded-xl transition-all ${
+                className={`relative flex flex-col items-center gap-0.5 py-2 rounded-xl transition-all ${
                   active ? "bg-white/10" : "hover:bg-white/5"
                 }`}
                 style={{ color: active ? n.accent : "rgba(255,255,255,0.55)" }}
                 aria-label={n.label}
               >
-                <Icon size={20} />
+                <div className="relative">
+                  <Icon size={20} />
+                  {(badges[n.id] ?? 0) > 0 && (
+                    <span
+                      className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold grid place-items-center shadow-[0_0_8px_rgba(244,63,94,0.6)]"
+                    >
+                      {(badges[n.id] ?? 0) > 9 ? "9+" : badges[n.id]}
+                    </span>
+                  )}
+                </div>
                 <span className="text-[10px] font-medium tracking-wide">{n.label}</span>
                 {active && (
                   <motion.div

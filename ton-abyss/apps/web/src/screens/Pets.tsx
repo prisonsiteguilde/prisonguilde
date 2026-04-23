@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "../store.js";
-import { PETS } from "@ton-abyss/content";
+import { PETS, PET_TREATS } from "@ton-abyss/content";
 import { RARITY_COLOR } from "@ton-abyss/shared";
 import { ScreenLayout } from "../components/ScreenLayout.js";
 import { EmptyState } from "../components/EmptyState.js";
@@ -12,6 +12,8 @@ export function Pets() {
   const materials = useGame((s) => s.materials);
   const activePetUid = useGame((s) => s.activePetUid);
   const feedPet = useGame((s) => s.feedPet);
+  const feedPetTreat = useGame((s) => s.feedPetTreat);
+  const pushToast = useGame((s) => s.pushToast);
   const evolvePet = useGame((s) => s.evolvePet);
   const fusePets = useGame((s) => s.fusePets);
   const hatchEgg = useGame((s) => s.hatchEgg);
@@ -197,6 +199,46 @@ export function Pets() {
                       ))}
                     </div>
                   )}
+
+                  {/* Treats — premium consumables giving bond/XP/buffs */}
+                  {(() => {
+                    const ownedTreats = Object.entries(PET_TREATS).filter(([id]) => (materials[id] ?? 0) > 0);
+                    if (ownedTreats.length === 0) return null;
+                    return (
+                      <div className="mt-2 pt-2 border-t border-white/5">
+                        <div className="text-micro text-amber-300/70 mb-1">🍬 Лакомства</div>
+                        <div className="flex flex-wrap gap-1">
+                          {ownedTreats.slice(0, 6).map(([id, t]) => {
+                            const familyMatch = t.preferredFamily && PETS[p.defId]?.family === t.preferredFamily;
+                            return (
+                              <button
+                                key={id}
+                                onClick={() => {
+                                  const r = feedPetTreat(p.uid, id);
+                                  if (!r.ok && r.error) pushToast({ text: r.error, tone: "bad" });
+                                }}
+                                title={`${t.description}\n${t.buffDescription}`}
+                                className="text-caption px-2 py-0.5 rounded border disabled:opacity-40"
+                                style={{
+                                  background: t.iconColor + "22",
+                                  borderColor: t.iconColor + "55",
+                                  color: t.iconColor,
+                                  boxShadow: familyMatch ? `0 0 8px ${t.iconColor}66` : undefined,
+                                }}
+                              >
+                                {t.ru} ({materials[id]}){familyMatch ? " ★" : ""}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {state.activeBuff && state.activeBuff.expiresAt > Date.now() && (
+                          <div className="mt-1 text-micro text-emerald-300">
+                            ⚡ {state.activeBuff.description} · ещё {Math.max(0, Math.round((state.activeBuff.expiresAt - Date.now()) / 60000))}м
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* Fuse */}
                   {fuseMode === p.uid ? (

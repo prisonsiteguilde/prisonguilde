@@ -28,6 +28,8 @@ const MENU: MenuGroup[] = [
       { id: "inventory",   label: "Инвентарь", icon: "bag",     hint: "Экипировка",        accent: "#a3e635" },
       { id: "stash",       label: "Стэш",      icon: "stash",   hint: "6 вкладок",          accent: "#94a3b8" },
       { id: "crafting",    label: "Кузня",     icon: "anvil",   hint: "Крафт, +15",         accent: "#f59e0b" },
+      { id: "blueprints",  label: "Блюпринты", icon: "codex",   hint: "Все рецепты, статус",accent: "#a855f7" },
+      { id: "forge_stations", label: "Кузни Бездны", icon: "anvil", hint: "Стихийные кузни", accent: "#f97316" },
       { id: "enchanting",  label: "Чарование", icon: "enchant", hint: "Эссенции, рунворды", accent: "#f472b6" },
       { id: "sockets",     label: "Гнёзда",    icon: "socket",  hint: "Гемы, перековка",    accent: "#c084fc" },
       { id: "skill_tree",  label: "Навыки",    icon: "tree",    hint: "Дерево умений",      accent: "#14f1c1" },

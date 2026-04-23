@@ -44,6 +44,8 @@ const EchoRifts = lazy(() => import("./screens/EchoRifts.js").then((m) => ({ def
 const Market = lazy(() => import("./screens/Market.js").then((m) => ({ default: m.Market })));
 const Auction = lazy(() => import("./screens/Auction.js").then((m) => ({ default: m.Auction })));
 const TradePost = lazy(() => import("./screens/TradePost.js").then((m) => ({ default: m.TradePost })));
+const Blueprints = lazy(() => import("./screens/Blueprints.js").then((m) => ({ default: m.Blueprints })));
+const ForgeStations = lazy(() => import("./screens/ForgeStations.js").then((m) => ({ default: m.ForgeStations })));
 
 export function App() {
   const screen = useGame((s) => s.screen);
@@ -105,6 +107,8 @@ export function App() {
             {screen === "market" && <Market />}
             {screen === "auction" && <Auction />}
             {screen === "trade_post" && <TradePost />}
+            {screen === "blueprints" && <Blueprints />}
+            {screen === "forge_stations" && <ForgeStations />}
             </Suspense>
           </motion.div>
         </AnimatePresence>
@@ -121,8 +125,19 @@ export function App() {
 
 function ScreenLoader() {
   return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="w-12 h-12 rounded-full border-2 border-amber-400/30 border-t-amber-400 animate-spin" />
+    <div className="px-4 py-6 space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl skeleton" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 w-1/3 rounded skeleton" />
+          <div className="h-3 w-2/3 rounded skeleton" />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <div className="h-20 rounded-2xl skeleton" />
+        <div className="h-20 rounded-2xl skeleton" />
+        <div className="h-20 rounded-2xl skeleton" />
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "../store.js";
-import { ITEMS, MATERIALS, RECIPES } from "@ton-abyss/content";
+import { ITEMS, MATERIALS, RECIPES, FORGE_STATIONS } from "@ton-abyss/content";
 import { UPGRADE_TABLE, RARITY_COLOR, SALVAGE_YIELD } from "@ton-abyss/shared";
 import { ScreenLayout } from "../components/ScreenLayout.js";
 
@@ -22,11 +22,26 @@ function computeCraftingLevel(stats: { itemsCrafted: number; itemsSalvaged: numb
 
 export function Crafting() {
   const craftingStats = useGame((s) => s.craftingStats);
+  const activeForge = useGame((s) => s.activeForgeStation);
+  const setScreen = useGame((s) => s.setScreen);
   const [tab, setTab] = useState<"craft" | "upgrade" | "salvage" | "deep">("craft");
   const craftLvl = computeCraftingLevel(craftingStats);
+  const forgeDef = FORGE_STATIONS[activeForge];
 
   return (
     <ScreenLayout title="Кузня" subtitle={`Крафт, усиление, распыление, алхимия`} accent="#f59e0b">
+      <div className="grid grid-cols-2 gap-2">
+        <button onClick={() => setScreen("forge_stations")} className="card-elevated p-3 text-left active:scale-[0.98]">
+          <div className="text-micro text-amber-300/70">🔥 Активная кузня</div>
+          <div className="text-title mt-0.5 truncate" style={{ color: forgeDef?.iconColor ?? "#f59e0b" }}>{forgeDef?.ru ?? "—"}</div>
+          <div className="text-micro text-white/45 mt-0.5">тап для смены</div>
+        </button>
+        <button onClick={() => setScreen("blueprints")} className="card-elevated p-3 text-left active:scale-[0.98]">
+          <div className="text-micro text-purple-300/70">📜 Блюпринты</div>
+          <div className="text-title mt-0.5">{Object.keys(RECIPES).length} рецептов</div>
+          <div className="text-micro text-white/45 mt-0.5">статус, нехватка, источник</div>
+        </button>
+      </div>
       {/* Crafting level header */}
       <div className="card-elevated p-4">
         <div className="flex items-center gap-3">
