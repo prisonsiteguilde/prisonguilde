@@ -33,3 +33,4 @@ export * from "./battlepass-season.js";
 export * from "./weapon-items.js";
 export * from "./lootbox-items.js";
 export * from "./echo-rifts.js";
+export * from "./weapons-mythic.js";

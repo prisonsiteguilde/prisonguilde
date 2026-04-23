@@ -161,14 +161,34 @@ export function applyAffix(d: DerivedStats, a: AffixRoll): void {
   }
 }
 
+// Hardcore caps. Values above the soft cap have diminishing returns;
+// the hard cap is the absolute ceiling.
+function softCap(value: number, soft: number, hard: number): number {
+  if (value <= soft) return value;
+  const over = value - soft;
+  // Each point above soft contributes 0.4 of its value, capped at hard.
+  return Math.min(hard, soft + over * 0.4);
+}
+
 export function clampDerived(d: DerivedStats): void {
-  d.critChance = Math.max(0, Math.min(1, d.critChance));
-  d.dodge = Math.max(0, Math.min(0.5, d.dodge));
+  // Crit chance: soft 60%, hard 75% (no insta-100% builds).
+  d.critChance = Math.max(0, softCap(d.critChance, 0.6, 0.75));
+  // Crit multiplier: soft 3x, hard 5x.
+  d.critMultiplier = Math.max(1, softCap(d.critMultiplier, 3, 5));
+  // Dodge: soft 35%, hard 50%.
+  d.dodge = Math.max(0, softCap(d.dodge, 0.35, 0.5));
+  // Accuracy: 30% floor, 100% ceiling.
   d.accuracy = Math.max(0.3, Math.min(1, d.accuracy));
-  d.blockChance = Math.max(0, Math.min(0.5, d.blockChance));
-  d.lifesteal = Math.max(0, Math.min(0.3, d.lifesteal));
+  // Block chance: soft 40%, hard 60%.
+  d.blockChance = Math.max(0, softCap(d.blockChance, 0.4, 0.6));
+  // Lifesteal: soft 15%, hard 25% (changed from 30 to be harsher).
+  d.lifesteal = Math.max(0, softCap(d.lifesteal, 0.15, 0.25));
+  // Speed: hard cap 200% (i.e. 100% bonus).
+  d.speed = Math.max(0, Math.min(200, d.speed));
+  // Resistances: floor -50%, soft 60%, hard 75% (already in range).
   for (const el of Object.keys(d.resistance) as ElementId[]) {
-    d.resistance[el] = Math.max(-0.5, Math.min(0.75, d.resistance[el] ?? 0));
+    const v = d.resistance[el] ?? 0;
+    d.resistance[el] = Math.max(-0.5, softCap(v, 0.6, 0.75));
   }
   d.maxHp = Math.max(1, Math.round(d.maxHp));
   d.maxMana = Math.max(0, Math.round(d.maxMana));

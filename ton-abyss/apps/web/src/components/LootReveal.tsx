@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { useState } from "react";
 import { useGame } from "../store.js";
 import { ITEMS } from "@ton-abyss/content";
-import type { ItemSlot, RarityId } from "@ton-abyss/shared";
+import type { ItemSlot, RarityId, ItemInstance } from "@ton-abyss/shared";
 import { ICONS, type IconName } from "./Icon.js";
 
 const SLOT_ICON: Record<ItemSlot, IconName> = {
@@ -51,9 +52,43 @@ const RARITY_RU: Record<RarityId, string> = {
   abyssal: "абиссальный",
 };
 
+const STAT_RU: Record<string, string> = {
+  attack: "Атака",
+  spellPower: "Сила закл.",
+  defense: "Защита",
+  maxHp: "HP",
+  maxMana: "Мана",
+  critChance: "Крит. шанс",
+  critMultiplier: "Крит. урон",
+  dodge: "Уклонение",
+  accuracy: "Точность",
+  blockChance: "Блок-шанс",
+  blockAmount: "Блок-сила",
+  lifesteal: "Вампиризм",
+  speed: "Скорость",
+  luck: "Удача",
+  strength: "Сила",
+  agility: "Ловкость",
+  intellect: "Интеллект",
+  vitality: "Выносливость",
+  spirit: "Дух",
+  gold_find: "Золото %",
+  xp_gain: "Опыт %",
+  elemental_damage: "Стихия+",
+};
+
+function formatStatValue(stat: string, v: number): string {
+  if (["critChance", "dodge", "accuracy", "blockChance", "lifesteal", "gold_find", "xp_gain"].includes(stat)) {
+    return `${(v * 100).toFixed(1)}%`;
+  }
+  if (stat === "critMultiplier") return `+${(v * 100).toFixed(0)}%`;
+  return `+${Math.round(v)}`;
+}
+
 export function LootReveal() {
   const lootReveal = useGame((s) => s.lootReveal);
   const dismiss = useGame((s) => s.dismissLootReveal);
+  const [detail, setDetail] = useState<ItemInstance | null>(null);
 
   const hasAbyssal = lootReveal?.some((it) => it.rarity === "abyssal");
   const hasMythic = lootReveal?.some((it) => it.rarity === "mythic");
@@ -128,7 +163,8 @@ export function LootReveal() {
                       damping: 18,
                     }}
                     data-rarity={it.rarity}
-                    className="relative card p-2.5 text-center rarity-gradient-border overflow-hidden min-h-[86px]"
+                    onClick={(ev) => { ev.stopPropagation(); setDetail(it); }}
+                    className="relative card p-2.5 text-center rarity-gradient-border overflow-hidden min-h-[86px] cursor-pointer hover:scale-[1.03] transition-transform"
                   >
                     {isEpic && (
                       <motion.div
@@ -203,6 +239,73 @@ export function LootReveal() {
             <button className="btn-abyssal mt-4 w-full h-12 tracking-widest" onClick={dismiss}>
               ЗАБРАТЬ
             </button>
+
+            <AnimatePresence>
+              {detail && (() => {
+                const base = ITEMS[detail.baseId];
+                if (!base) return null;
+                const baseStats = (base.baseStats ?? {}) as Record<string, number>;
+                return (
+                  <motion.div
+                    key="detail"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={(ev) => { ev.stopPropagation(); setDetail(null); }}
+                    className="absolute inset-0 z-10 flex items-end sm:items-center justify-center p-3 bg-black/70 backdrop-blur-sm rounded-2xl"
+                  >
+                    <motion.div
+                      initial={{ y: 30, scale: 0.95 }}
+                      animate={{ y: 0, scale: 1 }}
+                      exit={{ y: 30, scale: 0.95 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 24 }}
+                      onClick={(ev) => ev.stopPropagation()}
+                      data-rarity={detail.rarity}
+                      className="card p-4 w-full max-w-xs text-left rarity-gradient-border"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-9 h-9 rounded-lg grid place-items-center" style={{ color: "var(--rc)", background: "color-mix(in srgb, var(--rc) 10%, transparent)" }}>
+                          {(() => {
+                            const ik: IconName = base.slot === "weapon" && base.weaponKind ? (WEAPON_ICON[base.weaponKind] ?? "sword") : (SLOT_ICON[base.slot] ?? "gem");
+                            const I = ICONS[ik]; return <I size={20} />;
+                          })()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-display text-sm rarity-text truncate">{base.name}</div>
+                          <div className="text-[10px] text-white/55 capitalize">{RARITY_RU[detail.rarity]} · ур. {detail.level}{detail.upgradeLevel ? ` · +${detail.upgradeLevel}` : ""}</div>
+                        </div>
+                      </div>
+
+                      {Object.keys(baseStats).length > 0 && (
+                        <div className="text-[11px] space-y-0.5 mb-2">
+                          {Object.entries(baseStats).map(([k, v]) => (
+                            <div key={k} className="flex justify-between">
+                              <span className="text-white/65">{STAT_RU[k] ?? k}</span>
+                              <span className="text-white">{formatStatValue(k, v as number)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {detail.affixes.length > 0 && (
+                        <div className="text-[11px] space-y-0.5 mb-2 border-t border-white/10 pt-2">
+                          {detail.affixes.map((a, ai) => (
+                            <div key={ai} className="flex justify-between">
+                              <span className="text-emerald-300/80">{STAT_RU[a.stat] ?? a.stat}{a.element ? ` (${a.element})` : ""}</span>
+                              <span className="text-emerald-200">{formatStatValue(a.stat, a.value)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {base.flavor && <div className="text-[10px] italic text-white/45 mb-2">{base.flavor}</div>}
+
+                      <button className="btn-ghost w-full text-xs" onClick={() => setDetail(null)}>Закрыть</button>
+                    </motion.div>
+                  </motion.div>
+                );
+              })()}
+            </AnimatePresence>
           </motion.div>
         </motion.div>
       )}
