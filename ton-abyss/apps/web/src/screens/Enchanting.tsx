@@ -79,7 +79,7 @@ export function Enchanting() {
                     onClick={() => {
                       if (!selectedItem) return;
                       const r = applyEnchant(selectedItem, e.id);
-                      if (!r.ok && r.error) alert(r.error);
+                      if (!r.ok && r.error) useGame.getState().pushToast({ text: r.error, tone: "bad" });
                     }}
                   >
                     Применить
@@ -112,7 +112,7 @@ export function Enchanting() {
                     onClick={() => {
                       if (!selectedItem) return;
                       const r = applyRuneword(selectedItem, rw.id);
-                      if (!r.ok && r.error) alert(r.error);
+                      if (!r.ok && r.error) useGame.getState().pushToast({ text: r.error, tone: "bad" });
                     }}
                   >
                     {haveAll ? "Сковать" : "Нет рун"}

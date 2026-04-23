@@ -1079,6 +1079,13 @@ export const useGame = create<GameState>()(
           const mk = { ...s.monstersKilled };
           mk[combat.enemyDef.id] = (mk[combat.enemyDef.id] ?? 0) + 1;
           set({ monstersKilled: mk, totalKills: s.totalKills + 1 });
+          // BP missions
+          get().progressBpMission("bm_d_kill_30", 1);
+          get().progressBpMission("bm_w_kill_300", 1);
+          if (combat.isBossRoom) {
+            get().progressBpMission("bm_d_boss_1", 1);
+            get().progressBpMission("bm_w_boss_10", 1);
+          }
 
           // Next room or dungeon end
           if (combat.room >= combat.totalRooms) {
@@ -1192,6 +1199,9 @@ export const useGame = create<GameState>()(
           char = lu.character;
           dungeonsCleared[dungeon.id] = (dungeonsCleared[dungeon.id] ?? 0) + 1;
           bossesKilled[dungeon.bossId] = (bossesKilled[dungeon.bossId] ?? 0) + 1;
+          // BP missions
+          get().progressBpMission("bm_d_clear_2", 1);
+          get().progressBpMission("bm_w_dungeons_15", 1);
           // Map unlock: flag node and downstream
           if (!mapProgress.cleared.includes(dungeon.id)) mapProgress.cleared.push(dungeon.id);
           for (const node of WORLD_MAP) {
@@ -1325,6 +1335,8 @@ export const useGame = create<GameState>()(
           lootReveal: [item],
         });
         s.pushToast({ text: `Создано: ${base.name} (${item.rarity})`, tone: item.rarity === "legendary" || item.rarity === "mythic" || item.rarity === "abyssal" ? "epic" : "good" });
+        get().progressBpMission("bm_d_craft_3", 1);
+        get().progressBpMission("bm_w_craft_25", 1);
         return { ok: true };
       },
 
@@ -1367,10 +1379,12 @@ export const useGame = create<GameState>()(
         let mats = 0;
         let dust = 0;
         let shards = 0;
+        const essences: Record<string, number> = { ess_shimmering: 0, ess_radiant: 0, ess_absolute: 0 };
         const inv = [...s.inventory];
         const equippedSet = new Set(Object.values(s.equipped).filter(Boolean) as string[]);
+        const lockedSet = new Set(s.lockedItems);
         for (const uid of uids) {
-          if (equippedSet.has(uid)) continue;
+          if (equippedSet.has(uid) || lockedSet.has(uid)) continue;
           const idx = inv.findIndex((i) => i.uid === uid);
           if (idx === -1) continue;
           const it = inv[idx]!;
@@ -1378,15 +1392,29 @@ export const useGame = create<GameState>()(
           mats += y.materials;
           dust += y.dust;
           shards += y.shards;
+          // Essence drop based on rarity quality tier (with chance for higher rarities)
+          const essenceQuality = ESSENCE_FROM_RARITY[it.rarity];
+          if (essenceQuality) {
+            // 100% drop 1 essence, 30% drop 2nd, 10% drop 3rd for higher rarities
+            essences[`ess_${essenceQuality}`] = (essences[`ess_${essenceQuality}`] ?? 0) + 1;
+            if (Math.random() < 0.3) essences[`ess_${essenceQuality}`] = (essences[`ess_${essenceQuality}`] ?? 0) + 1;
+            if (it.rarity === "mythic" || it.rarity === "abyssal") {
+              if (Math.random() < 0.5) essences[`ess_${essenceQuality}`] = (essences[`ess_${essenceQuality}`] ?? 0) + 1;
+            }
+          }
           inv.splice(idx, 1);
         }
-        const materials = { ...s.materials, mat_iron: (s.materials["mat_iron"] ?? 0) + mats };
+        const materials: Record<string, number> = { ...s.materials, mat_iron: (s.materials["mat_iron"] ?? 0) + mats };
+        for (const [k, v] of Object.entries(essences)) {
+          if (v > 0) materials[k] = (materials[k] ?? 0) + v;
+        }
         set({
           inventory: inv,
           materials,
           character: { ...s.character, abyssDust: s.character.abyssDust + dust, shards: s.character.shards + shards },
         });
-        s.pushToast({ text: `Распылено: +${mats} железа, +${dust} пыли, +${shards} шардов.`, tone: "good" });
+        const essParts = Object.entries(essences).filter(([, v]) => v > 0).map(([k, v]) => `+${v} ${k.replace("ess_", "")}`).join(", ");
+        s.pushToast({ text: `Распылено: +${mats} железа, +${dust} пыли, +${shards} шардов${essParts ? ", " + essParts : ""}.`, tone: "good" });
         return { materials: mats, dust, shards };
       },
 
@@ -1780,6 +1808,8 @@ export const useGame = create<GameState>()(
         if (!enemy) { s.pushToast({ text: "Ошибка генерации этажа.", tone: "bad" }); return; }
         const enemyMaxHp = Math.round(enemy.stats.maxHp * scaling.hpMult);
         const derived = buildDerived(s.character, s.inventory, s.equipped, s.skillAllocation, s.paragon);
+        get().progressBpMission("bm_d_tower_5", 1);
+        get().progressBpMission("bm_w_tower_30", 1);
         set({
           tower: { ...s.tower, currentFloor: nextFloor, highestFloor: Math.max(s.tower.highestFloor, nextFloor) },
           combat: {
@@ -1856,6 +1886,10 @@ export const useGame = create<GameState>()(
           character: { ...s.character, gold: s.character.gold + goldReward, xp: s.character.xp + xpReward },
           toasts: [...s.toasts, { id: genId("tst"), text: won ? `Победа! +${eloDelta} ELO, +${goldReward}g.` : `Поражение. ${eloDelta} ELO.`, tone: won ? "epic" as const : "bad" as const }],
         });
+        if (won) {
+          get().progressBpMission("bm_d_arena_2", 1);
+          get().progressBpMission("bm_w_arena_10", 1);
+        }
         return { won, eloDelta };
       },
 
@@ -2740,7 +2774,7 @@ export const useGame = create<GameState>()(
     }),
     {
       name: "ton-abyss-save",
-      version: 5,
+      version: 6,
       partialize: (s) => ({
         character: s.character,
         inventory: s.inventory,

@@ -1,41 +1,42 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { useGame } from "./store.js";
 import { Splash } from "./screens/Splash.js";
 import { ClassSelect } from "./screens/ClassSelect.js";
 import { Home } from "./screens/Home.js";
-import { Inventory } from "./screens/Inventory.js";
-import { DungeonList } from "./screens/DungeonList.js";
-import { DungeonRun } from "./screens/DungeonRun.js";
-import { Crafting } from "./screens/Crafting.js";
-import { Pets } from "./screens/Pets.js";
-import { Shop } from "./screens/Shop.js";
-import { Codex } from "./screens/Codex.js";
-import { ActiveCombat } from "./screens/ActiveCombat.js";
-import { WorldMap } from "./screens/WorldMap.js";
-import { SkillTree } from "./screens/SkillTree.js";
-import { Sockets } from "./screens/Sockets.js";
-import { Quests } from "./screens/Quests.js";
-import { Achievements } from "./screens/Achievements.js";
-import { Leaderboard } from "./screens/Leaderboard.js";
-import { Tower } from "./screens/Tower.js";
-import { Arena } from "./screens/Arena.js";
-import { Bounties } from "./screens/Bounties.js";
-import { Hunts } from "./screens/Hunts.js";
-import { Expeditions } from "./screens/Expeditions.js";
-import { Factions } from "./screens/Factions.js";
-import { Stash } from "./screens/Stash.js";
-import { Mounts } from "./screens/Mounts.js";
-import { Relics } from "./screens/Relics.js";
-import { Enchanting } from "./screens/Enchanting.js";
-import { Clan } from "./screens/Clan.js";
-import { BattlePass } from "./screens/BattlePass.js";
-import { Lootboxes } from "./screens/Lootboxes.js";
-import { ClanBosses } from "./screens/ClanBosses.js";
 import { Toasts } from "./components/Toasts.js";
 import { TopBar } from "./components/TopBar.js";
 import { LootReveal } from "./components/LootReveal.js";
 import { BossCinematic } from "./components/BossCinematic.js";
+
+const Inventory = lazy(() => import("./screens/Inventory.js").then((m) => ({ default: m.Inventory })));
+const DungeonList = lazy(() => import("./screens/DungeonList.js").then((m) => ({ default: m.DungeonList })));
+const DungeonRun = lazy(() => import("./screens/DungeonRun.js").then((m) => ({ default: m.DungeonRun })));
+const Crafting = lazy(() => import("./screens/Crafting.js").then((m) => ({ default: m.Crafting })));
+const Pets = lazy(() => import("./screens/Pets.js").then((m) => ({ default: m.Pets })));
+const Shop = lazy(() => import("./screens/Shop.js").then((m) => ({ default: m.Shop })));
+const Codex = lazy(() => import("./screens/Codex.js").then((m) => ({ default: m.Codex })));
+const ActiveCombat = lazy(() => import("./screens/ActiveCombat.js").then((m) => ({ default: m.ActiveCombat })));
+const WorldMap = lazy(() => import("./screens/WorldMap.js").then((m) => ({ default: m.WorldMap })));
+const SkillTree = lazy(() => import("./screens/SkillTree.js").then((m) => ({ default: m.SkillTree })));
+const Sockets = lazy(() => import("./screens/Sockets.js").then((m) => ({ default: m.Sockets })));
+const Quests = lazy(() => import("./screens/Quests.js").then((m) => ({ default: m.Quests })));
+const Achievements = lazy(() => import("./screens/Achievements.js").then((m) => ({ default: m.Achievements })));
+const Leaderboard = lazy(() => import("./screens/Leaderboard.js").then((m) => ({ default: m.Leaderboard })));
+const Tower = lazy(() => import("./screens/Tower.js").then((m) => ({ default: m.Tower })));
+const Arena = lazy(() => import("./screens/Arena.js").then((m) => ({ default: m.Arena })));
+const Bounties = lazy(() => import("./screens/Bounties.js").then((m) => ({ default: m.Bounties })));
+const Hunts = lazy(() => import("./screens/Hunts.js").then((m) => ({ default: m.Hunts })));
+const Expeditions = lazy(() => import("./screens/Expeditions.js").then((m) => ({ default: m.Expeditions })));
+const Factions = lazy(() => import("./screens/Factions.js").then((m) => ({ default: m.Factions })));
+const Stash = lazy(() => import("./screens/Stash.js").then((m) => ({ default: m.Stash })));
+const Mounts = lazy(() => import("./screens/Mounts.js").then((m) => ({ default: m.Mounts })));
+const Relics = lazy(() => import("./screens/Relics.js").then((m) => ({ default: m.Relics })));
+const Enchanting = lazy(() => import("./screens/Enchanting.js").then((m) => ({ default: m.Enchanting })));
+const Clan = lazy(() => import("./screens/Clan.js").then((m) => ({ default: m.Clan })));
+const BattlePass = lazy(() => import("./screens/BattlePass.js").then((m) => ({ default: m.BattlePass })));
+const Lootboxes = lazy(() => import("./screens/Lootboxes.js").then((m) => ({ default: m.Lootboxes })));
+const ClanBosses = lazy(() => import("./screens/ClanBosses.js").then((m) => ({ default: m.ClanBosses })));
 
 export function App() {
   const screen = useGame((s) => s.screen);
@@ -61,6 +62,7 @@ export function App() {
             transition={{ duration: 0.28, ease: "easeOut" }}
             className="min-h-screen"
           >
+            <Suspense fallback={<ScreenLoader />}>
             {screen === "splash" && <Splash />}
             {screen === "class_select" && <ClassSelect />}
             {screen === "home" && <Home />}
@@ -92,12 +94,21 @@ export function App() {
             {screen === "battlepass" && <BattlePass />}
             {screen === "lootboxes" && <Lootboxes />}
             {screen === "clan_bosses" && <ClanBosses />}
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </div>
       <Toasts />
       <LootReveal />
       <BossCinematic />
+    </div>
+  );
+}
+
+function ScreenLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="w-12 h-12 rounded-full border-2 border-amber-400/30 border-t-amber-400 animate-spin" />
     </div>
   );
 }

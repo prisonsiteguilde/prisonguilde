@@ -11,6 +11,7 @@ export function Lootboxes() {
   const purchaseLootbox = useGame((s) => s.purchaseLootbox);
   const openLootbox = useGame((s) => s.openLootbox);
   const setScreen = useGame((s) => s.setScreen);
+  const pushToast = useGame((s) => s.pushToast);
   const [tab, setTab] = useState<"buy" | "open">("open");
 
   const kinds = Object.keys(LOOTBOXES) as LootboxKind[];
@@ -91,7 +92,7 @@ export function Lootboxes() {
                         disabled={!canBuy}
                         onClick={() => {
                           const r = purchaseLootbox(k, q);
-                          if (!r.ok) alert(r.error);
+                          if (!r.ok && r.error) pushToast({ text: r.error, tone: "bad" });
                         }}
                         className={`flex-1 py-1.5 rounded text-xs font-bold ${canBuy ? "bg-amber-500 text-slate-900 hover:bg-amber-400" : "bg-slate-700 text-slate-500"}`}
                       >×{q}</button>
@@ -107,7 +108,7 @@ export function Lootboxes() {
                         disabled={owned < q}
                         onClick={() => {
                           const r = openLootbox(k, q as 1 | 3 | 10);
-                          if (!r.ok) alert(r.error);
+                          if (!r.ok && r.error) pushToast({ text: r.error, tone: "bad" });
                         }}
                         className={`flex-1 py-1.5 rounded text-xs font-bold ${owned >= q ? "bg-fuchsia-500 text-white hover:bg-fuchsia-400" : "bg-slate-700 text-slate-500"}`}
                       >Открыть ×{q}</button>

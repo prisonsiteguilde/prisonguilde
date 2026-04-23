@@ -41,6 +41,7 @@ function DeepCraftTab() {
   const transmute = useGame((s) => s.transmute);
   const reroll = useGame((s) => s.reroll);
   const tierUp = useGame((s) => s.tierUp);
+  const pushToast = useGame((s) => s.pushToast);
   const [sel, setSel] = useState<string | null>(null);
   const items = inventory.filter((i) => {
     const slot = ITEMS[i.baseId]?.slot;
@@ -77,7 +78,7 @@ function DeepCraftTab() {
             <button
               onClick={() => {
                 const r = transmute(it.uid);
-                if (!r.ok) alert(r.error);
+                if (!r.ok && r.error) pushToast({ text: r.error, tone: "bad" });
               }}
               className="btn-primary text-xs"
             >
@@ -86,7 +87,7 @@ function DeepCraftTab() {
             <button
               onClick={() => {
                 const r = reroll(it.uid);
-                if (!r.ok) alert(r.error);
+                if (!r.ok && r.error) pushToast({ text: r.error, tone: "bad" });
               }}
               className="btn-primary text-xs"
             >
@@ -95,7 +96,7 @@ function DeepCraftTab() {
             <button
               onClick={() => {
                 const r = tierUp(it.uid);
-                if (!r.ok) alert(r.error);
+                if (!r.ok && r.error) pushToast({ text: r.error, tone: "bad" });
               }}
               className="btn-primary text-xs"
             >

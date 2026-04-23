@@ -70,12 +70,13 @@ export interface BattlePassMissionState {
   resetAt: number;
 }
 
-// Curve: tier N requires roughly 1000 + 200*N xp. Total ~50 tiers ≈ 285k xp.
+// Curve: tier N requires per-level cost increasing 250 → 1100. Total ~50 tiers ≈ 33k xp.
+// Daily mission XP ~3.6k + weekly bursts → reachable in ~28 days.
 export function buildDefaultBattlePassTiers(): BattlePassTier[] {
   const tiers: BattlePassTier[] = [];
   let cumulative = 0;
   for (let lvl = 1; lvl <= 50; lvl++) {
-    cumulative += 1000 + 200 * lvl;
+    cumulative += 250 + 18 * lvl;
     const free = mkFreeReward(lvl);
     const premium = mkPremiumReward(lvl);
     tiers.push({ level: lvl, xpRequired: cumulative, freeReward: free, premiumReward: premium });

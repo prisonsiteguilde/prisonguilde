@@ -95,7 +95,7 @@ export function Pets() {
                       <button className={`text-[10px] px-2 py-0.5 rounded ${isActive ? "bg-amber-500/40 text-amber-200" : "bg-black/30 text-white/60"}`} onClick={() => set({ activePetUid: isActive ? null : p.uid })}>
                         {isActive ? "Активен" : "Взять"}
                       </button>
-                      <button className="text-[10px] px-2 py-0.5 rounded bg-fuchsia-500/30 text-fuchsia-200" onClick={() => { const r = evolvePet(p.uid); if (!r.ok && r.error) alert(r.error); }}>
+                      <button className="text-[10px] px-2 py-0.5 rounded bg-fuchsia-500/30 text-fuchsia-200" onClick={() => { const r = evolvePet(p.uid); if (!r.ok && r.error) useGame.getState().pushToast({ text: r.error, tone: "bad" }); }}>
                         Эвол.
                       </button>
                     </div>

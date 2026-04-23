@@ -13,6 +13,7 @@ export function BattlePass() {
   const refreshBpMissions = useGame((s) => s.refreshBpMissions);
   const claimBpMission = useGame((s) => s.claimBpMission);
   const setScreen = useGame((s) => s.setScreen);
+  const pushToast = useGame((s) => s.pushToast);
 
   useEffect(() => {
     refreshBpMissions();
@@ -64,7 +65,7 @@ export function BattlePass() {
           <button
             onClick={() => {
               const r = purchaseBpPremium();
-              if (!r.ok) alert(r.error);
+              if (!r.ok && r.error) pushToast({ text: r.error, tone: "bad" });
             }}
             className="btn-primary w-full"
           >

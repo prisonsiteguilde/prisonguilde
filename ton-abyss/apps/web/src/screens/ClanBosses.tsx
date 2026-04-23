@@ -11,6 +11,7 @@ export function ClanBosses() {
   const attackClanBoss = useGame((s) => s.attackClanBoss);
   const claimClanBossRewards = useGame((s) => s.claimClanBossRewards);
   const setScreen = useGame((s) => s.setScreen);
+  const pushToast = useGame((s) => s.pushToast);
   const derived = useDerivedStats();
 
   if (!clan) {
@@ -129,7 +130,7 @@ export function ClanBosses() {
                     disabled={locked}
                     onClick={() => {
                       const r = startClanBoss(def.id);
-                      if (!r.ok) alert(r.error);
+                      if (!r.ok && r.error) pushToast({ text: r.error, tone: "bad" });
                     }}
                     className={`text-xs font-bold px-3 py-1.5 rounded ${locked ? "bg-slate-700 text-slate-500" : "bg-rose-500 text-white hover:bg-rose-400"}`}
                   >

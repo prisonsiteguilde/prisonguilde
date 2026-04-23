@@ -86,7 +86,7 @@ export function Expeditions() {
                         onChange={(ev) => {
                           if (ev.target.value) {
                             const r = sendExpedition(e.id, ev.target.value);
-                            if (!r.ok && r.error) alert(r.error);
+                            if (!r.ok && r.error) useGame.getState().pushToast({ text: r.error, tone: "bad" });
                           }
                         }}
                       >
