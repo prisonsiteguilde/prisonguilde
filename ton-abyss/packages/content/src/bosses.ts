@@ -1,0 +1,136 @@
+import type { BossDef, DerivedStats, ElementId } from "@ton-abyss/shared";
+import { ELEMENTS } from "@ton-abyss/shared";
+
+function mkStats(o: Partial<DerivedStats> & { maxHp: number }): DerivedStats {
+  const resistance = {} as Record<ElementId, number>;
+  for (const el of ELEMENTS) resistance[el] = o.resistance?.[el] ?? 0;
+  return {
+    maxHp: o.maxHp,
+    maxMana: o.maxMana ?? 200,
+    attack: o.attack ?? 0,
+    spellPower: o.spellPower ?? 0,
+    defense: o.defense ?? 0,
+    resistance,
+    critChance: o.critChance ?? 0.1,
+    critMultiplier: o.critMultiplier ?? 1.75,
+    dodge: o.dodge ?? 0.04,
+    accuracy: o.accuracy ?? 0.95,
+    blockChance: o.blockChance ?? 0.1,
+    blockAmount: o.blockAmount ?? 10,
+    lifesteal: o.lifesteal ?? 0,
+    speed: o.speed ?? 12,
+    luck: 0,
+  };
+}
+
+export const BOSSES: Record<string, BossDef> = {
+  boss_crypt_lord: {
+    id: "boss_crypt_lord",
+    name: "Лорд склепа",
+    archetype: "boss",
+    level: 8,
+    element: "void",
+    stats: mkStats({
+      maxHp: 1200,
+      attack: 38,
+      spellPower: 40,
+      defense: 22,
+      resistance: { physical: 0.1, fire: 0, frost: 0, shock: 0, void: 0.3, holy: -0.3 },
+    }),
+    abilities: ["e_slam", "e_shadow_fang"],
+    lootTable: "lt_boss_crypt",
+    xp: 900,
+    gold: [180, 320],
+    biome: "crypt",
+    aiProfile: "tactician",
+    phases: [
+      {
+        hpThreshold: 0.6,
+        addAbilities: ["e_abyssal_gaze"],
+        buff: { attack: 10, critChance: 0.05 },
+      },
+      {
+        hpThreshold: 0.25,
+        addAbilities: ["e_infernal_roar"],
+        buff: { attack: 18, speed: 6, critChance: 0.1 },
+      },
+    ],
+    enrageTurn: 25,
+    uniqueDrops: ["off_kite_shield", "wpn_crypt_dagger", "egg_shade"],
+  },
+  boss_ice_matriarch: {
+    id: "boss_ice_matriarch",
+    name: "Матриарх льда",
+    archetype: "boss",
+    level: 16,
+    element: "frost",
+    stats: mkStats({
+      maxHp: 3200,
+      attack: 60,
+      spellPower: 72,
+      defense: 44,
+      resistance: { physical: 0.1, fire: -0.25, frost: 0.6, shock: 0, void: 0, holy: 0 },
+    }),
+    abilities: ["e_frost_lance", "e_slam"],
+    lootTable: "lt_boss_ice",
+    xp: 2400,
+    gold: [520, 880],
+    biome: "ice",
+    aiProfile: "spellweaver",
+    phases: [
+      { hpThreshold: 0.55, addAbilities: ["e_abyssal_gaze"], buff: { spellPower: 20 } },
+      { hpThreshold: 0.2, addAbilities: ["e_infernal_roar"], buff: { spellPower: 40, speed: 8 } },
+    ],
+    uniqueDrops: ["arm_plate_legs", "wpn_tempest_bow"],
+  },
+  boss_infernal_prince: {
+    id: "boss_infernal_prince",
+    name: "Принц Преисподней",
+    archetype: "boss",
+    level: 22,
+    element: "fire",
+    stats: mkStats({
+      maxHp: 6400,
+      attack: 95,
+      spellPower: 110,
+      defense: 66,
+      resistance: { physical: 0.1, fire: 0.7, frost: -0.3, shock: 0, void: 0.1, holy: -0.2 },
+    }),
+    abilities: ["e_infernal_roar", "e_slam"],
+    lootTable: "lt_boss_infernal",
+    xp: 6200,
+    gold: [1400, 2400],
+    biome: "infernal",
+    phases: [
+      { hpThreshold: 0.5, addAbilities: ["e_shadow_fang"], buff: { attack: 25 } },
+      { hpThreshold: 0.15, addAbilities: ["e_abyssal_gaze"], buff: { attack: 45, spellPower: 40 } },
+    ],
+    uniqueDrops: ["wpn_abyssal_edge", "off_abyss_orb"],
+  },
+  boss_abyss_titan: {
+    id: "boss_abyss_titan",
+    name: "Титан Бездны",
+    archetype: "apex",
+    level: 35,
+    element: "void",
+    stats: mkStats({
+      maxHp: 22000,
+      attack: 180,
+      spellPower: 200,
+      defense: 140,
+      resistance: { physical: 0.25, fire: 0, frost: 0, shock: 0, void: 0.75, holy: -0.4 },
+    }),
+    abilities: ["e_slam", "e_shadow_fang", "e_abyssal_gaze"],
+    lootTable: "lt_boss_apex",
+    xp: 28000,
+    gold: [6000, 9000],
+    biome: "abyss",
+    phases: [
+      { hpThreshold: 0.7, addAbilities: ["e_infernal_roar"], buff: { attack: 40 } },
+      { hpThreshold: 0.35, addAbilities: ["e_frost_lance"], buff: { speed: 10, critChance: 0.15 } },
+      { hpThreshold: 0.1, addAbilities: [], buff: { attack: 80, spellPower: 80, critMultiplier: 0.5 } },
+    ],
+    enrageTurn: 40,
+    uniqueDrops: ["wpn_abyssal_edge", "arm_abyss_crown", "arm_abyss_raiment", "tr_abyss_sigil"],
+  },
+};
