@@ -1,11 +1,71 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { ITEMS } from "@ton-abyss/content";
-import { RARITY_COLOR } from "@ton-abyss/shared";
+import type { ItemSlot, RarityId } from "@ton-abyss/shared";
+import { ICONS, type IconName } from "./Icon.js";
+
+const SLOT_ICON: Record<ItemSlot, IconName> = {
+  weapon: "sword",
+  offhand: "shield",
+  head: "helm",
+  chest: "chest",
+  legs: "legs",
+  hands: "gloves",
+  feet: "boots",
+  ring: "ring",
+  amulet: "amulet",
+  neck: "amulet",
+  waist: "amulet",
+  back: "cape",
+  trinket: "trinket",
+  relic: "relic",
+  consumable: "potion",
+  material: "essence",
+  rune: "rune",
+  pet_egg: "pet",
+  key: "dungeons",
+};
+
+const WEAPON_ICON: Record<string, IconName> = {
+  sword: "sword",
+  greatsword: "sword",
+  axe: "sword",
+  mace: "hammer",
+  hammer: "hammer",
+  dagger: "dagger",
+  bow: "bow",
+  staff: "staff",
+  wand: "staff",
+  tome: "codex",
+  claw: "dagger",
+  spear: "dagger",
+};
+
+const RARITY_RU: Record<RarityId, string> = {
+  common: "обычный",
+  uncommon: "необычный",
+  rare: "редкий",
+  epic: "эпический",
+  legendary: "легендарный",
+  mythic: "мифический",
+  abyssal: "абиссальный",
+};
 
 export function LootReveal() {
   const lootReveal = useGame((s) => s.lootReveal);
   const dismiss = useGame((s) => s.dismissLootReveal);
+
+  const hasAbyssal = lootReveal?.some((it) => it.rarity === "abyssal");
+  const hasMythic = lootReveal?.some((it) => it.rarity === "mythic");
+  const hasLegendary = lootReveal?.some((it) => it.rarity === "legendary");
+
+  const headlineGradient = hasAbyssal
+    ? "from-teal-200 via-cyan-300 to-teal-200"
+    : hasMythic
+    ? "from-rose-300 via-fuchsia-300 to-rose-300"
+    : hasLegendary
+    ? "from-amber-200 via-yellow-200 to-amber-200"
+    : "from-white/90 via-white to-white/90";
 
   return (
     <AnimatePresence>
@@ -14,55 +74,135 @@ export function LootReveal() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={dismiss}
         >
+          {/* Backdrop with pulse */}
+          <div className="absolute inset-0 bg-black/85 backdrop-blur-md" />
+          {(hasAbyssal || hasMythic) && (
+            <motion.div
+              className="absolute inset-0 pointer-events-none"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 0.6, 0] }}
+              transition={{ duration: 1.2, repeat: Infinity }}
+              style={{
+                background: hasAbyssal
+                  ? "radial-gradient(600px circle at 50% 50%, rgba(20,241,193,0.18), transparent 60%)"
+                  : "radial-gradient(600px circle at 50% 50%, rgba(244,63,94,0.18), transparent 60%)",
+              }}
+            />
+          )}
+
           <motion.div
-            initial={{ scale: 0.7, rotate: -3 }}
-            animate={{ scale: 1, rotate: 0 }}
-            className="card p-5 max-w-md w-full text-center"
+            initial={{ scale: 0.7, rotate: -2, y: 30 }}
+            animate={{ scale: 1, rotate: 0, y: 0 }}
+            transition={{ type: "spring", stiffness: 160, damping: 18 }}
+            className="relative card p-5 max-w-md w-full text-center border-white/15"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-2xl font-display tracking-widest text-amber-300 mb-3">
-              ⚡ ДОБЫЧА ⚡
+            <div className={`font-display text-3xl tracking-widest mb-1 bg-gradient-to-r ${headlineGradient} bg-clip-text text-transparent`}>
+              ДОБЫЧА
             </div>
-            <div className="grid grid-cols-3 gap-2 max-h-80 overflow-y-auto">
+            <div className="text-[10px] uppercase tracking-widest text-white/45 mb-4">
+              {lootReveal.length} {lootReveal.length === 1 ? "предмет" : lootReveal.length < 5 ? "предмета" : "предметов"}
+            </div>
+            <div className="grid grid-cols-3 gap-2 max-h-80 overflow-y-auto pr-1">
               {lootReveal.map((it, i) => {
                 const base = ITEMS[it.baseId];
                 if (!base) return null;
-                const color = RARITY_COLOR[it.rarity];
+                const iconKey: IconName =
+                  base.slot === "weapon" && base.weaponKind
+                    ? WEAPON_ICON[base.weaponKind] ?? "sword"
+                    : SLOT_ICON[base.slot] ?? "gem";
+                const Icon = ICONS[iconKey];
                 const isEpic = it.rarity === "legendary" || it.rarity === "mythic" || it.rarity === "abyssal";
                 return (
                   <motion.div
                     key={it.uid}
-                    initial={{ scale: 0, y: 20 }}
-                    animate={{ scale: 1, y: 0 }}
-                    transition={{ delay: i * 0.08, type: "spring", stiffness: 200 }}
-                    className="relative card p-2 text-center"
-                    style={{
-                      borderColor: color,
-                      boxShadow: isEpic ? `0 0 20px ${color}` : `0 0 8px ${color}55`,
+                    initial={{ scale: 0, y: 20, rotateY: -80 }}
+                    animate={{ scale: 1, y: 0, rotateY: 0 }}
+                    transition={{
+                      delay: i * 0.06,
+                      type: "spring",
+                      stiffness: 220,
+                      damping: 18,
                     }}
+                    data-rarity={it.rarity}
+                    className="relative card p-2.5 text-center rarity-gradient-border overflow-hidden min-h-[86px]"
                   >
                     {isEpic && (
                       <motion.div
-                        className="absolute inset-0 rounded-lg"
-                        animate={{ boxShadow: [`0 0 8px ${color}`, `0 0 24px ${color}`, `0 0 8px ${color}`] }}
+                        className="absolute inset-0 rounded-2xl pointer-events-none"
+                        animate={{
+                          boxShadow: [
+                            "inset 0 0 8px var(--rc-glow)",
+                            "inset 0 0 24px var(--rc-glow)",
+                            "inset 0 0 8px var(--rc-glow)",
+                          ],
+                        }}
                         transition={{ duration: 1.5, repeat: Infinity }}
                       />
                     )}
-                    <div className="text-3xl">
-                      {base.slot === "weapon" ? "🗡️" : base.slot === "offhand" ? "🛡️" : base.slot === "head" ? "👑" : base.slot === "chest" ? "🥼" : base.slot === "legs" ? "👖" : base.slot === "hands" ? "🧤" : base.slot === "feet" ? "🥾" : base.slot === "ring" ? "💍" : base.slot === "amulet" ? "📿" : base.slot === "relic" ? "🔮" : base.slot === "consumable" ? "🧪" : base.slot === "material" ? "📦" : base.slot === "pet_egg" ? "🥚" : "💎"}
+
+                    {/* Icon */}
+                    <div
+                      className="mx-auto w-10 h-10 grid place-items-center rounded-lg mb-1"
+                      style={{ color: "var(--rc)", background: "color-mix(in srgb, var(--rc) 10%, transparent)" }}
+                    >
+                      <Icon size={22} />
                     </div>
-                    <div className="text-[10px] font-bold" style={{ color }}>
+                    <div className="text-[10px] font-bold rarity-text truncate leading-tight" title={base.name}>
                       {base.name}
                     </div>
-                    <div className="text-[9px] text-white/60">{it.rarity}</div>
+                    <div className="text-[9px] text-white/55 capitalize mt-0.5">{RARITY_RU[it.rarity]}</div>
+
+                    {/* Sparkle for legendary+ */}
+                    {isEpic && (
+                      <>
+                        <motion.span
+                          className="absolute top-1 right-1 text-[10px]"
+                          style={{ color: "var(--rc)" }}
+                          animate={{ opacity: [0, 1, 0], scale: [0.5, 1.2, 0.5] }}
+                          transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.1 }}
+                        >
+                          ✦
+                        </motion.span>
+                        <motion.span
+                          className="absolute bottom-1 left-1 text-[8px]"
+                          style={{ color: "var(--rc)" }}
+                          animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
+                          transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.1 + 0.3 }}
+                        >
+                          ✦
+                        </motion.span>
+                      </>
+                    )}
                   </motion.div>
                 );
               })}
             </div>
-            <button className="btn-primary mt-4 w-full" onClick={dismiss}>Забрать</button>
+
+            {/* Rarity summary */}
+            <div className="mt-4 flex flex-wrap gap-1 justify-center">
+              {(["abyssal", "mythic", "legendary", "epic", "rare", "uncommon", "common"] as RarityId[]).map((r) => {
+                const n = lootReveal.filter((x) => x.rarity === r).length;
+                if (n === 0) return null;
+                return (
+                  <div
+                    key={r}
+                    data-rarity={r}
+                    className="rarity-text text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-full border"
+                    style={{ borderColor: "var(--rc)", background: "color-mix(in srgb, var(--rc) 10%, transparent)" }}
+                  >
+                    ×{n} {RARITY_RU[r]}
+                  </div>
+                );
+              })}
+            </div>
+
+            <button className="btn-abyssal mt-4 w-full h-12 tracking-widest" onClick={dismiss}>
+              ЗАБРАТЬ
+            </button>
           </motion.div>
         </motion.div>
       )}

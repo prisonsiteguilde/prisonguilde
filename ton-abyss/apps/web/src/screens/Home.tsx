@@ -3,76 +3,66 @@ import { useGame, useDerivedStats } from "../store.js";
 import { CLASS_META, STAT_LABEL } from "@ton-abyss/shared";
 import type { StatId } from "@ton-abyss/shared";
 import { TonConnectButton, useTonWallet } from "@tonconnect/ui-react";
+import { ClassPortrait } from "../components/ClassPortrait.js";
+import { ICONS, type IconName } from "../components/Icon.js";
 
 import type { Screen } from "../store.js";
 
-type Tile = { id: Screen; label: string; icon: string; hint: string; accent: string };
-type MenuGroup = { key: string; title: string; icon: string; tiles: Tile[] };
+type Tile = { id: Screen; label: string; icon: IconName; hint: string; accent: string };
+type MenuGroup = { key: string; title: string; icon: IconName; tint: string; tiles: Tile[] };
 
 const MENU: MenuGroup[] = [
   {
-    key: "combat",
-    title: "Бой",
-    icon: "⚔️",
+    key: "combat", title: "Бой", icon: "skull", tint: "#f43f5e",
     tiles: [
-      { id: "world_map", label: "Карта", icon: "🗺️", hint: "3 акта", accent: "#60a5fa" },
-      { id: "dungeon_list", label: "Данжи", icon: "🗝️", hint: "Боссы и лут", accent: "#f43f5e" },
-      { id: "tower", label: "Башня", icon: "🗼", hint: "∞ этажей", accent: "#e879f9" },
-      { id: "arena", label: "Арена", icon: "🏟️", hint: "PvP ELO", accent: "#fb7185" },
-      { id: "hunts", label: "Охота", icon: "🏹", hint: "Редкие цели", accent: "#22d3ee" },
+      { id: "world_map",   label: "Карта",   icon: "map",      hint: "3 акта",       accent: "#60a5fa" },
+      { id: "dungeon_list",label: "Данжи",   icon: "dungeons", hint: "Боссы и лут",  accent: "#f43f5e" },
+      { id: "tower",       label: "Башня",   icon: "tower",    hint: "∞ этажей",     accent: "#e879f9" },
+      { id: "arena",       label: "Арена",   icon: "arena",    hint: "PvP ELO",      accent: "#fb7185" },
+      { id: "hunts",       label: "Охота",   icon: "hunt",     hint: "Редкие цели",  accent: "#22d3ee" },
     ],
   },
   {
-    key: "gear",
-    title: "Снаряжение",
-    icon: "🎒",
+    key: "gear", title: "Снаряжение", icon: "anvil", tint: "#f59e0b",
     tiles: [
-      { id: "inventory", label: "Инвентарь", icon: "🎒", hint: "Экипировка", accent: "#a3e635" },
-      { id: "stash", label: "Стэш", icon: "🗃️", hint: "6 вкладок", accent: "#94a3b8" },
-      { id: "crafting", label: "Кузня", icon: "⚒️", hint: "Крафт, +15", accent: "#f59e0b" },
-      { id: "enchanting", label: "Чарование", icon: "✨", hint: "Эссенции, рунворды", accent: "#f472b6" },
-      { id: "sockets", label: "Гнёзда", icon: "💎", hint: "Гемы, перековка", accent: "#c084fc" },
-      { id: "skill_tree", label: "Навыки", icon: "🌳", hint: "Дерево умений", accent: "#14f1c1" },
+      { id: "inventory",   label: "Инвентарь", icon: "bag",     hint: "Экипировка",        accent: "#a3e635" },
+      { id: "stash",       label: "Стэш",      icon: "stash",   hint: "6 вкладок",          accent: "#94a3b8" },
+      { id: "crafting",    label: "Кузня",     icon: "anvil",   hint: "Крафт, +15",         accent: "#f59e0b" },
+      { id: "enchanting",  label: "Чарование", icon: "enchant", hint: "Эссенции, рунворды", accent: "#f472b6" },
+      { id: "sockets",     label: "Гнёзда",    icon: "socket",  hint: "Гемы, перековка",    accent: "#c084fc" },
+      { id: "skill_tree",  label: "Навыки",    icon: "tree",    hint: "Дерево умений",      accent: "#14f1c1" },
     ],
   },
   {
-    key: "companions",
-    title: "Соратники",
-    icon: "🐉",
+    key: "companions", title: "Соратники", icon: "pet", tint: "#fb7185",
     tiles: [
-      { id: "pets", label: "Питомцы", icon: "🐉", hint: "Эволюция, слияние", accent: "#fb7185" },
-      { id: "expeditions", label: "Экспедиции", icon: "🐾", hint: "Авто-квесты", accent: "#fbbf24" },
-      { id: "mounts", label: "Скакуны", icon: "🐎", hint: "Транспорт", accent: "#fde047" },
+      { id: "pets",        label: "Питомцы",    icon: "pet",        hint: "Эволюция, слияние", accent: "#fb7185" },
+      { id: "expeditions", label: "Экспедиции", icon: "expedition", hint: "Авто-квесты",       accent: "#fbbf24" },
+      { id: "mounts",      label: "Скакуны",    icon: "mount",      hint: "Транспорт",         accent: "#fde047" },
     ],
   },
   {
-    key: "quests",
-    title: "Задания",
-    icon: "📜",
+    key: "quests", title: "Задания", icon: "quest", tint: "#84cc16",
     tiles: [
-      { id: "quests", label: "Квесты", icon: "📜", hint: "Кампания", accent: "#84cc16" },
-      { id: "bounties", label: "Баунти", icon: "📋", hint: "Дневные цели", accent: "#a3e635" },
-      { id: "achievements", label: "Ачивки", icon: "🏆", hint: "Титулы, AP", accent: "#fcd34d" },
+      { id: "quests",       label: "Квесты",  icon: "quest",       hint: "Кампания",    accent: "#84cc16" },
+      { id: "bounties",     label: "Баунти",  icon: "bounty",      hint: "Дневные",     accent: "#a3e635" },
+      { id: "achievements", label: "Ачивки",  icon: "achievement", hint: "Титулы, AP",  accent: "#fcd34d" },
     ],
   },
   {
-    key: "social",
-    title: "Социальное",
-    icon: "👥",
+    key: "social", title: "Социальное", icon: "clan", tint: "#f0abfc",
     tiles: [
-      { id: "clan", label: "Клан", icon: "🏰", hint: "Союз, войны, банк", accent: "#f0abfc" },
-      { id: "factions", label: "Фракции", icon: "⚜️", hint: "Репутация", accent: "#c084fc" },
-      { id: "leaderboard", label: "Топ", icon: "👑", hint: "Мировой рейтинг", accent: "#fde047" },
+      { id: "clan",        label: "Клан",     icon: "clan",        hint: "Войны, банк",   accent: "#f0abfc" },
+      { id: "factions",    label: "Фракции",  icon: "faction",     hint: "Репутация",     accent: "#c084fc" },
+      { id: "leaderboard", label: "Топ",      icon: "leaderboard", hint: "Рейтинг мира",  accent: "#fde047" },
     ],
   },
   {
-    key: "world",
-    title: "Мир и услуги",
-    icon: "🌍",
+    key: "world", title: "Мир и услуги", icon: "relic", tint: "#d6bcfa",
     tiles: [
-      { id: "relics", label: "Реликвии", icon: "🏺", hint: "Перман. бонусы", accent: "#d6bcfa" },
-      { id: "shop", label: "Лавка", icon: "💼", hint: "Продать/купить", accent: "#94a3b8" },
-      { id: "codex", label: "Кодекс", icon: "📖", hint: "Гид по миру", accent: "#a78bfa" },
+      { id: "relics", label: "Реликвии", icon: "relic", hint: "Перман. бонусы", accent: "#d6bcfa" },
+      { id: "shop",   label: "Лавка",    icon: "shop",  hint: "Продать/купить", accent: "#94a3b8" },
+      { id: "codex",  label: "Кодекс",   icon: "codex", hint: "Гид по миру",    accent: "#a78bfa" },
     ],
   },
 ];
@@ -83,41 +73,60 @@ export function Home() {
   const derived = useDerivedStats()!;
   const wallet = useTonWallet();
   const meta = CLASS_META[char.classId];
-
   const primary: StatId[] = ["strength", "agility", "intellect", "vitality", "spirit", "luck"];
 
   return (
-    <div className="px-4 py-4 space-y-4">
-      {/* Hero header */}
-      <div className="card p-4 relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-40" style={{ background: meta.palette }} />
-        <div className="flex items-center gap-4">
-          <div className="text-5xl">{char.classId === "warden" ? "🛡️" : char.classId === "runesmith" ? "🔨" : char.classId === "voidcaller" ? "🌀" : "🐺"}</div>
-          <div className="flex-1">
-            <div className="font-display text-3xl tracking-wider" style={{ color: meta.palette }}>{meta.name}</div>
-            <div className="text-xs text-white/60">{meta.tagline}</div>
-            <div className="mt-2 flex gap-2">
-              <span className="chip">Уровень {char.level}</span>
-              {char.hardcoreMode && <span className="chip bg-red-500/20 text-red-300 border border-red-500/30">Хардкор</span>}
-              {char.deepestFloor > 0 && <span className="chip">Глубина: T{char.deepestFloor}</span>}
-              {char.deaths > 0 && <span className="chip bg-red-500/10 text-red-300">☠ {char.deaths}</span>}
+    <div className="px-4 py-4 space-y-5 pb-24">
+      {/* Hero header — class portrait + vitals */}
+      <div className="hero-card">
+        <div className="flex items-start gap-4">
+          <div className="relative shrink-0">
+            <div className="absolute inset-0 rounded-full blur-2xl opacity-60" style={{ background: meta.palette }} />
+            <div className="relative">
+              <ClassPortrait classId={char.classId} size={96} />
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-display text-3xl tracking-wider leading-none" style={{ color: meta.palette }}>
+              {meta.name}
+            </div>
+            <div className="text-xs text-white/60 mt-0.5">{meta.tagline}</div>
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              <span className="chip-accent">Ур. {char.level}</span>
+              <span className="chip-danger flex items-center gap-1">
+                <ICONS.skull size={12} /> Хардкор
+              </span>
+              {char.deepestFloor > 0 && <span className="chip">T{char.deepestFloor}</span>}
+              {char.deaths > 0 && (
+                <span className="chip-danger flex items-center gap-1">
+                  <ICONS.skull size={12} /> {char.deaths}
+                </span>
+              )}
             </div>
           </div>
         </div>
 
         {/* HP/Mana */}
         <div className="mt-4 space-y-2">
-          <Bar label="HP" value={char.hpCurrent} max={derived.maxHp} color="from-red-500 to-red-700" />
-          <Bar label="MP" value={char.manaCurrent} max={derived.maxMana} color="from-abyss-300 to-abyss-500" />
+          <Bar icon="heart" label="Жизнь" value={char.hpCurrent} max={derived.maxHp} color="from-red-500 to-red-700" />
+          <Bar icon="mana"  label="Мана"  value={char.manaCurrent} max={derived.maxMana} color="from-abyss-300 to-abyss-500" />
+        </div>
+
+        {/* Resources strip */}
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <ResourceChip icon="gold"  value={char.gold}      label="Золото"  tint="#f59e0b" />
+          <ResourceChip icon="shard" value={char.shards}    label="Шарды"   tint="#14f1c1" />
+          <ResourceChip icon="dust"  value={char.abyssDust} label="Пыль"    tint="#c084fc" />
         </div>
 
         {char.unspentPoints > 0 && (
           <motion.div
             initial={{ scale: 0.95 }}
             animate={{ scale: 1 }}
-            className="mt-3 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs text-amber-200"
+            className="mt-3 rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs text-amber-200 flex items-center gap-2"
           >
-            Нераспределённые очки: <b>{char.unspentPoints}</b> — откройте инвентарь для распределения.
+            <span className="text-base">⚡</span>
+            Нераспределённые очки характеристик: <b>{char.unspentPoints}</b>
           </motion.div>
         )}
       </div>
@@ -125,9 +134,9 @@ export function Home() {
       {/* Primary stats */}
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="font-display text-xl tracking-wider">Характеристики</div>
+          <div className="section-title">Характеристики</div>
           {char.unspentPoints > 0 && (
-            <div className="text-xs text-amber-300">+{char.unspentPoints} оч.</div>
+            <div className="chip-accent">+{char.unspentPoints} оч.</div>
           )}
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -135,55 +144,86 @@ export function Home() {
             <StatRow key={s} stat={s} value={char.stats[s]} canSpend={char.unspentPoints > 0} />
           ))}
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-white/70">
-          <KV k="Атака" v={derived.attack} />
-          <KV k="Магия" v={derived.spellPower} />
-          <KV k="Защита" v={derived.defense} />
-          <KV k="Скорость" v={derived.speed.toFixed(0)} />
-          <KV k="Крит. шанс" v={`${(derived.critChance * 100).toFixed(1)}%`} />
-          <KV k="Крит. множ." v={`×${derived.critMultiplier.toFixed(2)}`} />
-          <KV k="Уклонение" v={`${(derived.dodge * 100).toFixed(1)}%`} />
-          <KV k="Блок" v={`${(derived.blockChance * 100).toFixed(1)}%`} />
+        <div className="mt-3 pt-3 border-t border-white/5 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] text-white/70">
+          <KV icon="attack"  k="Атака"        v={derived.attack} />
+          <KV icon="spell"   k="Магия"        v={derived.spellPower} />
+          <KV icon="defense" k="Защита"       v={derived.defense} />
+          <KV icon="speed"   k="Скорость"     v={derived.speed.toFixed(0)} />
+          <KV icon="crit"    k="Крит. шанс"   v={`${(derived.critChance * 100).toFixed(1)}%`} />
+          <KV icon="crit"    k="Крит. множ."  v={`×${derived.critMultiplier.toFixed(2)}`} />
+          <KV icon="dodge"   k="Уклонение"    v={`${(derived.dodge * 100).toFixed(1)}%`} />
+          <KV icon="shield"  k="Блок"         v={`${(derived.blockChance * 100).toFixed(1)}%`} />
         </div>
       </div>
 
       {/* Menu by category */}
-      {MENU.map((group) => (
-        <div key={group.key} className="space-y-2">
-          <div className="flex items-center gap-2 px-1">
-            <span className="text-lg">{group.icon}</span>
-            <h3 className="font-display text-lg tracking-wider text-white/80">{group.title}</h3>
-            <div className="flex-1 h-px bg-gradient-to-r from-white/15 to-transparent" />
-            <span className="text-[10px] text-white/40 uppercase tracking-widest">{group.tiles.length}</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {group.tiles.map((t) => (
-              <motion.button
-                key={t.id}
-                whileTap={{ scale: 0.95 }}
-                whileHover={{ y: -2 }}
-                onClick={() => setScreen(t.id)}
-                className="card p-3 relative overflow-hidden text-left"
+      {MENU.map((group, gi) => {
+        const GroupIcon = ICONS[group.icon];
+        return (
+          <div key={group.key} className="space-y-2" style={{ animationDelay: `${gi * 60}ms` }}>
+            <div className="flex items-center gap-2.5 px-1">
+              <div
+                className="w-7 h-7 rounded-lg grid place-items-center border"
+                style={{
+                  background: `linear-gradient(135deg, ${group.tint}28, transparent)`,
+                  borderColor: `${group.tint}44`,
+                  color: group.tint,
+                }}
               >
-                <div
-                  className="absolute -right-4 -bottom-4 w-20 h-20 rounded-full blur-2xl opacity-40"
-                  style={{ background: t.accent }}
-                />
-                <div className="text-2xl">{t.icon}</div>
-                <div className="mt-1.5 font-display text-[15px] tracking-wide text-white/90 leading-tight">{t.label}</div>
-                <div className="text-[10px] text-white/50 leading-tight">{t.hint}</div>
-              </motion.button>
-            ))}
+                <GroupIcon size={16} />
+              </div>
+              <h3 className="font-display text-lg tracking-widest uppercase text-white/85">
+                {group.title}
+              </h3>
+              <div className="flex-1 h-px bg-gradient-to-r from-white/15 via-white/5 to-transparent" />
+              <span className="text-[10px] text-white/40 uppercase tracking-widest">
+                {group.tiles.length}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {group.tiles.map((t, ti) => {
+                const TileIcon = ICONS[t.icon];
+                return (
+                  <motion.button
+                    key={t.id}
+                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ y: -2 }}
+                    onClick={() => setScreen(t.id)}
+                    className="card card-hover p-3 relative overflow-hidden text-left min-h-[98px]"
+                    style={{ animation: `tile-in 0.4s ease-out ${(gi * 4 + ti) * 30}ms both` }}
+                  >
+                    <div
+                      className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full blur-2xl opacity-40 pointer-events-none"
+                      style={{ background: t.accent }}
+                    />
+                    <div
+                      className="w-9 h-9 rounded-xl grid place-items-center border"
+                      style={{
+                        color: t.accent,
+                        background: `linear-gradient(135deg, ${t.accent}22, transparent)`,
+                        borderColor: `${t.accent}44`,
+                      }}
+                    >
+                      <TileIcon size={18} />
+                    </div>
+                    <div className="mt-2 font-display text-[14px] tracking-wide text-white/95 leading-tight">
+                      {t.label}
+                    </div>
+                    <div className="text-[10px] text-white/50 leading-tight mt-0.5">{t.hint}</div>
+                  </motion.button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {/* TON wallet */}
       <div className="card p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <div>
-            <div className="font-display tracking-wider">TON-кошелёк</div>
-            <div className="text-[11px] text-white/50">Премиум-косметика, расширение хранилища и Battle Pass.</div>
+            <div className="section-title">TON-кошелёк</div>
+            <div className="text-[11px] text-white/50 mt-0.5">Премиум-косметика и Battle Pass.</div>
           </div>
           <TonConnectButton />
         </div>
@@ -197,21 +237,48 @@ export function Home() {
   );
 }
 
-function Bar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
+function Bar({
+  icon, label, value, max, color,
+}: { icon: IconName; label: string; value: number; max: number; color: string }) {
   const pct = Math.max(0, Math.min(100, (value / Math.max(1, max)) * 100));
+  const Icon = ICONS[icon];
   return (
     <div>
-      <div className="flex justify-between text-[11px] text-white/60 mb-1">
-        <span>{label}</span>
-        <span>{value} / {max}</span>
+      <div className="flex items-center justify-between text-[11px] text-white/70 mb-1">
+        <span className="flex items-center gap-1.5">
+          <Icon size={12} />
+          {label}
+        </span>
+        <span className="font-mono tabular-nums">{value} / {max}</span>
       </div>
-      <div className="h-2.5 rounded-full bg-white/5 overflow-hidden relative">
+      <div className="h-2.5 rounded-full bg-white/[0.07] overflow-hidden relative border border-white/5">
         <motion.div
           className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r ${color}`}
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.5 }}
         />
+        <div className="absolute inset-0 rarity-shimmer pointer-events-none opacity-50" />
+      </div>
+    </div>
+  );
+}
+
+function ResourceChip({ icon, value, label, tint }: { icon: IconName; value: number; label: string; tint: string }) {
+  const Icon = ICONS[icon];
+  return (
+    <div
+      className="flex items-center gap-2 rounded-xl border px-3 py-2 bg-gradient-to-b from-white/[0.04] to-transparent"
+      style={{ borderColor: `${tint}33` }}
+    >
+      <div className="grid place-items-center w-8 h-8 rounded-lg" style={{ color: tint, background: `${tint}15` }}>
+        <Icon size={18} />
+      </div>
+      <div className="min-w-0">
+        <div className="text-[10px] uppercase tracking-widest text-white/50 leading-none">{label}</div>
+        <div className="font-mono font-bold text-sm text-white/95 tabular-nums leading-tight">
+          {value.toLocaleString("ru-RU")}
+        </div>
       </div>
     </div>
   );
@@ -220,27 +287,32 @@ function Bar({ label, value, max, color }: { label: string; value: number; max: 
 function StatRow({ stat, value, canSpend }: { stat: StatId; value: number; canSpend: boolean }) {
   const allocate = useGame((s) => s.allocatePoint);
   return (
-    <div className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-1.5">
+    <div className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-1.5 border border-white/5">
       <span className="text-xs text-white/70">{STAT_LABEL[stat]}</span>
       <span className="flex items-center gap-2">
-        <span className="font-mono text-sm">{value}</span>
-        <button
-          disabled={!canSpend}
-          onClick={() => allocate(stat)}
-          className="w-5 h-5 rounded bg-abyss-700 text-white text-xs disabled:opacity-30"
-        >
-          +
-        </button>
+        <span className="font-mono text-sm font-bold tabular-nums">{value}</span>
+        {canSpend && (
+          <button
+            className="w-6 h-6 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 text-xs font-bold transition"
+            onClick={() => allocate(stat)}
+          >
+            +
+          </button>
+        )}
       </span>
     </div>
   );
 }
 
-function KV({ k, v }: { k: string; v: string | number }) {
+function KV({ icon, k, v }: { icon: IconName; k: string; v: string | number }) {
+  const Icon = ICONS[icon];
   return (
-    <div className="flex justify-between rounded bg-white/5 px-2 py-1">
-      <span>{k}</span>
-      <span className="font-mono text-white/90">{v}</span>
+    <div className="flex items-center justify-between gap-2">
+      <span className="flex items-center gap-1.5 text-white/60">
+        <Icon size={11} />
+        {k}
+      </span>
+      <span className="font-mono font-bold text-white/90 tabular-nums">{v}</span>
     </div>
   );
 }
