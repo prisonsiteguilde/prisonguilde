@@ -2,15 +2,15 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useGame } from "../store.js";
 import { ABILITIES, ITEMS } from "@ton-abyss/content";
-import { CLASS_META } from "@ton-abyss/shared";
+import { CLASS_META, WEAPON_KINDS } from "@ton-abyss/shared";
 import { ClassPortrait } from "../components/ClassPortrait.js";
 import { ICONS } from "../components/Icon.js";
 
-const CLASS_ABILITIES: Record<string, string[]> = {
-  warden: ["basic_strike", "power_strike", "shield_wall", "heroic_strike", "whirlwind", "vengeance", "divine_shield"],
-  runesmith: ["basic_strike", "rune_bolt", "rune_ignite", "fireball", "chain_lightning", "frost_nova", "meteor"],
-  voidcaller: ["basic_strike", "void_drain", "void_curse", "soul_rip", "mark_of_death", "abyss_reap", "shadow_step"],
-  beastbound: ["basic_strike", "beast_slash", "rally_pet", "execute", "berserk", "assassinate", "poison_dart"],
+const CLASS_FALLBACK_ABILITIES: Record<string, string[]> = {
+  warden: ["basic_strike", "power_strike", "shield_wall"],
+  runesmith: ["basic_strike", "rune_bolt", "rune_ignite"],
+  voidcaller: ["basic_strike", "void_drain", "void_curse"],
+  beastbound: ["basic_strike", "beast_slash", "rally_pet"],
 };
 
 type DmgPop = { id: number; text: string; tone: "player" | "enemy" | "crit" | "heal"; x: number };
@@ -21,6 +21,7 @@ export function ActiveCombat() {
   const endCombatReturn = useGame((s) => s.endCombatReturn);
   const character = useGame((s) => s.character);
   const inventory = useGame((s) => s.inventory);
+  const equipped = useGame((s) => s.equipped);
   const logRef = useRef<HTMLDivElement>(null);
   const prevEnemyHp = useRef<number | null>(null);
   const prevPlayerHp = useRef<number | null>(null);
@@ -72,7 +73,12 @@ export function ActiveCombat() {
 
   if (!combat || !character || !meta) return null;
 
-  const abilityIds = CLASS_ABILITIES[character.classId] ?? ["basic_strike"];
+  // Weapon-locked moveset: abilities come from equipped weapon's WeaponKind.
+  const equippedWpnUid = equipped["weapon"];
+  const equippedWpn = equippedWpnUid ? inventory.find((i) => i.uid === equippedWpnUid) : null;
+  const equippedWpnKind = equippedWpn ? ITEMS[equippedWpn.baseId]?.weaponKind : undefined;
+  const weaponMeta = equippedWpnKind ? WEAPON_KINDS[equippedWpnKind] : null;
+  const abilityIds = weaponMeta?.abilities ?? CLASS_FALLBACK_ABILITIES[character.classId] ?? ["basic_strike"];
 
   const playerPct = combat.player.hp / combat.player.maxHp;
   const manaPct = combat.player.mana / combat.player.maxMana;
@@ -289,7 +295,17 @@ export function ActiveCombat() {
           </div>
 
           <div>
-            <div className="section-title mb-1.5 px-1 text-sm">Способности</div>
+            <div className="flex items-baseline justify-between mb-1.5 px-1">
+              <div className="section-title text-sm">Способности оружия</div>
+              {weaponMeta && (
+                <div className="text-[10px] text-amber-300/80">
+                  {weaponMeta.ru} · {weaponMeta.range === "melee" ? "ближний" : weaponMeta.range === "ranged" ? "дальний" : "магия"} · {weaponMeta.hands}-руч.
+                </div>
+              )}
+              {!weaponMeta && (
+                <div className="text-[10px] text-rose-400/80">Без оружия — базовый набор</div>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-2">
               {abilityIds.map((abid) => {
                 const a = ABILITIES[abid];

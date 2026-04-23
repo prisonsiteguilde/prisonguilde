@@ -38,11 +38,19 @@ const WEAPON_ICON: Record<string, IconName> = {
   hammer: "hammer",
   dagger: "dagger",
   bow: "bow",
+  crossbow: "bow",
   staff: "staff",
   wand: "staff",
   tome: "codex",
   claw: "dagger",
   spear: "dagger",
+  scythe: "sword",
+  rapier: "dagger",
+  polearm: "spear" as IconName,
+  katana: "sword",
+  fist: "gloves",
+  orb: "gem",
+  rune_blade: "sword",
 };
 
 export function ItemTile({ item, onClick, selected }: { item: ItemInstance; onClick?: () => void; selected?: boolean }) {

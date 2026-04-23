@@ -29,6 +29,9 @@ import { Mounts } from "./screens/Mounts.js";
 import { Relics } from "./screens/Relics.js";
 import { Enchanting } from "./screens/Enchanting.js";
 import { Clan } from "./screens/Clan.js";
+import { BattlePass } from "./screens/BattlePass.js";
+import { Lootboxes } from "./screens/Lootboxes.js";
+import { ClanBosses } from "./screens/ClanBosses.js";
 import { Toasts } from "./components/Toasts.js";
 import { TopBar } from "./components/TopBar.js";
 import { LootReveal } from "./components/LootReveal.js";
@@ -86,6 +89,9 @@ export function App() {
             {screen === "relics" && <Relics />}
             {screen === "enchanting" && <Enchanting />}
             {screen === "clan" && <Clan />}
+            {screen === "battlepass" && <BattlePass />}
+            {screen === "lootboxes" && <Lootboxes />}
+            {screen === "clan_bosses" && <ClanBosses />}
           </motion.div>
         </AnimatePresence>
       </div>

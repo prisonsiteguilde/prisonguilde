@@ -20,6 +20,7 @@ const MENU: MenuGroup[] = [
       { id: "tower",       label: "Башня",   icon: "tower",    hint: "∞ этажей",     accent: "#e879f9" },
       { id: "arena",       label: "Арена",   icon: "arena",    hint: "PvP ELO",      accent: "#fb7185" },
       { id: "hunts",       label: "Охота",   icon: "hunt",     hint: "Редкие цели",  accent: "#22d3ee" },
+      { id: "clan_bosses", label: "Клан-боссы", icon: "skull",  hint: "Рейды клана",  accent: "#fb7185" },
     ],
   },
   {
@@ -60,9 +61,11 @@ const MENU: MenuGroup[] = [
   {
     key: "world", title: "Мир и услуги", icon: "relic", tint: "#d6bcfa",
     tiles: [
-      { id: "relics", label: "Реликвии", icon: "relic", hint: "Перман. бонусы", accent: "#d6bcfa" },
-      { id: "shop",   label: "Лавка",    icon: "shop",  hint: "Продать/купить", accent: "#94a3b8" },
-      { id: "codex",  label: "Кодекс",   icon: "codex", hint: "Гид по миру",    accent: "#a78bfa" },
+      { id: "relics",     label: "Реликвии",   icon: "relic",       hint: "Перман. бонусы", accent: "#d6bcfa" },
+      { id: "shop",       label: "Лавка",      icon: "shop",        hint: "Продать/купить", accent: "#94a3b8" },
+      { id: "codex",      label: "Кодекс",     icon: "codex",       hint: "Гид по миру",    accent: "#a78bfa" },
+      { id: "battlepass", label: "Боевой Пропуск", icon: "achievement", hint: "Сезон, награды", accent: "#fbbf24" },
+      { id: "lootboxes",  label: "Сундуки",    icon: "achievement", hint: "Pity, лут",       accent: "#fb923c" },
     ],
   },
 ];

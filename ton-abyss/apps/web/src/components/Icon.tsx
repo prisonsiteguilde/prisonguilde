@@ -532,3 +532,9 @@ export const ICONS = {
 } as const;
 
 export type IconName = keyof typeof ICONS;
+
+export function Icon({ name, size = 16, color }: { name: IconName; size?: number; color?: string }) {
+  const C = ICONS[name];
+  if (!C) return null;
+  return <C size={size} color={color} />;
+}

@@ -111,7 +111,11 @@ export interface BaseItem {
   flavor?: string;
   icon?: string;
   twoHanded?: boolean;
-  weaponKind?: "sword" | "axe" | "mace" | "dagger" | "bow" | "staff" | "wand" | "tome" | "claw" | "greatsword" | "hammer" | "spear";
+  weaponKind?:
+    | "sword" | "greatsword" | "axe" | "hammer" | "mace"
+    | "dagger" | "spear" | "bow" | "crossbow"
+    | "staff" | "wand" | "tome" | "claw" | "scythe"
+    | "rapier" | "polearm" | "katana" | "fist" | "orb" | "rune_blade";
   armorKind?: "light" | "medium" | "heavy" | "cloth";
   tags?: string[];
 }

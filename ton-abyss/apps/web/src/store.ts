@@ -14,6 +14,21 @@ import type {
   ParagonAllocation,
   MapProgress,
   LeaderboardEntry,
+  BattlePassProgress,
+  BattlePassMissionState,
+  LootboxState,
+  LootboxKind,
+  ClanBossInstance,
+} from "@ton-abyss/shared";
+import {
+  defaultLootboxState,
+  rollLootbox,
+  LOOTBOXES,
+  CLAN_BOSSES,
+  DEFAULT_DAILY_MISSIONS,
+  DEFAULT_WEEKLY_MISSIONS,
+  levelFromBpXp,
+  WEAPON_KINDS,
 } from "@ton-abyss/shared";
 import {
   derivedFromPrimary,
@@ -73,6 +88,7 @@ import {
   CLAN_RANKS,
   NPC_CLANS,
   clanWarReward,
+  CURRENT_SEASON,
 } from "@ton-abyss/content";
 
 export type Screen =
@@ -104,7 +120,10 @@ export type Screen =
   | "mounts"
   | "enchanting"
   | "relics"
-  | "clan";
+  | "clan"
+  | "battlepass"
+  | "lootboxes"
+  | "clan_bosses";
 
 export interface Toast {
   id: string;
@@ -281,6 +300,18 @@ export interface GameState {
   clan: PlayerClan | null;
   clanDailyContrib: { date: string; gold: number; kills: number; bounties: number; bosses: number };
   clanWars: ClanWarRecord[];
+  clanBossActive: ClanBossInstance | null;
+  clanBossHistory: { bossId: string; killed: boolean; damage: number; at: number }[];
+
+  // battle pass
+  battlepass: BattlePassProgress;
+  bpMissions: Record<string, BattlePassMissionState>;
+  bpMissionsResetDaily: number;
+  bpMissionsResetWeekly: number;
+
+  // lootbox
+  lootbox: LootboxState;
+  lastLootboxRoll: { kind: LootboxKind; rarities: import("@ton-abyss/shared").RarityId[]; pity: boolean } | null;
 
   // expansion state
   skillAllocation: SkillAllocation;
@@ -360,6 +391,23 @@ export interface GameState {
   activateClanPerk: (perkId: string) => { ok: boolean; error?: string };
   deactivateClanPerk: (perkId: string) => void;
   declareClanWar: (opponentId: string) => { ok: boolean; won: boolean; rewardGold: number; rewardXp: number; error?: string };
+
+  // clan bosses
+  startClanBoss: (bossId: string) => { ok: boolean; error?: string };
+  attackClanBoss: (damage: number) => { ok: boolean; killed: boolean };
+  claimClanBossRewards: () => { ok: boolean };
+
+  // battle pass
+  addBpXp: (amount: number) => void;
+  claimBpReward: (tierIdx: number, track: "free" | "premium") => { ok: boolean; error?: string };
+  purchaseBpPremium: () => { ok: boolean; error?: string };
+  refreshBpMissions: () => void;
+  progressBpMission: (missionId: string, amount: number) => void;
+  claimBpMission: (missionId: string) => { ok: boolean };
+
+  // lootbox
+  openLootbox: (kind: LootboxKind, qty?: 1 | 3 | 10) => { ok: boolean; error?: string; rolls?: { kind: LootboxKind; rarities: import("@ton-abyss/shared").RarityId[]; pity: boolean }[] };
+  purchaseLootbox: (kind: LootboxKind, qty: number) => { ok: boolean; error?: string };
 
   // Combat
   beginDungeon: (dungeonId: string) => void;
@@ -643,6 +691,21 @@ export const useGame = create<GameState>()(
       clan: null,
       clanDailyContrib: { date: todayKey(), gold: 0, kills: 0, bounties: 0, bosses: 0 },
       clanWars: [],
+      clanBossActive: null,
+      clanBossHistory: [],
+      battlepass: {
+        seasonId: CURRENT_SEASON.id,
+        xp: 0,
+        level: 0,
+        premium: false,
+        claimedFree: [],
+        claimedPremium: [],
+      },
+      bpMissions: {},
+      bpMissionsResetDaily: 0,
+      bpMissionsResetWeekly: 0,
+      lootbox: defaultLootboxState(),
+      lastLootboxRoll: null,
       skillAllocation: {},
       skillPoints: 0,
       paragon: { offense: 0, defense: 0, utility: 0, treasure: 0 },
@@ -751,9 +814,19 @@ export const useGame = create<GameState>()(
           const base = ITEMS[it.baseId];
           if (!base) return s;
           const slot = base.slot;
+          // Weapon-locked: cannot swap weapons during active combat
+          if (s.combat && !s.combat.ended && slot === "weapon") {
+            return { ...s, toasts: [...s.toasts, { id: genId("tst"), text: "Нельзя сменить оружие в бою.", tone: "bad" as const }] };
+          }
           return { equipped: { ...s.equipped, [slot]: uid } };
         }),
-      unequip: (slot) => set((s) => ({ equipped: { ...s.equipped, [slot]: null } })),
+      unequip: (slot) =>
+        set((s) => {
+          if (s.combat && !s.combat.ended && slot === "weapon") {
+            return { ...s, toasts: [...s.toasts, { id: genId("tst"), text: "Нельзя снять оружие в бою.", tone: "bad" as const }] };
+          }
+          return { equipped: { ...s.equipped, [slot]: null } };
+        }),
 
       // ================ ACTIVE COMBAT ================
       beginDungeon: (dungeonId) => {
@@ -2263,6 +2336,247 @@ export const useGame = create<GameState>()(
         return { ok: true, won, rewardGold: r.gold, rewardXp: r.clanXp };
       },
 
+      // ============= CLAN BOSS =============
+      startClanBoss: (bossId) => {
+        const s = get();
+        if (!s.clan) return { ok: false, error: "Только для членов клана." };
+        if (s.clanBossActive) return { ok: false, error: "Уже идёт босс." };
+        const def = CLAN_BOSSES[bossId];
+        if (!def) return { ok: false, error: "Босс не найден." };
+        if (s.clan.level < def.minClanRank) return { ok: false, error: `Требуется ранг клана ${def.minClanRank}.` };
+        const inst: ClanBossInstance = {
+          bossId,
+          clanId: s.clan.id,
+          startedAt: Date.now(),
+          endsAt: Date.now() + def.durationHours * 3600_000,
+          hpRemaining: def.totalHp,
+          damageByMember: {},
+          killed: false,
+        };
+        set({
+          clanBossActive: inst,
+          toasts: [...s.toasts, { id: genId("tst"), text: `Клан-босс «${def.ru}» призван.`, tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+      attackClanBoss: (damage) => {
+        const s = get();
+        if (!s.clanBossActive || !s.character) return { ok: false, killed: false };
+        const inst = { ...s.clanBossActive };
+        const def = CLAN_BOSSES[inst.bossId];
+        if (!def) return { ok: false, killed: false };
+        const dmg = Math.max(1, Math.floor(damage));
+        inst.hpRemaining = Math.max(0, inst.hpRemaining - dmg);
+        inst.damageByMember = { ...inst.damageByMember, [s.character.id]: (inst.damageByMember[s.character.id] ?? 0) + dmg };
+        const killed = inst.hpRemaining === 0;
+        if (killed) {
+          inst.killed = true;
+          inst.killedAt = Date.now();
+        }
+        set({
+          clanBossActive: inst,
+          toasts: killed
+            ? [...s.toasts, { id: genId("tst"), text: `Клан-босс «${def.ru}» повержен!`, tone: "epic" as const }]
+            : s.toasts,
+        });
+        return { ok: true, killed };
+      },
+      claimClanBossRewards: () => {
+        const s = get();
+        if (!s.clanBossActive || !s.character) return { ok: false };
+        const inst = s.clanBossActive;
+        const def = CLAN_BOSSES[inst.bossId];
+        if (!def || !inst.killed) return { ok: false };
+        const myDmg = inst.damageByMember[s.character.id] ?? 0;
+        const totalDmg = Math.max(1, Object.values(inst.damageByMember).reduce((a, b) => a + b, 0));
+        const share = myDmg / totalDmg;
+        const gold = Math.floor(def.killRewards.gold * share);
+        const shards = Math.floor(def.killRewards.shards * share);
+        const dust = Math.floor(def.killRewards.abyssDust * share);
+        set({
+          character: { ...s.character, gold: s.character.gold + gold, shards: s.character.shards + shards, abyssDust: s.character.abyssDust + dust },
+          clanBossActive: null,
+          clanBossHistory: [{ bossId: inst.bossId, killed: true, damage: myDmg, at: Date.now() }, ...s.clanBossHistory].slice(0, 30),
+          toasts: [...s.toasts, { id: genId("tst"), text: `Награда: +${gold}g, +${shards} шардов, +${dust} пыли (доля ${(share * 100).toFixed(1)}%).`, tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+
+      // ============= BATTLE PASS =============
+      addBpXp: (amount) => {
+        const s = get();
+        const newXp = s.battlepass.xp + Math.max(0, Math.floor(amount));
+        const newLevel = levelFromBpXp(newXp, CURRENT_SEASON.tiers);
+        if (newLevel > s.battlepass.level) {
+          set({
+            battlepass: { ...s.battlepass, xp: newXp, level: newLevel },
+            toasts: [...s.toasts, { id: genId("tst"), text: `БП: уровень ${newLevel}!`, tone: "epic" as const }],
+          });
+        } else {
+          set({ battlepass: { ...s.battlepass, xp: newXp } });
+        }
+      },
+      claimBpReward: (tierIdx, track) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const tier = CURRENT_SEASON.tiers[tierIdx];
+        if (!tier) return { ok: false, error: "Тир не найден." };
+        if (s.battlepass.level < tier.level) return { ok: false, error: "Уровень слишком низкий." };
+        if (track === "premium" && !s.battlepass.premium) return { ok: false, error: "Требуется премиум." };
+        const claimed = track === "free" ? s.battlepass.claimedFree : s.battlepass.claimedPremium;
+        if (claimed.includes(tierIdx)) return { ok: false, error: "Уже забрано." };
+        const reward = track === "free" ? tier.freeReward : tier.premiumReward;
+        if (!reward) return { ok: false, error: "Нет награды." };
+        let char = { ...s.character };
+        const newToasts = [...s.toasts];
+        const newInventory = [...s.inventory];
+        const newMaterials = { ...s.materials };
+        if (reward.kind === "gold") char.gold += reward.amount ?? 0;
+        else if (reward.kind === "shards") char.shards += reward.amount ?? 0;
+        else if (reward.kind === "abyss_dust") char.abyssDust += reward.amount ?? 0;
+        else if (reward.kind === "lootbox" && reward.baseId) newMaterials[reward.baseId] = (newMaterials[reward.baseId] ?? 0) + (reward.amount ?? 1);
+        else if (reward.kind === "skill_point") {
+          set({ skillPoints: s.skillPoints + (reward.amount ?? 1) });
+        } else if (reward.kind === "title" && reward.baseId) {
+          if (!s.unlockedTitles.includes(reward.baseId)) set({ unlockedTitles: [...s.unlockedTitles, reward.baseId] });
+        }
+        newToasts.push({ id: genId("tst"), text: `Награда BP: ${reward.kind} ${reward.amount ?? ""}`, tone: "epic" as const });
+        set({
+          character: char,
+          inventory: newInventory,
+          materials: newMaterials,
+          battlepass: {
+            ...s.battlepass,
+            claimedFree: track === "free" ? [...s.battlepass.claimedFree, tierIdx] : s.battlepass.claimedFree,
+            claimedPremium: track === "premium" ? [...s.battlepass.claimedPremium, tierIdx] : s.battlepass.claimedPremium,
+          },
+          toasts: newToasts,
+        });
+        return { ok: true };
+      },
+      purchaseBpPremium: () => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        if (s.battlepass.premium) return { ok: false, error: "Уже куплено." };
+        const cost = CURRENT_SEASON.premiumPriceShards;
+        if (s.character.shards < cost) return { ok: false, error: `Нужно ${cost} шардов.` };
+        set({
+          character: { ...s.character, shards: s.character.shards - cost },
+          battlepass: { ...s.battlepass, premium: true },
+          toasts: [...s.toasts, { id: genId("tst"), text: "Премиум БП активирован!", tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+      refreshBpMissions: () => {
+        const s = get();
+        const now = Date.now();
+        const dayMs = 86_400_000;
+        const weekMs = 7 * dayMs;
+        let missions = { ...s.bpMissions };
+        let dailyReset = s.bpMissionsResetDaily;
+        let weeklyReset = s.bpMissionsResetWeekly;
+        if (now >= s.bpMissionsResetDaily) {
+          for (const m of DEFAULT_DAILY_MISSIONS) {
+            missions[m.id] = { missionId: m.id, current: 0, completed: false, claimed: false, resetAt: now + dayMs };
+          }
+          dailyReset = now + dayMs;
+        }
+        if (now >= s.bpMissionsResetWeekly) {
+          for (const m of DEFAULT_WEEKLY_MISSIONS) {
+            missions[m.id] = { missionId: m.id, current: 0, completed: false, claimed: false, resetAt: now + weekMs };
+          }
+          weeklyReset = now + weekMs;
+        }
+        set({ bpMissions: missions, bpMissionsResetDaily: dailyReset, bpMissionsResetWeekly: weeklyReset });
+      },
+      progressBpMission: (missionId, amount) => {
+        const s = get();
+        const ms = s.bpMissions[missionId];
+        if (!ms || ms.claimed) return;
+        const def = [...DEFAULT_DAILY_MISSIONS, ...DEFAULT_WEEKLY_MISSIONS].find((m) => m.id === missionId);
+        if (!def) return;
+        const newCur = Math.min(def.objective.amount, ms.current + Math.max(0, amount));
+        const completed = newCur >= def.objective.amount;
+        set({ bpMissions: { ...s.bpMissions, [missionId]: { ...ms, current: newCur, completed } } });
+      },
+      claimBpMission: (missionId) => {
+        const s = get();
+        const ms = s.bpMissions[missionId];
+        if (!ms || !ms.completed || ms.claimed) return { ok: false };
+        const def = [...DEFAULT_DAILY_MISSIONS, ...DEFAULT_WEEKLY_MISSIONS].find((m) => m.id === missionId);
+        if (!def) return { ok: false };
+        get().addBpXp(def.rewardXp);
+        set({
+          bpMissions: { ...s.bpMissions, [missionId]: { ...ms, claimed: true } },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Миссия БП выполнена: +${def.rewardXp} опыта.`, tone: "good" as const }],
+        });
+        return { ok: true };
+      },
+
+      // ============= LOOTBOX =============
+      purchaseLootbox: (kind, qty) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const def = LOOTBOXES[kind];
+        if (!def) return { ok: false, error: "Сундук не найден." };
+        const totalGold = (def.costGold ?? 0) * qty;
+        const totalShards = (def.costShards ?? 0) * qty;
+        const totalDust = (def.costDust ?? 0) * qty;
+        if (s.character.gold < totalGold) return { ok: false, error: `Нужно ${totalGold} золота.` };
+        if (s.character.shards < totalShards) return { ok: false, error: `Нужно ${totalShards} шардов.` };
+        if (s.character.abyssDust < totalDust) return { ok: false, error: `Нужно ${totalDust} пыли.` };
+        const newMats = { ...s.materials, [kind]: (s.materials[kind] ?? 0) + qty };
+        set({
+          character: {
+            ...s.character,
+            gold: s.character.gold - totalGold,
+            shards: s.character.shards - totalShards,
+            abyssDust: s.character.abyssDust - totalDust,
+          },
+          materials: newMats,
+          toasts: [...s.toasts, { id: genId("tst"), text: `Куплено ${qty}x «${def.ru}».`, tone: "good" as const }],
+        });
+        return { ok: true };
+      },
+      openLootbox: (kind, qty = 1) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const owned = s.materials[kind] ?? 0;
+        if (owned < qty) return { ok: false, error: `Нет сундуков (нужно ${qty}, есть ${owned}).` };
+        let lbState = s.lootbox;
+        const rolls: { kind: LootboxKind; rarities: import("@ton-abyss/shared").RarityId[]; pity: boolean }[] = [];
+        const newItems: ItemInstance[] = [];
+        const seed = seedFrom(`lb_${kind}_${Date.now()}_${Math.random()}`);
+        const rng = new RNG(seed);
+        const charLevel = s.character.level;
+        for (let i = 0; i < qty; i++) {
+          const result = rollLootbox(kind, lbState, () => rng.next());
+          lbState = result.updatedState;
+          rolls.push({ kind, rarities: result.rarities, pity: result.pityTriggered });
+          for (const r of result.rarities) {
+            const pool = Object.values(ITEMS).filter((it) => it.slot !== "consumable" && it.slot !== "material" && (it.levelReq ?? 1) <= charLevel + 5);
+            if (pool.length === 0) continue;
+            const base = pool[Math.floor(rng.next() * pool.length)];
+            if (!base) continue;
+            const inst = createItemInstance(rng, base, { level: base.levelReq ?? charLevel, magicFindPct: 0, rarityOverride: { [r]: 1000 } as Partial<Record<import("@ton-abyss/shared").RarityId, number>> });
+            newItems.push(inst);
+          }
+        }
+        const newMats = { ...s.materials, [kind]: owned - qty };
+        const lastRoll = rolls[rolls.length - 1] ?? null;
+        set({
+          inventory: [...s.inventory, ...newItems],
+          materials: newMats,
+          lootbox: lbState,
+          lastLootboxRoll: lastRoll,
+          lootReveal: newItems,
+          toasts: [...s.toasts, { id: genId("tst"), text: `Открыто ${qty} сундука. Получено ${newItems.length} предметов.`, tone: "epic" as const }],
+        });
+        get().progressBpMission("bm_d_lootbox_1", qty);
+        get().progressBpMission("bm_w_lootbox_15", qty);
+        return { ok: true, rolls };
+      },
+
       pushToast: (t) => set((s) => ({ toasts: [...s.toasts, { ...t, id: genId("tst") }].slice(-6) })),
       dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 
@@ -2298,6 +2612,14 @@ export const useGame = create<GameState>()(
           clan: null,
           clanDailyContrib: { date: todayKey(), gold: 0, kills: 0, bounties: 0, bosses: 0 },
           clanWars: [],
+          clanBossActive: null,
+          clanBossHistory: [],
+          battlepass: { seasonId: CURRENT_SEASON.id, xp: 0, level: 0, premium: false, claimedFree: [], claimedPremium: [] },
+          bpMissions: {},
+          bpMissionsResetDaily: 0,
+          bpMissionsResetWeekly: 0,
+          lootbox: defaultLootboxState(),
+          lastLootboxRoll: null,
           skillAllocation: {},
           skillPoints: 0,
           paragon: { offense: 0, defense: 0, utility: 0, treasure: 0 },
@@ -2323,7 +2645,7 @@ export const useGame = create<GameState>()(
     }),
     {
       name: "ton-abyss-save",
-      version: 4,
+      version: 5,
       partialize: (s) => ({
         character: s.character,
         inventory: s.inventory,
@@ -2369,6 +2691,13 @@ export const useGame = create<GameState>()(
         clan: s.clan,
         clanDailyContrib: s.clanDailyContrib,
         clanWars: s.clanWars,
+        clanBossActive: s.clanBossActive,
+        clanBossHistory: s.clanBossHistory,
+        battlepass: s.battlepass,
+        bpMissions: s.bpMissions,
+        bpMissionsResetDaily: s.bpMissionsResetDaily,
+        bpMissionsResetWeekly: s.bpMissionsResetWeekly,
+        lootbox: s.lootbox,
         screen: s.character ? (s.screen === "active_combat" ? "home" : s.screen) : "splash",
       }),
       migrate: (persisted: any, version: number) => {
@@ -2396,6 +2725,14 @@ export const useGame = create<GameState>()(
           clan: base.clan ?? null,
           clanDailyContrib: base.clanDailyContrib ?? { date: todayKey(), gold: 0, kills: 0, bounties: 0, bosses: 0 },
           clanWars: base.clanWars ?? [],
+          clanBossActive: base.clanBossActive ?? null,
+          clanBossHistory: base.clanBossHistory ?? [],
+          battlepass: base.battlepass ?? { seasonId: CURRENT_SEASON.id, xp: 0, level: 0, premium: false, claimedFree: [], claimedPremium: [] },
+          bpMissions: base.bpMissions ?? {},
+          bpMissionsResetDaily: base.bpMissionsResetDaily ?? 0,
+          bpMissionsResetWeekly: base.bpMissionsResetWeekly ?? 0,
+          lootbox: base.lootbox ?? defaultLootboxState(),
+          lastLootboxRoll: base.lastLootboxRoll ?? null,
           // ensure legacy fields exist
           inventory: base.inventory ?? [],
           equipped: base.equipped ?? {},
