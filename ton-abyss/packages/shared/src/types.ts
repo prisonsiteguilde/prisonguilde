@@ -79,6 +79,10 @@ export type ItemSlot =
   | "feet"
   | "ring"
   | "amulet"
+  | "neck"
+  | "waist"
+  | "back"
+  | "trinket"
   | "relic"
   | "consumable"
   | "material"
@@ -107,7 +111,7 @@ export interface BaseItem {
   flavor?: string;
   icon?: string;
   twoHanded?: boolean;
-  weaponKind?: "sword" | "axe" | "mace" | "dagger" | "bow" | "staff" | "wand" | "tome" | "claw";
+  weaponKind?: "sword" | "axe" | "mace" | "dagger" | "bow" | "staff" | "wand" | "tome" | "claw" | "greatsword" | "hammer" | "spear";
   armorKind?: "light" | "medium" | "heavy" | "cloth";
   tags?: string[];
 }

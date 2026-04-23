@@ -13,7 +13,6 @@ const CLASS_ICONS: Record<ClassId, string> = {
 
 export function ClassSelect() {
   const [pick, setPick] = useState<ClassId | null>(null);
-  const [hardcore, setHardcore] = useState(true);
   const createCharacter = useGame((s) => s.createCharacter);
   const setScreen = useGame((s) => s.setScreen);
 
@@ -59,23 +58,20 @@ export function ClassSelect() {
         })}
       </div>
 
-      <label className="card p-4 flex items-center justify-between mb-4 cursor-pointer">
-        <div>
-          <div className="font-semibold">Хардкорный режим</div>
-          <div className="text-xs text-white/60">Смерть = потеря 25% золота и XP. Бездна не прощает.</div>
+      <div className="card p-4 mb-4 border-red-500/40 bg-gradient-to-r from-red-950/40 to-transparent">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">💀</span>
+          <span className="font-semibold text-red-300">Хардкорный режим всегда активен</span>
         </div>
-        <input
-          type="checkbox"
-          checked={hardcore}
-          onChange={(e) => setHardcore(e.target.checked)}
-          className="w-5 h-5 accent-red-500"
-        />
-      </label>
+        <div className="text-xs text-white/60 mt-1">
+          Смерть = −25% золота и XP. +15 апгрейд с шансом уничтожения. 75% потолок резистов. Бездна не прощает.
+        </div>
+      </div>
 
       <button
         className="btn-primary h-14 text-lg"
         disabled={!pick}
-        onClick={() => pick && createCharacter(pick, hardcore)}
+        onClick={() => pick && createCharacter(pick, true)}
       >
         Войти в Бездну
       </button>

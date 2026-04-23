@@ -24,3 +24,6 @@ export * from "./relics.js";
 export * from "./mounts.js";
 export * from "./enchants.js";
 export * from "./events.js";
+export * from "./clans.js";
+// Side-effect import: registers v3 expansion content.
+import "./expansion-v3.js";

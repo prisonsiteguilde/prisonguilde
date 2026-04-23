@@ -6,29 +6,75 @@ import { TonConnectButton, useTonWallet } from "@tonconnect/ui-react";
 
 import type { Screen } from "../store.js";
 
-const TILES: { id: Screen; label: string; icon: string; hint: string; accent: string }[] = [
-  { id: "world_map", label: "Карта", icon: "🗺️", hint: "3 акта", accent: "#60a5fa" },
-  { id: "dungeon_list", label: "Данжи", icon: "🗝️", hint: "Боссы и лут", accent: "#f43f5e" },
-  { id: "tower", label: "Башня", icon: "🗼", hint: "∞ этажей", accent: "#e879f9" },
-  { id: "arena", label: "Арена", icon: "⚔️", hint: "PvP ELO", accent: "#fb7185" },
-  { id: "bounties", label: "Баунти", icon: "📋", hint: "Дневные цели", accent: "#84cc16" },
-  { id: "hunts", label: "Охота", icon: "🏹", hint: "Редкие цели", accent: "#22d3ee" },
-  { id: "expeditions", label: "Экспедиции", icon: "🐾", hint: "Питомцы в бой", accent: "#fbbf24" },
-  { id: "factions", label: "Фракции", icon: "⚜️", hint: "Репутация", accent: "#f0abfc" },
-  { id: "inventory", label: "Инвентарь", icon: "🎒", hint: "Экипировка", accent: "#a3e635" },
-  { id: "stash", label: "Стэш", icon: "🗃️", hint: "Сундук", accent: "#94a3b8" },
-  { id: "skill_tree", label: "Навыки", icon: "🌳", hint: "Дерево умений", accent: "#14f1c1" },
-  { id: "sockets", label: "Гнёзда", icon: "💎", hint: "Гемы, перековка", accent: "#c084fc" },
-  { id: "crafting", label: "Кузня", icon: "⚒️", hint: "Крафт, усиление", accent: "#f59e0b" },
-  { id: "enchanting", label: "Чарование", icon: "✨", hint: "Эссенции, рунворды", accent: "#f472b6" },
-  { id: "pets", label: "Питомцы", icon: "🐉", hint: "Эволюция", accent: "#fb7185" },
-  { id: "mounts", label: "Скакуны", icon: "🐎", hint: "Транспорт", accent: "#fde047" },
-  { id: "relics", label: "Реликвии", icon: "🏺", hint: "Перман. бонусы", accent: "#d6bcfa" },
-  { id: "quests", label: "Задания", icon: "📜", hint: "Кампания", accent: "#84cc16" },
-  { id: "achievements", label: "Ачивки", icon: "🏆", hint: "Титулы, AP", accent: "#fcd34d" },
-  { id: "leaderboard", label: "Топ", icon: "👑", hint: "Мировой рейтинг", accent: "#fde047" },
-  { id: "shop", label: "Лавка", icon: "💼", hint: "Продать лут", accent: "#94a3b8" },
-  { id: "codex", label: "Кодекс", icon: "📖", hint: "Гид по миру", accent: "#a78bfa" },
+type Tile = { id: Screen; label: string; icon: string; hint: string; accent: string };
+type MenuGroup = { key: string; title: string; icon: string; tiles: Tile[] };
+
+const MENU: MenuGroup[] = [
+  {
+    key: "combat",
+    title: "Бой",
+    icon: "⚔️",
+    tiles: [
+      { id: "world_map", label: "Карта", icon: "🗺️", hint: "3 акта", accent: "#60a5fa" },
+      { id: "dungeon_list", label: "Данжи", icon: "🗝️", hint: "Боссы и лут", accent: "#f43f5e" },
+      { id: "tower", label: "Башня", icon: "🗼", hint: "∞ этажей", accent: "#e879f9" },
+      { id: "arena", label: "Арена", icon: "🏟️", hint: "PvP ELO", accent: "#fb7185" },
+      { id: "hunts", label: "Охота", icon: "🏹", hint: "Редкие цели", accent: "#22d3ee" },
+    ],
+  },
+  {
+    key: "gear",
+    title: "Снаряжение",
+    icon: "🎒",
+    tiles: [
+      { id: "inventory", label: "Инвентарь", icon: "🎒", hint: "Экипировка", accent: "#a3e635" },
+      { id: "stash", label: "Стэш", icon: "🗃️", hint: "6 вкладок", accent: "#94a3b8" },
+      { id: "crafting", label: "Кузня", icon: "⚒️", hint: "Крафт, +15", accent: "#f59e0b" },
+      { id: "enchanting", label: "Чарование", icon: "✨", hint: "Эссенции, рунворды", accent: "#f472b6" },
+      { id: "sockets", label: "Гнёзда", icon: "💎", hint: "Гемы, перековка", accent: "#c084fc" },
+      { id: "skill_tree", label: "Навыки", icon: "🌳", hint: "Дерево умений", accent: "#14f1c1" },
+    ],
+  },
+  {
+    key: "companions",
+    title: "Соратники",
+    icon: "🐉",
+    tiles: [
+      { id: "pets", label: "Питомцы", icon: "🐉", hint: "Эволюция, слияние", accent: "#fb7185" },
+      { id: "expeditions", label: "Экспедиции", icon: "🐾", hint: "Авто-квесты", accent: "#fbbf24" },
+      { id: "mounts", label: "Скакуны", icon: "🐎", hint: "Транспорт", accent: "#fde047" },
+    ],
+  },
+  {
+    key: "quests",
+    title: "Задания",
+    icon: "📜",
+    tiles: [
+      { id: "quests", label: "Квесты", icon: "📜", hint: "Кампания", accent: "#84cc16" },
+      { id: "bounties", label: "Баунти", icon: "📋", hint: "Дневные цели", accent: "#a3e635" },
+      { id: "achievements", label: "Ачивки", icon: "🏆", hint: "Титулы, AP", accent: "#fcd34d" },
+    ],
+  },
+  {
+    key: "social",
+    title: "Социальное",
+    icon: "👥",
+    tiles: [
+      { id: "clan", label: "Клан", icon: "🏰", hint: "Союз, войны, банк", accent: "#f0abfc" },
+      { id: "factions", label: "Фракции", icon: "⚜️", hint: "Репутация", accent: "#c084fc" },
+      { id: "leaderboard", label: "Топ", icon: "👑", hint: "Мировой рейтинг", accent: "#fde047" },
+    ],
+  },
+  {
+    key: "world",
+    title: "Мир и услуги",
+    icon: "🌍",
+    tiles: [
+      { id: "relics", label: "Реликвии", icon: "🏺", hint: "Перман. бонусы", accent: "#d6bcfa" },
+      { id: "shop", label: "Лавка", icon: "💼", hint: "Продать/купить", accent: "#94a3b8" },
+      { id: "codex", label: "Кодекс", icon: "📖", hint: "Гид по миру", accent: "#a78bfa" },
+    ],
+  },
 ];
 
 export function Home() {
@@ -101,23 +147,36 @@ export function Home() {
         </div>
       </div>
 
-      {/* Action tiles */}
-      <div className="grid grid-cols-3 gap-3">
-        {TILES.map((t) => (
-          <motion.button
-            key={t.id}
-            whileTap={{ scale: 0.95 }}
-            whileHover={{ y: -2 }}
-            onClick={() => setScreen(t.id)}
-            className="card p-3 relative overflow-hidden text-left"
-          >
-            <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full blur-2xl opacity-40" style={{ background: t.accent }} />
-            <div className="text-3xl">{t.icon}</div>
-            <div className="mt-2 font-display text-lg tracking-wider text-white/90">{t.label}</div>
-            <div className="text-[11px] text-white/50">{t.hint}</div>
-          </motion.button>
-        ))}
-      </div>
+      {/* Menu by category */}
+      {MENU.map((group) => (
+        <div key={group.key} className="space-y-2">
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-lg">{group.icon}</span>
+            <h3 className="font-display text-lg tracking-wider text-white/80">{group.title}</h3>
+            <div className="flex-1 h-px bg-gradient-to-r from-white/15 to-transparent" />
+            <span className="text-[10px] text-white/40 uppercase tracking-widest">{group.tiles.length}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {group.tiles.map((t) => (
+              <motion.button
+                key={t.id}
+                whileTap={{ scale: 0.95 }}
+                whileHover={{ y: -2 }}
+                onClick={() => setScreen(t.id)}
+                className="card p-3 relative overflow-hidden text-left"
+              >
+                <div
+                  className="absolute -right-4 -bottom-4 w-20 h-20 rounded-full blur-2xl opacity-40"
+                  style={{ background: t.accent }}
+                />
+                <div className="text-2xl">{t.icon}</div>
+                <div className="mt-1.5 font-display text-[15px] tracking-wide text-white/90 leading-tight">{t.label}</div>
+                <div className="text-[10px] text-white/50 leading-tight">{t.hint}</div>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      ))}
 
       {/* TON wallet */}
       <div className="card p-4">

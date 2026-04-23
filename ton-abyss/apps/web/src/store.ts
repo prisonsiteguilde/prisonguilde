@@ -68,6 +68,11 @@ import {
   ENCHANTS,
   WORLD_EVENTS,
   PETS,
+  CLAN_CONFIG,
+  CLAN_PERKS,
+  CLAN_RANKS,
+  NPC_CLANS,
+  clanWarReward,
 } from "@ton-abyss/content";
 
 export type Screen =
@@ -98,7 +103,8 @@ export type Screen =
   | "hunts"
   | "mounts"
   | "enchanting"
-  | "relics";
+  | "relics"
+  | "clan";
 
 export interface Toast {
   id: string;
@@ -204,6 +210,42 @@ export interface Loadout {
   equipped: Record<string, string | null>;
 }
 
+export interface ClanMember {
+  id: string;
+  name: string;
+  classId: string;
+  level: number;
+  rank: import("@ton-abyss/content").ClanRank;
+  contribTotal: number;
+  lastOnline: number;
+}
+
+export interface PlayerClan {
+  id: string;
+  name: string;
+  tag: string; // 3-4 char
+  banner: string;
+  level: number;
+  xp: number;
+  bankGold: number;
+  members: ClanMember[];
+  perksActive: string[]; // perk ids
+  motd: string;
+  createdAt: number;
+  myRank: import("@ton-abyss/content").ClanRank;
+  myContribTotal: number;
+}
+
+export interface ClanWarRecord {
+  id: string;
+  opponentId: string;
+  opponentName: string;
+  won: boolean;
+  rewardGold: number;
+  rewardXp: number;
+  at: number;
+}
+
 export interface GameState {
   screen: Screen;
   character: Character | null;
@@ -234,6 +276,11 @@ export interface GameState {
   activeEvent: { id: string; endsAt: number } | null;
   prestigeCount: number;
   craftingStats: { itemsCrafted: number; itemsSalvaged: number; itemsUpgraded: number };
+
+  // clan
+  clan: PlayerClan | null;
+  clanDailyContrib: { date: string; gold: number; kills: number; bounties: number; bosses: number };
+  clanWars: ClanWarRecord[];
 
   // expansion state
   skillAllocation: SkillAllocation;
@@ -303,6 +350,17 @@ export interface GameState {
   prestigeAscend: () => { ok: boolean; error?: string };
   salvageMany: (uids: string[]) => { materials: number; dust: number; shards: number };
 
+  // clan actions
+  createClan: (name: string, tag: string, banner: string) => { ok: boolean; error?: string };
+  joinClanNpc: (npcId: string) => { ok: boolean; error?: string };
+  leaveClan: () => void;
+  contributeGoldToClan: (amount: number) => { ok: boolean; error?: string };
+  withdrawFromClanBank: (amount: number) => { ok: boolean; error?: string };
+  setClanMotd: (motd: string) => void;
+  activateClanPerk: (perkId: string) => { ok: boolean; error?: string };
+  deactivateClanPerk: (perkId: string) => void;
+  declareClanWar: (opponentId: string) => { ok: boolean; won: boolean; rewardGold: number; rewardXp: number; error?: string };
+
   // Combat
   beginDungeon: (dungeonId: string) => void;
   combatAction: (kind: "basic" | "ability" | "consumable" | "flee", payload?: { abilityId?: string; itemUid?: string }) => void;
@@ -347,6 +405,11 @@ export interface GameState {
 
   // internal
   _finalizeDungeon: (combat: ActiveCombatState) => void;
+}
+
+function todayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function genId(prefix: string): string {
@@ -577,6 +640,9 @@ export const useGame = create<GameState>()(
       activeEvent: null,
       prestigeCount: 0,
       craftingStats: { itemsCrafted: 0, itemsSalvaged: 0, itemsUpgraded: 0 },
+      clan: null,
+      clanDailyContrib: { date: todayKey(), gold: 0, kills: 0, bounties: 0, bosses: 0 },
+      clanWars: [],
       skillAllocation: {},
       skillPoints: 0,
       paragon: { offense: 0, defense: 0, utility: 0, treasure: 0 },
@@ -664,6 +730,9 @@ export const useGame = create<GameState>()(
           activeEvent: { id: "evt_harvest", endsAt: Date.now() + 24 * 60 * 60 * 1000 },
           prestigeCount: 0,
           craftingStats: { itemsCrafted: 0, itemsSalvaged: 0, itemsUpgraded: 0 },
+          clan: null,
+          clanDailyContrib: { date: todayKey(), gold: 0, kills: 0, bounties: 0, bosses: 0 },
+          clanWars: [],
           screen: "home",
         });
       },
@@ -1995,6 +2064,205 @@ export const useGame = create<GameState>()(
         return { materials: mats, dust, shards };
       },
 
+      // ================ CLAN ================
+      createClan: (name, tag, banner) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        if (s.clan) return { ok: false, error: "Вы уже в клане." };
+        if (s.character.gold < CLAN_CONFIG.creationCost.gold) {
+          return { ok: false, error: `Нужно ${CLAN_CONFIG.creationCost.gold} золота.` };
+        }
+        if (!name.trim() || name.length < 3 || name.length > 24) return { ok: false, error: "Имя 3–24 символов." };
+        if (!tag.trim() || tag.length < 2 || tag.length > 5) return { ok: false, error: "Тег 2–5 символов." };
+        const clan: PlayerClan = {
+          id: genId("clan"),
+          name: name.trim(),
+          tag: tag.trim().toUpperCase(),
+          banner: banner || "🏰",
+          level: 1,
+          xp: 0,
+          bankGold: 0,
+          members: [
+            { id: s.character.id, name: s.character.classId, classId: s.character.classId, level: s.character.level, rank: "leader", contribTotal: 0, lastOnline: Date.now() },
+          ],
+          perksActive: [],
+          motd: "Добро пожаловать в клан.",
+          createdAt: Date.now(),
+          myRank: "leader",
+          myContribTotal: 0,
+        };
+        set({
+          character: { ...s.character, gold: s.character.gold - CLAN_CONFIG.creationCost.gold },
+          clan,
+          toasts: [...s.toasts, { id: genId("tst"), text: `Клан «${clan.name}» [${clan.tag}] создан.`, tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+
+      joinClanNpc: (npcId) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        if (s.clan) return { ok: false, error: "Вы уже в клане." };
+        const npc = NPC_CLANS.find((c) => c.id === npcId);
+        if (!npc) return { ok: false, error: "Клан не найден." };
+        if (s.character.level < npc.level - 1) return { ok: false, error: `Нужен уровень ${npc.level - 1}.` };
+        // Generate plausible members
+        const genMembers = (count: number): ClanMember[] => {
+          const out: ClanMember[] = [
+            { id: s.character!.id, name: s.character!.classId, classId: s.character!.classId, level: s.character!.level, rank: "recruit", contribTotal: 0, lastOnline: Date.now() },
+          ];
+          const names = ["Игрок", "Боец", "Мастер", "Страж", "Убийца", "Страж", "Клинок", "Кудесник", "Тень", "Берсерк"];
+          const classes = ["warden", "runesmith", "voidcaller", "beastbound"];
+          for (let i = 1; i < count; i++) {
+            out.push({
+              id: `npc_${npcId}_${i}`,
+              name: `${names[i % names.length]}${i}`,
+              classId: classes[i % classes.length]!,
+              level: Math.max(1, npc.level + Math.floor(Math.random() * 6 - 2)),
+              rank: i === 1 ? "leader" : i <= 3 ? "officer" : i <= 6 ? "veteran" : "member",
+              contribTotal: Math.floor(Math.random() * 5000),
+              lastOnline: Date.now() - Math.floor(Math.random() * 86400_000 * 7),
+            });
+          }
+          return out;
+        };
+        const clan: PlayerClan = {
+          id: npc.id,
+          name: npc.name,
+          tag: npc.tag,
+          banner: npc.banner,
+          level: npc.level,
+          xp: CLAN_CONFIG.xpCurve[Math.min(npc.level, CLAN_CONFIG.xpCurve.length - 1)] ?? 0,
+          bankGold: npc.level * 5000,
+          members: genMembers(npc.memberCount),
+          perksActive: CLAN_PERKS.filter((p) => p.requiresClanLevel <= npc.level).slice(0, 3).map((p) => p.id),
+          motd: npc.flavor,
+          createdAt: Date.now() - 86400_000 * 30 * npc.level,
+          myRank: "recruit",
+          myContribTotal: 0,
+        };
+        set({
+          clan,
+          toasts: [...s.toasts, { id: genId("tst"), text: `Вступили в клан «${clan.name}» [${clan.tag}]`, tone: "good" as const }],
+        });
+        return { ok: true };
+      },
+
+      leaveClan: () => {
+        const s = get();
+        if (!s.clan) return;
+        set({
+          clan: null,
+          toasts: [...s.toasts, { id: genId("tst"), text: `Вы покинули клан «${s.clan.name}».`, tone: "info" as const }],
+        });
+      },
+
+      contributeGoldToClan: (amount) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        if (!s.clan) return { ok: false, error: "Вы не в клане." };
+        if (amount <= 0) return { ok: false, error: "Сумма неверна." };
+        if (s.character.gold < amount) return { ok: false, error: "Недостаточно золота." };
+        // Roll daily contrib limit
+        const today = todayKey();
+        const daily = s.clanDailyContrib.date === today ? s.clanDailyContrib : { date: today, gold: 0, kills: 0, bounties: 0, bosses: 0 };
+        const remain = Math.max(0, CLAN_CONFIG.dailyContribMax.gold - daily.gold);
+        if (remain <= 0) return { ok: false, error: "Дневной лимит взноса достигнут." };
+        const goldActual = Math.min(amount, remain * 100); // 1 contrib per 100g, cap in contrib terms
+        const contribGained = Math.floor(goldActual / 100);
+        const newXp = s.clan.xp + contribGained;
+        const levelCap = CLAN_CONFIG.maxLevel;
+        let newLevel = s.clan.level;
+        while (newLevel < levelCap && newXp >= (CLAN_CONFIG.xpCurve[newLevel] ?? Infinity)) newLevel++;
+        set({
+          character: { ...s.character, gold: s.character.gold - goldActual },
+          clan: { ...s.clan, bankGold: Math.min(CLAN_CONFIG.bankGoldCap, s.clan.bankGold + goldActual), xp: newXp, level: newLevel, myContribTotal: s.clan.myContribTotal + contribGained },
+          clanDailyContrib: { ...daily, gold: daily.gold + contribGained },
+          toasts: [
+            ...s.toasts,
+            { id: genId("tst"), text: `+${goldActual}g в казну, +${contribGained} вклад${newLevel > s.clan.level ? `. Клан достиг ур. ${newLevel}!` : "."}`, tone: (newLevel > s.clan.level ? "epic" : "good") as "epic" | "good" },
+          ],
+        });
+        return { ok: true };
+      },
+
+      withdrawFromClanBank: (amount) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        if (!s.clan) return { ok: false, error: "Вы не в клане." };
+        const rank = CLAN_RANKS[s.clan.myRank];
+        if (!rank.canWithdraw) return { ok: false, error: "У вас нет прав на снятие." };
+        if (amount <= 0) return { ok: false, error: "Сумма неверна." };
+        if (s.clan.bankGold < amount) return { ok: false, error: "В банке недостаточно." };
+        set({
+          character: { ...s.character, gold: s.character.gold + amount },
+          clan: { ...s.clan, bankGold: s.clan.bankGold - amount },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Снято ${amount}g из банка.`, tone: "good" as const }],
+        });
+        return { ok: true };
+      },
+
+      setClanMotd: (motd) => {
+        const s = get();
+        if (!s.clan) return;
+        const rank = CLAN_RANKS[s.clan.myRank];
+        if (!rank.canPromote) {
+          s.pushToast({ text: "Только лидер может менять MOTD.", tone: "bad" });
+          return;
+        }
+        set({ clan: { ...s.clan, motd: motd.slice(0, 200) } });
+      },
+
+      activateClanPerk: (perkId) => {
+        const s = get();
+        if (!s.clan) return { ok: false, error: "Вы не в клане." };
+        const perk = CLAN_PERKS.find((p) => p.id === perkId);
+        if (!perk) return { ok: false, error: "Перк не найден." };
+        if (s.clan.level < perk.requiresClanLevel) return { ok: false, error: `Нужен ур. клана ${perk.requiresClanLevel}.` };
+        if (s.clan.perksActive.includes(perkId)) return { ok: false, error: "Уже активен." };
+        if (s.clan.perksActive.length >= 4) return { ok: false, error: "Максимум 4 активных перка." };
+        set({ clan: { ...s.clan, perksActive: [...s.clan.perksActive, perkId] } });
+        return { ok: true };
+      },
+
+      deactivateClanPerk: (perkId) => {
+        const s = get();
+        if (!s.clan) return;
+        set({ clan: { ...s.clan, perksActive: s.clan.perksActive.filter((p) => p !== perkId) } });
+      },
+
+      declareClanWar: (opponentId) => {
+        const s = get();
+        if (!s.character) return { ok: false, won: false, rewardGold: 0, rewardXp: 0, error: "Нет персонажа." };
+        if (!s.clan) return { ok: false, won: false, rewardGold: 0, rewardXp: 0, error: "Вы не в клане." };
+        const rank = CLAN_RANKS[s.clan.myRank];
+        if (!rank.canStartWar) return { ok: false, won: false, rewardGold: 0, rewardXp: 0, error: "Только офицер/лидер." };
+        const opp = NPC_CLANS.find((c) => c.id === opponentId);
+        if (!opp) return { ok: false, won: false, rewardGold: 0, rewardXp: 0, error: "Оппонент не найден." };
+        const myPower = s.clan.level * 400 + s.clan.members.reduce((sum, m) => sum + m.level * 30, 0);
+        const oppPower = opp.power;
+        const won = myPower + Math.random() * 300 > oppPower;
+        const r = clanWarReward(opp.level, won);
+        const record: ClanWarRecord = { id: genId("cw"), opponentId: opp.id, opponentName: opp.name, won, rewardGold: r.gold, rewardXp: r.clanXp, at: Date.now() };
+        const newXp = s.clan.xp + r.clanXp;
+        let newLevel = s.clan.level;
+        while (newLevel < CLAN_CONFIG.maxLevel && newXp >= (CLAN_CONFIG.xpCurve[newLevel] ?? Infinity)) newLevel++;
+        set({
+          character: {
+            ...s.character,
+            gold: s.character.gold + Math.floor(r.gold * 0.3),
+            shards: s.character.shards + r.memberShards,
+          },
+          clan: { ...s.clan, bankGold: Math.min(CLAN_CONFIG.bankGoldCap, s.clan.bankGold + Math.floor(r.gold * 0.7)), xp: newXp, level: newLevel },
+          clanWars: [record, ...s.clanWars].slice(0, 30),
+          toasts: [
+            ...s.toasts,
+            { id: genId("tst"), text: won ? `Победа над «${opp.name}»! +${Math.floor(r.gold * 0.3)}g, +${r.memberShards} шардов, +${r.clanXp} опыта клана.` : `Поражение от «${opp.name}». +${Math.floor(r.gold * 0.3)}g утешительный.`, tone: (won ? "epic" : "bad") as "epic" | "bad" },
+          ],
+        });
+        return { ok: true, won, rewardGold: r.gold, rewardXp: r.clanXp };
+      },
+
       pushToast: (t) => set((s) => ({ toasts: [...s.toasts, { ...t, id: genId("tst") }].slice(-6) })),
       dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 
@@ -2027,6 +2295,9 @@ export const useGame = create<GameState>()(
           activeEvent: null,
           prestigeCount: 0,
           craftingStats: { itemsCrafted: 0, itemsSalvaged: 0, itemsUpgraded: 0 },
+          clan: null,
+          clanDailyContrib: { date: todayKey(), gold: 0, kills: 0, bounties: 0, bosses: 0 },
+          clanWars: [],
           skillAllocation: {},
           skillPoints: 0,
           paragon: { offense: 0, defense: 0, utility: 0, treasure: 0 },
@@ -2052,7 +2323,7 @@ export const useGame = create<GameState>()(
     }),
     {
       name: "ton-abyss-save",
-      version: 3,
+      version: 4,
       partialize: (s) => ({
         character: s.character,
         inventory: s.inventory,
@@ -2095,6 +2366,9 @@ export const useGame = create<GameState>()(
         activeEvent: s.activeEvent,
         prestigeCount: s.prestigeCount,
         craftingStats: s.craftingStats,
+        clan: s.clan,
+        clanDailyContrib: s.clanDailyContrib,
+        clanWars: s.clanWars,
         screen: s.character ? (s.screen === "active_combat" ? "home" : s.screen) : "splash",
       }),
       migrate: (persisted: any, version: number) => {
@@ -2119,6 +2393,9 @@ export const useGame = create<GameState>()(
           activeEvent: base.activeEvent ?? null,
           prestigeCount: base.prestigeCount ?? 0,
           craftingStats: base.craftingStats ?? { itemsCrafted: 0, itemsSalvaged: 0, itemsUpgraded: 0 },
+          clan: base.clan ?? null,
+          clanDailyContrib: base.clanDailyContrib ?? { date: todayKey(), gold: 0, kills: 0, bounties: 0, bosses: 0 },
+          clanWars: base.clanWars ?? [],
           // ensure legacy fields exist
           inventory: base.inventory ?? [],
           equipped: base.equipped ?? {},

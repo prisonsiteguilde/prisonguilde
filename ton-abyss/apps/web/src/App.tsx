@@ -28,6 +28,7 @@ import { Stash } from "./screens/Stash.js";
 import { Mounts } from "./screens/Mounts.js";
 import { Relics } from "./screens/Relics.js";
 import { Enchanting } from "./screens/Enchanting.js";
+import { Clan } from "./screens/Clan.js";
 import { Toasts } from "./components/Toasts.js";
 import { TopBar } from "./components/TopBar.js";
 import { LootReveal } from "./components/LootReveal.js";
@@ -84,6 +85,7 @@ export function App() {
             {screen === "mounts" && <Mounts />}
             {screen === "relics" && <Relics />}
             {screen === "enchanting" && <Enchanting />}
+            {screen === "clan" && <Clan />}
           </motion.div>
         </AnimatePresence>
       </div>

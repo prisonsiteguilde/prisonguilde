@@ -24,7 +24,7 @@ ton-abyss/
     └── GDD.md      Game Design Document
 ```
 
-## Быстрый старт
+## Быстрый старт (локально)
 
 ```bash
 corepack enable
@@ -32,14 +32,33 @@ pnpm install
 pnpm --filter @ton-abyss/shared build
 pnpm --filter @ton-abyss/content build
 
-# Фронт (demo-режим, без бэкенда):
-pnpm --filter @ton-abyss/web dev   # http://localhost:5173
+# Оба сервиса параллельно (API + Web):
+pnpm dev
 
-# Бэкенд (опционально):
-pnpm --filter @ton-abyss/api dev   # http://localhost:3030
+# Или по отдельности:
+pnpm dev:web   # http://localhost:5173
+pnpm dev:api   # http://localhost:3030
+
+# Health-check API:
+curl http://localhost:3030/health
 ```
 
-Клиент в MVP работает **полностью офлайн** на `localStorage` — чтобы preview-деплой не требовал поднятого сервера.
+Клиент работает **полностью офлайн** на `localStorage` — чтобы preview-деплой не требовал поднятого сервера. Сервер (Fastify + SQLite) опционален и используется только для auth-флоу/сохранений/PvP-снэпшотов.
+
+### Переменные окружения
+
+```bash
+# apps/api/.env
+TG_BOT_TOKEN=                # пусто в деве = unsigned-fallback (dev only!)
+PORT=3030
+HOST=0.0.0.0
+NODE_ENV=development
+
+# apps/web/.env
+VITE_API_URL=http://localhost:3030
+```
+
+В production всегда задавайте `TG_BOT_TOKEN` — без него auth НЕ валидируется.
 
 ## Сборка
 
