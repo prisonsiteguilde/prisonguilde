@@ -2,9 +2,9 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { useGame } from "../store.js";
 import { ARENA_OPPONENTS, arenaRankFor } from "@ton-abyss/content";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function Arena() {
-  const setScreen = useGame((s) => s.setScreen);
   const arena = useGame((s) => s.arena);
   const fightArena = useGame((s) => s.fightArena);
   const [lastResult, setLastResult] = useState<{ won: boolean; eloDelta: number; opp: string } | null>(null);
@@ -13,12 +13,7 @@ export function Arena() {
   const sorted = [...ARENA_OPPONENTS].sort((a, b) => Math.abs(a.elo - arena.elo) - Math.abs(b.elo - arena.elo));
 
   return (
-    <div className="px-4 py-4 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Арена</h2>
-        <span className="w-16" />
-      </div>
+    <ScreenLayout title="Арена" subtitle={`PvP • ${rank.name} • ELO ${arena.elo}`} accent="#fb7185">
 
       <div className="card p-4 border-rose-400/40">
         <div className="flex items-center justify-between">
@@ -77,7 +72,7 @@ export function Arena() {
           </div>
         ))}
       </div>
-    </div>
+    </ScreenLayout>
   );
 }
 

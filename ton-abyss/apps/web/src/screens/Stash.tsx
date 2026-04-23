@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { ITEMS } from "@ton-abyss/content";
 import type { ItemInstance, ItemSlot } from "@ton-abyss/shared";
+import { ScreenLayout } from "../components/ScreenLayout.js";
+import { EmptyState } from "../components/EmptyState.js";
 
 type TabId = "weapons" | "armor" | "trinkets" | "consumables" | "materials" | "other";
 
@@ -16,7 +18,6 @@ const TABS: { id: TabId; label: string; icon: string; slots: ItemSlot[] }[] = [
 ];
 
 export function Stash() {
-  const setScreen = useGame((s) => s.setScreen);
   const stash = useGame((s) => s.stash);
   const inventory = useGame((s) => s.inventory);
   const moveToStash = useGame((s) => s.moveToStash);
@@ -33,12 +34,7 @@ export function Stash() {
   });
 
   return (
-    <div className="px-4 py-4 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Стэш</h2>
-        <span className="w-16" />
-      </div>
+    <ScreenLayout title="Стэш" subtitle={`${stash.length} предм. в стерильном хранилище`} accent="#94a3b8">
 
       <div className="flex gap-1 overflow-x-auto">
         {TABS.map((t) => (
@@ -86,9 +82,12 @@ export function Stash() {
         })}
       </div>
 
-      <div className="text-[11px] text-white/40 text-center px-4">
+      {filtered.length === 0 && (
+        <EmptyState icon="chest" title="Пусто" hint="Стэш безлимитный — храните запасные сеты." />
+      )}
+      <div className="text-caption text-center px-4">
         Стэш безлимитный. Используйте для хранения запасных сетов и редких предметов.
       </div>
-    </div>
+    </ScreenLayout>
   );
 }

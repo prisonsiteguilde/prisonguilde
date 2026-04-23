@@ -4,6 +4,8 @@ import { useGame } from "../store.js";
 import { ITEMS } from "@ton-abyss/content";
 import type { ItemInstance, RarityId } from "@ton-abyss/shared";
 import { confirmDialog } from "../components/ConfirmDialog.js";
+import { ScreenLayout } from "../components/ScreenLayout.js";
+import { EmptyState } from "../components/EmptyState.js";
 
 const RARITY_RU: Record<RarityId, string> = {
   common: "обычный", uncommon: "необычный", rare: "редкий", epic: "эпический",
@@ -11,7 +13,6 @@ const RARITY_RU: Record<RarityId, string> = {
 };
 
 export function Market() {
-  const setScreen = useGame((s) => s.setScreen);
   const market = useGame((s) => s.market);
   const refresh = useGame((s) => s.marketRefresh);
   const buy = useGame((s) => s.marketBuy);
@@ -85,16 +86,21 @@ export function Market() {
   }, [inventory, stash, equipped, lockedItems]);
 
   return (
-    <div className="px-3 py-3 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Маркет</h2>
-        <button className="btn-ghost text-xs" onClick={refresh} title="Обновить">⟳</button>
-      </div>
-
-      <div className="card p-2 flex items-center gap-2 text-xs">
-        <div className="flex-1 text-white/60">Активных: <span className="text-amber-300 font-bold">{mine.length}/{market.maxActiveListings}</span></div>
-        <div className="text-amber-300 font-bold">{character?.gold ?? 0} g</div>
+    <ScreenLayout
+      title="Маркет"
+      subtitle={`Купля-продажа · комиссия 5%+10%`}
+      accent="#f59e0b"
+      action={<button className="btn-ghost text-xs px-2 py-1.5" onClick={refresh} aria-label="Обновить">⟳</button>}
+    >
+      <div className="card-elevated p-3 flex items-center gap-3">
+        <div className="flex-1">
+          <div className="text-micro">Мои активные лоты</div>
+          <div className="text-title text-amber-200">{mine.length} / {market.maxActiveListings}</div>
+        </div>
+        <div className="text-right">
+          <div className="text-micro">Баланс</div>
+          <div className="text-title text-amber-300 tabular-nums">{(character?.gold ?? 0).toLocaleString("ru-RU")} g</div>
+        </div>
       </div>
 
       <div className="flex gap-1 text-xs">
@@ -267,7 +273,7 @@ export function Market() {
 
       {tab === "history" && (
         <div className="space-y-1.5">
-          {market.history.length === 0 && <div className="text-white/45 text-center py-8 text-sm">История продаж пуста.</div>}
+          {market.history.length === 0 && <EmptyState icon="scroll" title="История пуста" hint="Ваши проданные лоты появятся здесь." />}
           {market.history.map((h) => (
             <div key={h.id} data-rarity={h.rarity as RarityId} className="card p-2 flex items-center gap-2 rarity-gradient-border">
               <div className="flex-1 min-w-0">
@@ -279,6 +285,6 @@ export function Market() {
           ))}
         </div>
       )}
-    </div>
+    </ScreenLayout>
   );
 }

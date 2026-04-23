@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useGame } from "../store.js";
 import { LOOTBOXES, type LootboxKind } from "@ton-abyss/shared";
 import { Icon } from "../components/Icon.js";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function Lootboxes() {
   const character = useGame((s) => s.character)!;
@@ -10,17 +11,13 @@ export function Lootboxes() {
   const lbState = useGame((s) => s.lootbox);
   const purchaseLootbox = useGame((s) => s.purchaseLootbox);
   const openLootbox = useGame((s) => s.openLootbox);
-  const setScreen = useGame((s) => s.setScreen);
   const pushToast = useGame((s) => s.pushToast);
   const [tab, setTab] = useState<"buy" | "open">("open");
 
   const kinds = Object.keys(LOOTBOXES) as LootboxKind[];
 
   return (
-    <div className="px-4 py-4 space-y-4 pb-24">
-      <div className="flex items-center gap-2">
-        <button onClick={() => setScreen("home")} className="btn-ghost">← Домой</button>
-      </div>
+    <ScreenLayout title="Сундуки Бездны" subtitle="4 типа · pity-система · хардкорный дроп" accent="#f59e0b">
 
       <div className="panel p-4 bg-gradient-to-br from-amber-900/30 to-slate-900/80 border border-amber-500/30">
         <div className="flex items-center justify-between">
@@ -120,7 +117,7 @@ export function Lootboxes() {
           );
         })}
       </div>
-    </div>
+    </ScreenLayout>
   );
 }
 

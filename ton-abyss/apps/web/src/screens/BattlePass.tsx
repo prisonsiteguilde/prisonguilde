@@ -4,6 +4,7 @@ import { useGame } from "../store.js";
 import { CURRENT_SEASON } from "@ton-abyss/content";
 import { DEFAULT_DAILY_MISSIONS, DEFAULT_WEEKLY_MISSIONS } from "@ton-abyss/shared";
 import { Icon } from "../components/Icon.js";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function BattlePass() {
   const bp = useGame((s) => s.battlepass);
@@ -12,7 +13,6 @@ export function BattlePass() {
   const purchaseBpPremium = useGame((s) => s.purchaseBpPremium);
   const refreshBpMissions = useGame((s) => s.refreshBpMissions);
   const claimBpMission = useGame((s) => s.claimBpMission);
-  const setScreen = useGame((s) => s.setScreen);
   const pushToast = useGame((s) => s.pushToast);
 
   useEffect(() => {
@@ -28,10 +28,7 @@ export function BattlePass() {
   const daysLeft = Math.max(0, Math.ceil((CURRENT_SEASON.endAt - Date.now()) / 86_400_000));
 
   return (
-    <div className="px-4 py-4 space-y-4 pb-24">
-      <div className="flex items-center gap-2">
-        <button onClick={() => setScreen("home")} className="btn-ghost">← Домой</button>
-      </div>
+    <ScreenLayout title="Боевой Пропуск" subtitle={`Сезон · до конца ${daysLeft} дн. · тир ${bp.level}/50`} accent="#c084fc">
 
       <div className="panel p-4 space-y-3 bg-gradient-to-br from-purple-900/40 to-slate-900/80 border border-purple-500/40">
         <div className="flex items-start justify-between gap-3">
@@ -169,7 +166,7 @@ export function BattlePass() {
           </div>
         </div>
       </div>
-    </div>
+    </ScreenLayout>
   );
 }
 

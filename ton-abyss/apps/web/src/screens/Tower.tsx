@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { TOWER_CONFIG, TOWER_BOSS_FLOORS, TOWER_MODIFIERS, towerBiomeForFloor, towerScaling } from "@ton-abyss/content";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function Tower() {
-  const setScreen = useGame((s) => s.setScreen);
   const tower = useGame((s) => s.tower);
   const enterTower = useGame((s) => s.enterTower);
   const towerNext = useGame((s) => s.towerNext);
@@ -17,12 +17,7 @@ export function Tower() {
   const activeModifiers = TOWER_MODIFIERS.filter((m) => m.minFloor <= Math.max(1, nextFloor));
 
   return (
-    <div className="px-4 py-4 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Башня Бездны</h2>
-        <span className="w-16" />
-      </div>
+    <ScreenLayout title="Башня Бездны" subtitle={`∞ этажей · текущий этаж: ${Math.max(1, nextFloor)}`} accent="#e879f9">
 
       <div className="card p-4 border-fuchsia-400/40">
         <div className="flex items-center justify-between">
@@ -88,7 +83,7 @@ export function Tower() {
           ))}
         </div>
       </div>
-    </div>
+    </ScreenLayout>
   );
 }
 

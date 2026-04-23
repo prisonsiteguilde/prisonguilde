@@ -2,9 +2,9 @@ import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { ECHO_RIFT_TIERS, ECHO_RIFT_PITY_INTERVAL } from "@ton-abyss/content";
 import { ICONS } from "../components/Icon.js";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function EchoRifts() {
-  const setScreen = useGame((s) => s.setScreen);
   const echoRifts = useGame((s) => s.echoRifts);
   const character = useGame((s) => s.character);
   const runEchoRift = useGame((s) => s.runEchoRift);
@@ -13,12 +13,7 @@ export function EchoRifts() {
   if (!character) return null;
 
   return (
-    <div className="px-4 py-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Эхо-Рифты</h2>
-        <span className="w-16" />
-      </div>
+    <ScreenLayout title="Эхо-Рифты" subtitle={`Эндгейм · лучший тир ${echoRifts.highestTier} · pity ${echoRifts.pityCounter}/${ECHO_RIFT_PITY_INTERVAL}`} accent="#e879f9">
 
       <div className="card p-4 bg-gradient-to-br from-fuchsia-950/40 to-slate-900/40 border-fuchsia-500/30">
         <div className="flex items-center gap-3">
@@ -83,6 +78,6 @@ export function EchoRifts() {
         <br />
         Чем выше тир — тем сложнее враги и щедрее награды.
       </div>
-    </div>
+    </ScreenLayout>
   );
 }

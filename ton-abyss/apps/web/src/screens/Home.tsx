@@ -15,8 +15,6 @@ const MENU: MenuGroup[] = [
   {
     key: "combat", title: "Бой", icon: "skull", tint: "#f43f5e",
     tiles: [
-      { id: "world_map",   label: "Карта",   icon: "map",      hint: "3 акта",       accent: "#60a5fa" },
-      { id: "dungeon_list",label: "Данжи",   icon: "dungeons", hint: "Боссы и лут",  accent: "#f43f5e" },
       { id: "tower",       label: "Башня",   icon: "tower",    hint: "∞ этажей",     accent: "#e879f9" },
       { id: "arena",       label: "Арена",   icon: "arena",    hint: "PvP ELO",      accent: "#fb7185" },
       { id: "hunts",       label: "Охота",   icon: "hunt",     hint: "Редкие цели",  accent: "#22d3ee" },
@@ -109,8 +107,47 @@ export function Home() {
   const primary: StatId[] = ["strength", "agility", "intellect", "vitality", "spirit", "luck"];
 
   return (
-    <div className="px-4 py-4 space-y-5 pb-24">
+    <div className="px-4 pt-3 pb-24 section-gap-lg">
       <DailyRewardsBanner />
+      {/* Quick-action bar */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => setScreen("world_map")}
+          className="card-elevated relative overflow-hidden p-4 text-left group"
+          style={{ minHeight: 82 }}
+        >
+          <div className="absolute -right-4 -bottom-6 w-28 h-28 rounded-full blur-2xl opacity-35" style={{ background: "#60a5fa" }} />
+          <div className="flex items-center gap-3 relative">
+            <div className="w-11 h-11 rounded-xl grid place-items-center border" style={{ color: "#60a5fa", background: "linear-gradient(135deg,#60a5fa26,transparent)", borderColor: "#60a5fa55" }}>
+              <ICONS.map size={22} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-title text-white/95">Карта</div>
+              <div className="text-caption">Акты, биомы</div>
+            </div>
+          </div>
+        </motion.button>
+
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => setScreen("dungeon_list")}
+          className="card-elevated relative overflow-hidden p-4 text-left group"
+          style={{ minHeight: 82 }}
+        >
+          <div className="absolute -right-4 -bottom-6 w-28 h-28 rounded-full blur-2xl opacity-35" style={{ background: "#f43f5e" }} />
+          <div className="flex items-center gap-3 relative">
+            <div className="w-11 h-11 rounded-xl grid place-items-center border" style={{ color: "#f43f5e", background: "linear-gradient(135deg,#f43f5e26,transparent)", borderColor: "#f43f5e55" }}>
+              <ICONS.dungeons size={22} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-title text-white/95">Данжи</div>
+              <div className="text-caption">Боссы и лут</div>
+            </div>
+          </div>
+        </motion.button>
+      </div>
+
       {/* Hero header — class portrait + vitals */}
       <div className="hero-card">
         <div className="flex items-start gap-4">
@@ -214,36 +251,36 @@ export function Home() {
                 {group.tiles.length}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               {group.tiles.map((t, ti) => {
                 const TileIcon = ICONS[t.icon];
                 return (
                   <motion.button
                     key={t.id}
-                    whileTap={{ scale: 0.95 }}
-                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    whileHover={{ y: -1 }}
                     onClick={() => setScreen(t.id)}
-                    className="card card-hover p-3 relative overflow-hidden text-left min-h-[98px]"
+                    className="card-elevated p-3 relative overflow-hidden text-left flex items-center gap-3"
                     style={{ animation: `tile-in 0.4s ease-out ${(gi * 4 + ti) * 30}ms both` }}
                   >
                     <div
-                      className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full blur-2xl opacity-40 pointer-events-none"
+                      className="absolute -right-4 -bottom-4 w-20 h-20 rounded-full blur-2xl opacity-30 pointer-events-none"
                       style={{ background: t.accent }}
                     />
                     <div
-                      className="w-9 h-9 rounded-xl grid place-items-center border"
+                      className="shrink-0 w-10 h-10 rounded-xl grid place-items-center border relative z-10"
                       style={{
                         color: t.accent,
-                        background: `linear-gradient(135deg, ${t.accent}22, transparent)`,
-                        borderColor: `${t.accent}44`,
+                        background: `linear-gradient(135deg, ${t.accent}26, transparent)`,
+                        borderColor: `${t.accent}55`,
                       }}
                     >
-                      <TileIcon size={18} />
+                      <TileIcon size={20} />
                     </div>
-                    <div className="mt-2 font-display text-[14px] tracking-wide text-white/95 leading-tight">
-                      {t.label}
+                    <div className="flex-1 min-w-0 relative z-10">
+                      <div className="text-title text-white/95 truncate">{t.label}</div>
+                      <div className="text-caption truncate">{t.hint}</div>
                     </div>
-                    <div className="text-[10px] text-white/50 leading-tight mt-0.5">{t.hint}</div>
                   </motion.button>
                 );
               })}

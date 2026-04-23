@@ -6,6 +6,8 @@ import type { ItemInstance, RarityId } from "@ton-abyss/shared";
 import { RARITY_COLOR } from "@ton-abyss/shared";
 import { ItemTile } from "../components/ItemTile.js";
 import { confirmDialog } from "../components/ConfirmDialog.js";
+import { EmptyState } from "../components/EmptyState.js";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 const SLOT_LABEL: Record<string, string> = {
   weapon: "Оружие",
@@ -27,12 +29,15 @@ export function Inventory() {
   const equipped = useGame((s) => s.equipped);
   const equipItem = useGame((s) => s.equipItem);
   const unequip = useGame((s) => s.unequip);
-  const setScreen = useGame((s) => s.setScreen);
   const [filter, setFilter] = useState<"all" | "gear" | "consumables" | "materials">("all");
   const [rarityFilter, setRarityFilter] = useState<RarityId | "all">("all");
   const [sortBy, setSortBy] = useState<"rarity" | "level" | "name">("rarity");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<ItemInstance | null>(null);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const salvage = useGame((s) => s.salvage);
+  const lockedItems = useGame((s) => s.lockedItems);
 
   const equippedSet = useMemo(
     () => new Set(Object.values(equipped).filter((v): v is string => !!v)),
@@ -61,12 +66,7 @@ export function Inventory() {
   }, [inv, equippedSet, filter, rarityFilter, sortBy, search]);
 
   return (
-    <div className="px-4 py-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Инвентарь</h2>
-        <span className="w-16" />
-      </div>
+    <ScreenLayout title="Инвентарь" subtitle={`${inv.length} предм. · ${Object.values(equipped).filter(Boolean).length} экипировано`} accent="#10b981">
 
       {/* Paper doll */}
       <div className="card p-4">
@@ -151,13 +151,78 @@ export function Inventory() {
         </div>
       </div>
 
+      {/* Bulk-mode toolbar */}
+      <div className="flex items-center gap-2">
+        <button
+          className={`seg-item px-3 ${bulkMode ? "active" : ""}`}
+          onClick={() => { setBulkMode((v) => !v); if (bulkMode) setBulkSelected(new Set()); }}
+        >
+          {bulkMode ? `✓ Выбрано ${bulkSelected.size}` : "Выбрать несколько"}
+        </button>
+        {bulkMode && bulkSelected.size > 0 && (
+          <>
+            <button
+              className="btn-danger btn-sm"
+              onClick={async () => {
+                const ok = await confirmDialog({
+                  title: `Распылить ${bulkSelected.size} предм.?`,
+                  message: "Получите материалы и эссенции качества. Заблокированные будут пропущены.",
+                  confirmText: "♻ Распылить всё",
+                  tone: "warning",
+                });
+                if (ok) {
+                  const uids = Array.from(bulkSelected).filter((u) => !lockedItems.includes(u));
+                  if (uids.length > 0) salvage(uids);
+                  setBulkSelected(new Set());
+                  setBulkMode(false);
+                }
+              }}
+            >
+              ♻ Распылить ({bulkSelected.size})
+            </button>
+            <button className="btn-ghost btn-sm" onClick={() => setBulkSelected(new Set())}>Сбросить</button>
+          </>
+        )}
+      </div>
+
       {/* Grid */}
       <div className="grid grid-cols-4 gap-2">
-        {items.map((it) => (
-          <ItemTile key={it.uid} item={it} onClick={() => setSelected(it)} />
-        ))}
+        {items.map((it) => {
+          const isSel = bulkSelected.has(it.uid);
+          return (
+            <div key={it.uid} className="relative">
+              <ItemTile
+                item={it}
+                onClick={() => {
+                  if (bulkMode) {
+                    setBulkSelected((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(it.uid)) next.delete(it.uid);
+                      else next.add(it.uid);
+                      return next;
+                    });
+                  } else {
+                    setSelected(it);
+                  }
+                }}
+              />
+              {bulkMode && (
+                <div
+                  className={`absolute top-1 right-1 w-5 h-5 rounded-md border-2 grid place-items-center text-[10px] font-bold pointer-events-none ${isSel ? "bg-emerald-500 border-emerald-300 text-black" : "bg-black/50 border-white/40 text-white/60"}`}
+                >
+                  {isSel ? "✓" : ""}
+                </div>
+              )}
+              {lockedItems.includes(it.uid) && (
+                <div className="absolute top-1 left-1 text-amber-300 text-[10px] pointer-events-none">🔒</div>
+              )}
+            </div>
+          );
+        })}
         {items.length === 0 && (
-          <div className="col-span-4 text-center text-white/40 py-10">Ничего нет. Войдите в данж!</div>
+          <div className="col-span-4">
+            <EmptyState icon="chest" title="Инвентарь пуст" hint="Пройдите данж или откройте сундук." />
+          </div>
         )}
       </div>
 
@@ -184,7 +249,7 @@ export function Inventory() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </ScreenLayout>
   );
 }
 

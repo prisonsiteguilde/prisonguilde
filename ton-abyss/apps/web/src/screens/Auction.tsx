@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useGame } from "../store.js";
 import { ITEMS } from "@ton-abyss/content";
 import type { ItemInstance, RarityId } from "@ton-abyss/shared";
+import { ScreenLayout } from "../components/ScreenLayout.js";
+import { EmptyState } from "../components/EmptyState.js";
 
 const RARITY_RU: Record<RarityId, string> = {
   common: "обычный", uncommon: "необычный", rare: "редкий", epic: "эпический",
@@ -20,7 +22,7 @@ function fmtRemaining(ms: number): string {
 }
 
 export function Auction() {
-  const setScreen = useGame((s) => s.setScreen);
+
   const auction = useGame((s) => s.auction);
   const refresh = useGame((s) => s.auctionRefresh);
   const bid = useGame((s) => s.auctionBid);
@@ -78,16 +80,21 @@ export function Auction() {
   }, [inventory, stash, equipped, lockedItems]);
 
   return (
-    <div className="px-3 py-3 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Аукцион</h2>
-        <button className="btn-ghost text-xs" onClick={refresh}>⟳</button>
-      </div>
-
-      <div className="card p-2 flex items-center gap-2 text-xs">
-        <div className="flex-1 text-white/60">Активных лотов: <span className="text-fuchsia-300 font-bold">{auction.lots.length}</span></div>
-        <div className="text-amber-300 font-bold">{character?.gold ?? 0} g</div>
+    <ScreenLayout
+      title="Аукцион"
+      subtitle="Ставки · anti-snipe · комиссия 8%"
+      accent="#d946ef"
+      action={<button className="btn-ghost text-xs px-2 py-1.5" onClick={refresh} aria-label="Обновить">⟳</button>}
+    >
+      <div className="card-elevated p-3 flex items-center gap-3">
+        <div className="flex-1">
+          <div className="text-micro">Активных лотов</div>
+          <div className="text-title text-fuchsia-300">{auction.lots.length}</div>
+        </div>
+        <div className="text-right">
+          <div className="text-micro">Баланс</div>
+          <div className="text-title text-amber-300 tabular-nums">{(character?.gold ?? 0).toLocaleString("ru-RU")} g</div>
+        </div>
       </div>
 
       <div className="flex gap-1 text-xs">
@@ -104,7 +111,7 @@ export function Auction() {
 
       {tab === "browse" && (
         <div className="space-y-2">
-          {browse.length === 0 && <div className="text-white/45 text-center py-8 text-sm">Лотов нет.</div>}
+          {browse.length === 0 && <EmptyState icon="market" title="Лотов нет" hint="Зайдите позже или выставьте свой лот." />}
           {browse.map((lot) => {
             const base = ITEMS[lot.item.baseId];
             if (!base) return null;
@@ -270,6 +277,6 @@ export function Auction() {
           ))}
         </div>
       )}
-    </div>
+    </ScreenLayout>
   );
 }

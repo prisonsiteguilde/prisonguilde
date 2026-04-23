@@ -3,26 +3,73 @@ import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { ITEMS, MATERIALS, RECIPES } from "@ton-abyss/content";
 import { UPGRADE_TABLE, RARITY_COLOR, SALVAGE_YIELD } from "@ton-abyss/shared";
+import { ScreenLayout } from "../components/ScreenLayout.js";
+
+// Crafting level derived from accumulated crafting stats
+function computeCraftingLevel(stats: { itemsCrafted: number; itemsSalvaged: number; itemsUpgraded: number }): { level: number; xp: number; xpNeed: number; totalXp: number } {
+  const total = stats.itemsCrafted * 15 + stats.itemsSalvaged * 4 + stats.itemsUpgraded * 10;
+  // XP per level: 120, 240, 380, 540, 720, 920, 1140, 1380, 1640, 1920… + N*40
+  let remaining = total;
+  let level = 1;
+  let xpNeed = 120;
+  while (remaining >= xpNeed && level < 50) {
+    remaining -= xpNeed;
+    level += 1;
+    xpNeed = 120 + (level - 1) * 40 + (level - 1) * (level - 2) * 10;
+  }
+  return { level, xp: remaining, xpNeed, totalXp: total };
+}
 
 export function Crafting() {
-  const setScreen = useGame((s) => s.setScreen);
+  const craftingStats = useGame((s) => s.craftingStats);
   const [tab, setTab] = useState<"craft" | "upgrade" | "salvage" | "deep">("craft");
+  const craftLvl = computeCraftingLevel(craftingStats);
 
   return (
-    <div className="px-4 py-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Кузня</h2>
-        <span className="w-16" />
+    <ScreenLayout title="Кузня" subtitle={`Крафт, усиление, распыление, алхимия`} accent="#f59e0b">
+      {/* Crafting level header */}
+      <div className="card-elevated p-4">
+        <div className="flex items-center gap-3">
+          <div className="w-14 h-14 rounded-xl grid place-items-center border"
+            style={{ color: "#f59e0b", background: "linear-gradient(135deg,#f59e0b26,transparent)", borderColor: "#f59e0b55" }}>
+            <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M7 4h10l-1 8H8z" /><path d="M9 12v6M15 12v6M6 20h12" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-baseline justify-between">
+              <div className="text-title text-amber-200">Уровень кузнеца</div>
+              <div className="text-display text-amber-300">{craftLvl.level}</div>
+            </div>
+            <div className="mt-1.5 h-2 rounded-full bg-white/5 overflow-hidden border border-white/10">
+              <div className="h-full bg-gradient-to-r from-amber-400 to-amber-600" style={{ width: `${Math.min(100, (craftLvl.xp / Math.max(1, craftLvl.xpNeed)) * 100)}%` }} />
+            </div>
+            <div className="mt-1 text-caption flex items-center justify-between">
+              <span>{craftLvl.xp} / {craftLvl.xpNeed} XP</span>
+              <span className="text-white/45">Итого: {craftLvl.totalXp.toLocaleString("ru-RU")}</span>
+            </div>
+          </div>
+        </div>
+        <div className="mt-3 pt-3 border-t border-white/5 grid grid-cols-3 gap-2">
+          <div className="text-center">
+            <div className="text-micro">Скрафчено</div>
+            <div className="text-title text-amber-200 tabular-nums">{craftingStats.itemsCrafted}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-micro">Распылено</div>
+            <div className="text-title text-rose-200 tabular-nums">{craftingStats.itemsSalvaged}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-micro">Улучшено</div>
+            <div className="text-title text-emerald-200 tabular-nums">{craftingStats.itemsUpgraded}</div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
+      {/* Tabs */}
+      <div className="seg">
         {(["craft", "upgrade", "salvage", "deep"] as const).map((t) => (
-          <button
-            key={t}
-            className={`btn text-xs ${tab === t ? "bg-gradient-to-b from-amber-500 to-amber-700 text-white" : "btn-ghost"}`}
-            onClick={() => setTab(t)}
-          >
+          <button key={t} className={`seg-item ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>
             {t === "craft" ? "Крафт" : t === "upgrade" ? "Усиление" : t === "salvage" ? "Распыл." : "Алхимия"}
           </button>
         ))}
@@ -32,7 +79,7 @@ export function Crafting() {
       {tab === "upgrade" && <UpgradeTab />}
       {tab === "salvage" && <SalvageTab />}
       {tab === "deep" && <DeepCraftTab />}
-    </div>
+    </ScreenLayout>
   );
 }
 
