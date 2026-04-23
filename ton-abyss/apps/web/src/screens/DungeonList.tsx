@@ -12,7 +12,7 @@ const BIOME_ART: Record<string, { emoji: string; tint: string; gradient: string 
 
 export function DungeonList() {
   const setScreen = useGame((s) => s.setScreen);
-  const runDungeon = useGame((s) => s.runDungeon);
+  const beginDungeon = useGame((s) => s.beginDungeon);
   const dungeons = Object.values(DUNGEONS);
   const char = useGame((s) => s.character)!;
 
@@ -68,8 +68,7 @@ export function DungeonList() {
                     className="btn-primary"
                     disabled={belowLevel}
                     onClick={() => {
-                      runDungeon(d.id);
-                      setScreen("dungeon_run");
+                      beginDungeon(d.id);
                     }}
                   >
                     {belowLevel ? "Слишком слаб" : overleveled ? "Повторить" : "Войти"}

@@ -1,0 +1,151 @@
+import type { SetDef } from "@ton-abyss/shared";
+
+// Set definitions — cumulative bonuses triggered when wearing N pieces.
+export const SETS: Record<string, SetDef> = {
+  set_warden: {
+    id: "set_warden",
+    name: "Снаряжение Стража",
+    tier: 2,
+    pieceIds: ["arm_warden_helm", "arm_platemail", "arm_plate_legs", "arm_plate_gauntlets", "arm_plate_boots"],
+    bonuses: [
+      { pieces: 2, bonus: { defense: 10, maxHp: 40 }, description: "+10 защита, +40 HP" },
+      { pieces: 3, bonus: { blockChance: 0.05, blockAmount: 8 }, description: "+5% шанс блока, +8 к блоку" },
+      { pieces: 4, bonus: { defense: 22, maxHp: 80, critMultiplier: 0.1 }, description: "+22 защита, +80 HP, +10% крит. урона" },
+      { pieces: 5, bonus: { resistance: { physical: 0.1, fire: 0.1, frost: 0.1, shock: 0.1, void: 0.1, holy: 0.1 } }, description: "+10% ко всем резистам" },
+    ],
+    flavor: "Клятва защиты не знает усталости.",
+  },
+  set_runesmith: {
+    id: "set_runesmith",
+    name: "Регалии Руноведа",
+    tier: 2,
+    pieceIds: ["arm_runed_helm", "arm_robe_of_runes", "arm_sorcerer_gloves", "arm_sorcerer_slippers", "off_spellbook"],
+    bonuses: [
+      { pieces: 2, bonus: { spellPower: 12, maxMana: 20 }, description: "+12 магия, +20 маны" },
+      { pieces: 3, bonus: { critChance: 0.04 }, description: "+4% шанс крита" },
+      { pieces: 4, bonus: { spellPower: 24, maxMana: 40, critMultiplier: 0.15 }, description: "+24 магия, +40 маны, +15% крит. урона" },
+    ],
+    flavor: "Руны пишут историю заклинаниями.",
+  },
+  set_voidcaller: {
+    id: "set_voidcaller",
+    name: "Облачение Зовущего",
+    tier: 3,
+    pieceIds: ["arm_shadow_cowl", "arm_shadow_pants", "arm_shadow_gloves", "arm_shadow_boots", "wpn_void_dagger"],
+    bonuses: [
+      { pieces: 2, bonus: { dodge: 0.05, critChance: 0.03 }, description: "+5% уклонение, +3% шанс крита" },
+      { pieces: 3, bonus: { lifesteal: 0.06 }, description: "+6% вампиризм" },
+      { pieces: 4, bonus: { critMultiplier: 0.25, spellPower: 20 }, description: "+25% крит. урона, +20 магия" },
+      { pieces: 5, bonus: { resistance: { physical: 0, fire: 0, frost: 0, shock: 0, void: 0.3, holy: -0.1 } }, description: "+30% к резисту пустоты" },
+    ],
+    flavor: "Тени откликаются на его зов.",
+  },
+  set_beastbound: {
+    id: "set_beastbound",
+    name: "Звериная узы",
+    tier: 2,
+    pieceIds: ["arm_leather_cap", "arm_leather_vest", "arm_leather_legs", "arm_leather_gloves", "arm_leather_boots", "wpn_beast_claws"],
+    bonuses: [
+      { pieces: 2, bonus: { attack: 8, speed: 4 }, description: "+8 атака, +4 скорость" },
+      { pieces: 4, bonus: { critChance: 0.05, dodge: 0.04 }, description: "+5% крит, +4% уклонение" },
+      { pieces: 6, bonus: { attack: 24, critMultiplier: 0.2, lifesteal: 0.05 }, description: "+24 атака, +20% крит. урона, +5% вампиризм" },
+    ],
+    flavor: "Сердце бьётся в унисон со зверем.",
+  },
+  set_dragon_rider: {
+    id: "set_dragon_rider",
+    name: "Всадник дракона",
+    tier: 3,
+    pieceIds: ["arm_dragon_mail", "arm_mithril_helm", "arm_mithril_legs", "arm_mithril_gloves", "arm_mithril_boots", "tr_amulet_of_flame"],
+    bonuses: [
+      { pieces: 2, bonus: { resistance: { physical: 0, fire: 0.2, frost: 0, shock: 0, void: 0, holy: 0 } }, description: "+20% огнестойкость" },
+      { pieces: 4, bonus: { attack: 18, spellPower: 18, maxHp: 120 }, description: "+18 атака/магия, +120 HP" },
+      { pieces: 6, bonus: { critChance: 0.08, critMultiplier: 0.3 }, description: "+8% крит, +30% крит. урона" },
+    ],
+    flavor: "Чешуя павших драконов защищает и сжигает.",
+  },
+  set_phoenix: {
+    id: "set_phoenix",
+    name: "Возрождение феникса",
+    tier: 4,
+    pieceIds: ["arm_phoenix_hood", "arm_robe_of_runes", "arm_sorcerer_gloves", "arm_sorcerer_slippers", "tr_amulet_of_flame"],
+    bonuses: [
+      { pieces: 2, bonus: { spellPower: 24, maxMana: 40 }, description: "+24 магия, +40 маны" },
+      { pieces: 3, bonus: { critChance: 0.06, lifesteal: 0.05 }, description: "+6% крит, +5% вампиризм" },
+      { pieces: 5, bonus: { spellPower: 60, critMultiplier: 0.4 }, description: "+60 магия, +40% крит. урона. Воскресение раз в бой." },
+    ],
+    flavor: "Из пепла — пламя новой жизни.",
+  },
+  set_shadow_assassin: {
+    id: "set_shadow_assassin",
+    name: "Теневой убийца",
+    tier: 4,
+    pieceIds: ["arm_shadow_cowl", "arm_shadow_pants", "arm_shadow_gloves", "arm_shadow_boots", "wpn_abyss_claws", "tr_amulet_of_shadow"],
+    bonuses: [
+      { pieces: 2, bonus: { dodge: 0.08, critChance: 0.05 }, description: "+8% уклонение, +5% крит" },
+      { pieces: 4, bonus: { attack: 24, critChance: 0.1, critMultiplier: 0.3 }, description: "+24 атака, +10% крит, +30% крит. урона" },
+      { pieces: 6, bonus: { lifesteal: 0.15, dodge: 0.12 }, description: "+15% вампиризм, +12% уклонение. При критах: -1 КД всех скиллов." },
+    ],
+    flavor: "Быстрее, чем вздох. Тише, чем тень.",
+  },
+  set_titan: {
+    id: "set_titan",
+    name: "Титанская мощь",
+    tier: 4,
+    pieceIds: ["arm_adamant_legs", "arm_dragon_mail", "arm_warden_helm", "arm_plate_gauntlets", "arm_plate_boots", "wpn_titan_greatsword"],
+    bonuses: [
+      { pieces: 2, bonus: { maxHp: 200, defense: 20 }, description: "+200 HP, +20 защита" },
+      { pieces: 4, bonus: { attack: 40, blockAmount: 20 }, description: "+40 атака, +20 блок" },
+      { pieces: 6, bonus: { maxHp: 500, defense: 60, attack: 80 }, description: "+500 HP, +60 защита, +80 атака. Иммунитет к страху." },
+    ],
+    flavor: "Неколебим, как гора.",
+  },
+  set_celestial: {
+    id: "set_celestial",
+    name: "Небесное провидение",
+    tier: 5,
+    pieceIds: ["arm_celestial_circlet", "arm_celestial_vestment", "wpn_celestial_staff", "tr_amulet_of_abyss", "tr_relic_soul"],
+    bonuses: [
+      { pieces: 2, bonus: { spellPower: 40, maxMana: 60 }, description: "+40 магия, +60 маны" },
+      { pieces: 3, bonus: { critChance: 0.1, critMultiplier: 0.3 }, description: "+10% крит, +30% крит. урона" },
+      { pieces: 5, bonus: { spellPower: 120, critMultiplier: 0.5, resistance: { physical: 0, fire: 0.2, frost: 0.2, shock: 0.2, void: 0.2, holy: 0.4 } }, description: "+120 магия, +50% крит. урона, +20% к стих. резистам, +40% свят." },
+    ],
+    flavor: "Звёзды шепчут её имя.",
+  },
+  set_abyssal_reaper: {
+    id: "set_abyssal_reaper",
+    name: "Жнец Бездны",
+    tier: 5,
+    pieceIds: ["wpn_abyss_scythe", "arm_abyss_crown", "arm_abyss_raiment", "tr_abyss_sigil", "tr_ring_of_abyss", "tr_amulet_of_abyss"],
+    bonuses: [
+      { pieces: 2, bonus: { attack: 40, critChance: 0.08 }, description: "+40 атака, +8% крит" },
+      { pieces: 4, bonus: { critMultiplier: 0.5, lifesteal: 0.1 }, description: "+50% крит. урона, +10% вампиризм" },
+      { pieces: 6, bonus: { attack: 120, critChance: 0.15, critMultiplier: 0.8, lifesteal: 0.2, resistance: { physical: 0, fire: 0, frost: 0, shock: 0, void: 0.5, holy: -0.3 } }, description: "Полный комплект жнеца: каждый удар оставляет клеймо Бездны." },
+    ],
+    flavor: "Смерть собирает урожай — а он её пастух.",
+  },
+  set_ranger: {
+    id: "set_ranger",
+    name: "Охотничье братство",
+    tier: 2,
+    pieceIds: ["wpn_silver_bow", "arm_leather_cap", "arm_leather_vest", "arm_leather_boots", "off_focus_crystal"],
+    bonuses: [
+      { pieces: 2, bonus: { critChance: 0.05, attack: 10 }, description: "+5% крит, +10 атака" },
+      { pieces: 4, bonus: { critMultiplier: 0.2, speed: 6 }, description: "+20% крит. урон, +6 скорость" },
+      { pieces: 5, bonus: { attack: 30, critChance: 0.1 }, description: "+30 атака, +10% крит" },
+    ],
+    flavor: "Тетива не знает промахов.",
+  },
+  set_storm: {
+    id: "set_storm",
+    name: "Повелитель бури",
+    tier: 3,
+    pieceIds: ["wpn_staff_of_storms", "off_rune_buckler", "arm_mithril_hauberk", "arm_mithril_legs", "tr_ring_of_vigor"],
+    bonuses: [
+      { pieces: 2, bonus: { spellPower: 20 }, description: "+20 магия" },
+      { pieces: 4, bonus: { critChance: 0.08, spellPower: 30 }, description: "+8% крит, +30 магия" },
+      { pieces: 5, bonus: { spellPower: 60, critMultiplier: 0.25, resistance: { physical: 0, fire: 0, frost: 0, shock: 0.35, void: 0, holy: 0 } }, description: "Грозовой эффект: молнии рикошетят." },
+    ],
+    flavor: "Небо его оружие.",
+  },
+};

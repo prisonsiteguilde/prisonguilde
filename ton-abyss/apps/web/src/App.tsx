@@ -11,8 +11,17 @@ import { Crafting } from "./screens/Crafting.js";
 import { Pets } from "./screens/Pets.js";
 import { Shop } from "./screens/Shop.js";
 import { Codex } from "./screens/Codex.js";
+import { ActiveCombat } from "./screens/ActiveCombat.js";
+import { WorldMap } from "./screens/WorldMap.js";
+import { SkillTree } from "./screens/SkillTree.js";
+import { Sockets } from "./screens/Sockets.js";
+import { Quests } from "./screens/Quests.js";
+import { Achievements } from "./screens/Achievements.js";
+import { Leaderboard } from "./screens/Leaderboard.js";
 import { Toasts } from "./components/Toasts.js";
 import { TopBar } from "./components/TopBar.js";
+import { LootReveal } from "./components/LootReveal.js";
+import { BossCinematic } from "./components/BossCinematic.js";
 
 export function App() {
   const screen = useGame((s) => s.screen);
@@ -48,10 +57,19 @@ export function App() {
             {screen === "pets" && <Pets />}
             {screen === "shop" && <Shop />}
             {screen === "codex" && <Codex />}
+            {screen === "active_combat" && <ActiveCombat />}
+            {screen === "world_map" && <WorldMap />}
+            {screen === "skill_tree" && <SkillTree />}
+            {screen === "sockets" && <Sockets />}
+            {screen === "quests" && <Quests />}
+            {screen === "achievements" && <Achievements />}
+            {screen === "leaderboard" && <Leaderboard />}
           </motion.div>
         </AnimatePresence>
       </div>
       <Toasts />
+      <LootReveal />
+      <BossCinematic />
     </div>
   );
 }

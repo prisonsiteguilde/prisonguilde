@@ -4,13 +4,21 @@ import { CLASS_META, STAT_LABEL } from "@ton-abyss/shared";
 import type { StatId } from "@ton-abyss/shared";
 import { TonConnectButton, useTonWallet } from "@tonconnect/ui-react";
 
-const TILES: { id: "inventory" | "dungeon_list" | "crafting" | "pets" | "shop" | "codex"; label: string; icon: string; hint: string; accent: string }[] = [
+import type { Screen } from "../store.js";
+
+const TILES: { id: Screen; label: string; icon: string; hint: string; accent: string }[] = [
+  { id: "world_map", label: "Карта", icon: "🗺️", hint: "3 акта", accent: "#60a5fa" },
   { id: "dungeon_list", label: "Данжи", icon: "🗝️", hint: "Боссы и лут", accent: "#f43f5e" },
-  { id: "inventory", label: "Инвентарь", icon: "🎒", hint: "Экипировка", accent: "#60a5fa" },
+  { id: "inventory", label: "Инвентарь", icon: "🎒", hint: "Экипировка", accent: "#a3e635" },
+  { id: "skill_tree", label: "Навыки", icon: "🌳", hint: "Дерево умений", accent: "#14f1c1" },
+  { id: "sockets", label: "Гнёзда", icon: "💎", hint: "Гемы, перековка", accent: "#c084fc" },
   { id: "crafting", label: "Кузня", icon: "⚒️", hint: "Крафт, усиление", accent: "#f59e0b" },
-  { id: "pets", label: "Питомцы", icon: "🐉", hint: "Бонусы в бою", accent: "#14f1c1" },
-  { id: "shop", label: "Лавка", icon: "💼", hint: "Продать лут", accent: "#a3e635" },
-  { id: "codex", label: "Кодекс", icon: "📖", hint: "Гид по миру", accent: "#c084fc" },
+  { id: "pets", label: "Питомцы", icon: "🐉", hint: "Эволюция", accent: "#fb7185" },
+  { id: "quests", label: "Задания", icon: "📜", hint: "Дейли/кампан.", accent: "#84cc16" },
+  { id: "achievements", label: "Ачивки", icon: "🏆", hint: "Титулы, AP", accent: "#fcd34d" },
+  { id: "leaderboard", label: "Топ", icon: "👑", hint: "Мировой рейтинг", accent: "#fde047" },
+  { id: "shop", label: "Лавка", icon: "💼", hint: "Продать лут", accent: "#94a3b8" },
+  { id: "codex", label: "Кодекс", icon: "📖", hint: "Гид по миру", accent: "#a78bfa" },
 ];
 
 export function Home() {

@@ -1,7 +1,11 @@
-import type { ItemInstance } from "@ton-abyss/shared";
+import type { ItemInstance, RarityId } from "@ton-abyss/shared";
 import { RARITY_COLOR } from "@ton-abyss/shared";
 import { ITEMS } from "@ton-abyss/content";
 import { motion } from "framer-motion";
+
+export function rarityTint(r: RarityId): string {
+  return RARITY_COLOR[r];
+}
 
 const SLOT_ICON: Record<string, string> = {
   weapon: "🗡️", offhand: "🛡️", head: "👑", chest: "🥼", legs: "👖",

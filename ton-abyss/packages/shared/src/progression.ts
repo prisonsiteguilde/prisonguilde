@@ -47,6 +47,13 @@ export const CLASS_BASE: Record<ClassId, Record<StatId, number>> = {
   beastbound: { strength: 9, agility: 13, intellect: 7, vitality: 10, spirit: 9, luck: 4 },
 };
 
+export const CLASS_CONFIG: Record<ClassId, { name: string; emoji: string; color: string }> = {
+  warden: { name: "Страж", emoji: "🛡️", color: "#f4b740" },
+  runesmith: { name: "Руновед", emoji: "🔨", color: "#60a5fa" },
+  voidcaller: { name: "Зовущий Бездну", emoji: "🌀", color: "#c084fc" },
+  beastbound: { name: "Зверолов", emoji: "🐺", color: "#22d3ee" },
+};
+
 export const CLASS_META: Record<
   ClassId,
   { name: string; tagline: string; weapon: string; armor: string; palette: string }
