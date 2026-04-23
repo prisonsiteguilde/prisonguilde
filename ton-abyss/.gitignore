@@ -12,3 +12,4 @@ data/*.db-journal
 coverage
 .DS_Store
 .vite
+*.tsbuildinfo
