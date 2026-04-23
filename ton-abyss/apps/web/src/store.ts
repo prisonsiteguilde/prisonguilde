@@ -1300,16 +1300,17 @@ export const useGame = create<GameState>()(
           });
           s.pushToast({ text: `Победа! +${combat.aggregatedXp} XP, +${combat.aggregatedGold} золота, дропа: ${combat.aggregatedLoot.length}.`, tone: "epic" });
         } else {
-          // Loss
+          // Loss — hardcore penalty: 30% gold + 25% xp + reset hardcore streak
           char.deaths += 1;
-          char.gold = Math.max(0, Math.floor(char.gold * 0.75));
+          char.gold = Math.max(0, Math.floor(char.gold * 0.70));
+          char.xp = Math.max(0, Math.floor(char.xp * 0.75));
           char.hpCurrent = 1;
           set({
             character: char,
             combat,
             hardcoreStreak: 0,
           });
-          s.pushToast({ text: "Вы погибли. Потери: 25% золота. Хардкор не прощает.", tone: "bad" });
+          s.pushToast({ text: "Вы погибли. Потери: 30% золота, 25% опыта. Хардкор не прощает.", tone: "bad" });
         }
       },
 
