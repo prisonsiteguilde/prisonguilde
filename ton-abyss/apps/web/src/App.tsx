@@ -9,6 +9,8 @@ import { TopBar } from "./components/TopBar.js";
 import { LootReveal } from "./components/LootReveal.js";
 import { BottomNav } from "./components/BottomNav.js";
 import { BossCinematic } from "./components/BossCinematic.js";
+import { ConfirmDialog } from "./components/ConfirmDialog.js";
+import { DailyRewardsModal } from "./components/DailyRewardsModal.js";
 
 const Inventory = lazy(() => import("./screens/Inventory.js").then((m) => ({ default: m.Inventory })));
 const DungeonList = lazy(() => import("./screens/DungeonList.js").then((m) => ({ default: m.DungeonList })));
@@ -111,6 +113,8 @@ export function App() {
       <LootReveal />
       <BossCinematic />
       <BottomNav />
+      <ConfirmDialog />
+      <DailyRewardsModal />
     </div>
   );
 }

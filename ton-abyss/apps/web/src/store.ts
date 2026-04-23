@@ -357,6 +357,20 @@ export interface TradePostState {
   lastResetAt: number;
 }
 
+// Daily login rewards — 7-day cycle, hardcore reset on miss.
+export interface DailyRewardsState {
+  currentDay: number; // 0-6
+  lastClaimedAt: number; // 0 if never
+  claimedToday: boolean;
+  totalClaims: number;
+}
+
+// Market/Auction carry-over — for Inventory → Market quick flow.
+export interface PendingListing {
+  itemUid: string;
+  destination: "market" | "auction";
+}
+
 export interface GameState {
   screen: Screen;
   character: Character | null;
@@ -376,6 +390,8 @@ export interface GameState {
   market: MarketState;
   auction: AuctionState;
   tradePost: TradePostState;
+  dailyRewards: DailyRewardsState;
+  pendingListing: PendingListing | null;
   tower: TowerState;
   arena: ArenaState;
   bounties: BountiesState;
@@ -466,6 +482,10 @@ export interface GameState {
   // Trade post
   tradeRefresh: () => void;
   tradeAccept: (offerId: string) => { ok: boolean; error?: string };
+  claimDailyReward: () => { ok: boolean; error?: string };
+  checkDailyReward: () => void;
+  unlockTitle: (id: string) => void;
+  setPendingListing: (p: PendingListing | null) => void;
   exitTower: (save: boolean) => void;
   fightArena: (opponentId: string) => { won: boolean; eloDelta: number };
   rerollBounties: () => void;
@@ -793,6 +813,8 @@ export const useGame = create<GameState>()(
       market: { listings: [], history: [], maxActiveListings: 8 },
       auction: { lots: [], history: [] },
       tradePost: { offers: [], refreshAt: 0, acceptedToday: 0, lastResetAt: 0 },
+      dailyRewards: { currentDay: 0, lastClaimedAt: 0, claimedToday: false, totalClaims: 0 },
+      pendingListing: null,
       tower: { currentFloor: 0, highestFloor: 0, active: false, currentScore: 0, bestScore: 0, lastEntryAt: 0 },
       arena: { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
       bounties: { active: [], refreshAt: 0, completedToday: 0 },
@@ -903,6 +925,8 @@ export const useGame = create<GameState>()(
           market: { listings: [], history: [], maxActiveListings: 8 },
           auction: { lots: [], history: [] },
           tradePost: { offers: [], refreshAt: 0, acceptedToday: 0, lastResetAt: 0 },
+          dailyRewards: { currentDay: 0, lastClaimedAt: 0, claimedToday: false, totalClaims: 0 },
+          pendingListing: null,
           arena: { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
           bounties: { active: [], refreshAt: 0, completedToday: 0 },
           hunts: { active: [], completed: [] },
@@ -2131,11 +2155,22 @@ export const useGame = create<GameState>()(
         if (goldEarned > 0 && s.character) {
           toasts = [...toasts, { id: genId("tst"), text: `Маркет: продано ${salesAdded.length} лотов. +${goldEarned}g.`, tone: "good" as const }];
         }
+        // Title unlock: 10 sales → "Торговец", 50 sales → "Купец"
+        let unlockedTitles = s.unlockedTitles;
+        if (newHistory.length >= 10 && !unlockedTitles.includes("title_merchant")) {
+          unlockedTitles = [...unlockedTitles, "title_merchant"];
+          toasts = [...toasts, { id: genId("tst"), text: "Титул разблокирован: Торговец", tone: "good" as const }];
+        }
+        if (newHistory.length >= 50 && !unlockedTitles.includes("title_magnate")) {
+          unlockedTitles = [...unlockedTitles, "title_magnate"];
+          toasts = [...toasts, { id: genId("tst"), text: "Титул разблокирован: Магнат Бездны", tone: "good" as const }];
+        }
         set({
           market: { ...s.market, listings: [...remainingMine, ...seeded], history: newHistory },
           stash,
           character: s.character && goldEarned > 0 ? { ...s.character, gold: s.character.gold + goldEarned } : s.character,
           toasts,
+          unlockedTitles,
         });
       },
 
@@ -2449,6 +2484,74 @@ export const useGame = create<GameState>()(
         });
         return { ok: true };
       },
+
+      checkDailyReward: () => {
+        const s = get();
+        if (!s.character) return;
+        const now = Date.now();
+        const DAY = 24 * 3_600_000;
+        const last = s.dailyRewards.lastClaimedAt;
+        if (last === 0) {
+          set({ dailyRewards: { ...s.dailyRewards, claimedToday: false } });
+          return;
+        }
+        const sinceLast = now - last;
+        if (sinceLast >= 2 * DAY) {
+          set({ dailyRewards: { currentDay: 0, lastClaimedAt: 0, claimedToday: false, totalClaims: s.dailyRewards.totalClaims } });
+        } else if (sinceLast >= DAY) {
+          set({ dailyRewards: { ...s.dailyRewards, claimedToday: false } });
+        } else {
+          set({ dailyRewards: { ...s.dailyRewards, claimedToday: true } });
+        }
+      },
+
+      claimDailyReward: () => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        if (s.dailyRewards.claimedToday) return { ok: false, error: "Уже получено сегодня." };
+        const day = s.dailyRewards.currentDay;
+        const rewards = [
+          { gold: 500 },
+          { gold: 1000, shards: 5 },
+          { gold: 1500, shards: 10 },
+          { gold: 2500, dust: 5, shards: 15 },
+          { gold: 3500, shards: 25 },
+          { gold: 5000, dust: 15, shards: 40 },
+          { gold: 10000, dust: 50, shards: 100 },
+        ];
+        const r = rewards[day]!;
+        const char = {
+          ...s.character,
+          gold: s.character.gold + (r.gold ?? 0),
+          shards: s.character.shards + (r.shards ?? 0),
+          abyssDust: s.character.abyssDust + (r.dust ?? 0),
+        };
+        set({
+          character: char,
+          dailyRewards: {
+            currentDay: (day + 1) % 7,
+            lastClaimedAt: Date.now(),
+            claimedToday: true,
+            totalClaims: s.dailyRewards.totalClaims + 1,
+          },
+          toasts: [
+            ...s.toasts,
+            { id: genId("tst"), text: `День ${day + 1}: +${r.gold}g${r.shards ? ` +${r.shards}🔹` : ""}${r.dust ? ` +${r.dust}✨` : ""}`, tone: "good" as const },
+          ],
+        });
+        return { ok: true };
+      },
+
+      unlockTitle: (id) => {
+        const s = get();
+        if (s.unlockedTitles.includes(id)) return;
+        set({
+          unlockedTitles: [...s.unlockedTitles, id],
+          toasts: [...s.toasts, { id: genId("tst"), text: `Титул разблокирован: ${id}`, tone: "good" as const }],
+        });
+      },
+
+      setPendingListing: (p) => set({ pendingListing: p }),
 
       // ================ ARENA ================
       fightArena: (opponentId) => {
@@ -3319,6 +3422,8 @@ export const useGame = create<GameState>()(
           market: { listings: [], history: [], maxActiveListings: 8 },
           auction: { lots: [], history: [] },
           tradePost: { offers: [], refreshAt: 0, acceptedToday: 0, lastResetAt: 0 },
+          dailyRewards: { currentDay: 0, lastClaimedAt: 0, claimedToday: false, totalClaims: 0 },
+          pendingListing: null,
           arena: { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
           bounties: { active: [], refreshAt: 0, completedToday: 0 },
           hunts: { active: [], completed: [] },
@@ -3369,7 +3474,7 @@ export const useGame = create<GameState>()(
     }),
     {
       name: "ton-abyss-save",
-      version: 8,
+      version: 9,
       partialize: (s) => ({
         character: s.character,
         inventory: s.inventory,
@@ -3402,6 +3507,7 @@ export const useGame = create<GameState>()(
         market: s.market,
         auction: s.auction,
         tradePost: s.tradePost,
+        dailyRewards: s.dailyRewards,
         arena: s.arena,
         bounties: s.bounties,
         hunts: s.hunts,
@@ -3440,6 +3546,8 @@ export const useGame = create<GameState>()(
           market: base.market ?? { listings: [], history: [], maxActiveListings: 8 },
           auction: base.auction ?? { lots: [], history: [] },
           tradePost: base.tradePost ?? { offers: [], refreshAt: 0, acceptedToday: 0, lastResetAt: 0 },
+          dailyRewards: base.dailyRewards ?? { currentDay: 0, lastClaimedAt: 0, claimedToday: false, totalClaims: 0 },
+          pendingListing: null,
           arena: base.arena ?? { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
           bounties: base.bounties ?? { active: [], refreshAt: 0, completedToday: 0 },
           hunts: base.hunts ?? { active: [], completed: [] },

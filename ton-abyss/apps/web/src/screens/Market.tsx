@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useGame } from "../store.js";
 import { ITEMS } from "@ton-abyss/content";
 import type { ItemInstance, RarityId } from "@ton-abyss/shared";
+import { confirmDialog } from "../components/ConfirmDialog.js";
 
 const RARITY_RU: Record<RarityId, string> = {
   common: "обычный", uncommon: "необычный", rare: "редкий", epic: "эпический",
@@ -22,9 +23,12 @@ export function Market() {
   const lockedItems = useGame((s) => s.lockedItems);
   const equipped = useGame((s) => s.equipped);
 
+  const pendingListing = useGame((s) => s.pendingListing);
+  const setPendingListing = useGame((s) => s.setPendingListing);
+
   const [tab, setTab] = useState<"browse" | "mine" | "list" | "history">("browse");
   const [rarityFilter, setRarityFilter] = useState<RarityId | "all">("all");
-  const [sort, setSort] = useState<"price-asc" | "price-desc" | "recent">("recent");
+  const [sort, setSort] = useState<"price-asc" | "price-desc" | "recent" | "hot">("recent");
   const [listingItem, setListingItem] = useState<ItemInstance | null>(null);
   const [listingPrice, setListingPrice] = useState<number>(100);
 
@@ -34,11 +38,38 @@ export function Market() {
     return () => clearInterval(t);
   }, [refresh]);
 
+  useEffect(() => {
+    if (pendingListing?.destination === "market") {
+      const found = [...inventory, ...stash].find((i) => i.uid === pendingListing.itemUid);
+      if (found) {
+        setTab("list");
+        setListingItem(found);
+        const base = ITEMS[found.baseId];
+        if (base) setListingPrice((base.sellValue ?? 100) * 5);
+      }
+      setPendingListing(null);
+    }
+  }, [pendingListing, inventory, stash, setPendingListing]);
+
+  const fairPriceFor = (item: ItemInstance): number => {
+    const base = ITEMS[item.baseId];
+    if (!base) return 0;
+    const rarityIdx = ["common","uncommon","rare","epic","legendary","mythic","abyssal"].indexOf(item.rarity);
+    return Math.floor((base.sellValue ?? 100) * 4 * (1 + rarityIdx * 0.5));
+  };
+
   const browse = useMemo(() => {
     let arr = market.listings.filter((l) => !l.isMine);
     if (rarityFilter !== "all") arr = arr.filter((l) => l.item.rarity === rarityFilter);
     if (sort === "price-asc") arr = [...arr].sort((a, b) => a.price - b.price);
     else if (sort === "price-desc") arr = [...arr].sort((a, b) => b.price - a.price);
+    else if (sort === "hot") {
+      arr = arr
+        .map((l) => ({ l, ratio: l.price / Math.max(1, fairPriceFor(l.item)) }))
+        .filter((x) => x.ratio < 0.85)
+        .sort((a, b) => a.ratio - b.ratio)
+        .map((x) => x.l);
+    }
     else arr = [...arr].sort((a, b) => b.listedAt - a.listedAt);
     return arr;
   }, [market.listings, rarityFilter, sort]);
@@ -91,6 +122,7 @@ export function Market() {
               <option value="recent">Недавние</option>
               <option value="price-asc">Цена ↑</option>
               <option value="price-desc">Цена ↓</option>
+              <option value="hot">🔥 Горячие</option>
             </select>
           </div>
           <div className="space-y-1.5">
@@ -99,6 +131,10 @@ export function Market() {
               const base = ITEMS[l.item.baseId];
               if (!base) return null;
               const canAfford = (character?.gold ?? 0) >= l.price;
+              const fair = fairPriceFor(l.item);
+              const ratio = l.price / Math.max(1, fair);
+              const hot = ratio < 0.85;
+              const overpriced = ratio > 1.3;
               return (
                 <motion.div
                   key={l.id}
@@ -108,15 +144,31 @@ export function Market() {
                   className="card p-2.5 flex items-center gap-3 rarity-gradient-border"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="font-display text-sm rarity-text truncate">{base.name}</div>
+                    <div className="font-display text-sm rarity-text truncate flex items-center gap-1">
+                      {base.name}
+                      {hot && <span className="text-[9px] px-1 py-0.5 rounded bg-rose-500/30 text-rose-200 border border-rose-400/30">🔥 ГОРЯЧО</span>}
+                      {overpriced && <span className="text-[9px] px-1 py-0.5 rounded bg-zinc-500/20 text-zinc-300">дорого</span>}
+                    </div>
                     <div className="text-[10px] text-white/55">{RARITY_RU[l.item.rarity]} · ур. {l.item.level} · {l.sellerName}</div>
                   </div>
                   <div className="text-right">
                     <div className={`font-bold ${canAfford ? "text-amber-300" : "text-red-300/60"}`}>{l.price}g</div>
+                    <div className="text-[9px] text-white/40">≈{fair}g</div>
                     <button
                       className="btn-ghost text-[10px] mt-1 px-2"
                       disabled={!canAfford}
-                      onClick={() => buy(l.id)}
+                      onClick={async () => {
+                        if (l.price > 1000) {
+                          const ok = await confirmDialog({
+                            title: `Купить ${base.name}?`,
+                            message: `Стоимость: ${l.price}g (обычно ~${fair}g).`,
+                            confirmText: "Купить",
+                            tone: hot ? "default" : "warning",
+                          });
+                          if (!ok) return;
+                        }
+                        buy(l.id);
+                      }}
                     >
                       Купить
                     </button>

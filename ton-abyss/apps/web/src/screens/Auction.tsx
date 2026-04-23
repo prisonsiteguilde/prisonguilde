@@ -13,8 +13,10 @@ function fmtRemaining(ms: number): string {
   if (ms <= 0) return "истёк";
   const h = Math.floor(ms / 3_600_000);
   const m = Math.floor((ms % 3_600_000) / 60_000);
+  const s = Math.floor((ms % 60_000) / 1000);
   if (h > 0) return `${h}ч ${m}м`;
-  return `${m}м`;
+  if (m >= 5) return `${m}м`;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 export function Auction() {
@@ -30,6 +32,9 @@ export function Auction() {
   const equipped = useGame((s) => s.equipped);
   const lockedItems = useGame((s) => s.lockedItems);
 
+  const pendingListing = useGame((s) => s.pendingListing);
+  const setPendingListing = useGame((s) => s.setPendingListing);
+
   const [tab, setTab] = useState<"browse" | "mine" | "create" | "history">("browse");
   const [createItem, setCreateItem] = useState<ItemInstance | null>(null);
   const [startPrice, setStartPrice] = useState(200);
@@ -40,9 +45,26 @@ export function Auction() {
 
   useEffect(() => {
     refresh();
-    const t = setInterval(() => { refresh(); setTick((x) => x + 1); }, 30_000);
-    return () => clearInterval(t);
+    const t1 = setInterval(() => { refresh(); }, 30_000);
+    const t2 = setInterval(() => { setTick((x) => x + 1); }, 1000);
+    return () => { clearInterval(t1); clearInterval(t2); };
   }, [refresh]);
+
+  useEffect(() => {
+    if (pendingListing?.destination === "auction") {
+      const found = [...inventory, ...stash].find((i) => i.uid === pendingListing.itemUid);
+      if (found) {
+        setTab("create");
+        setCreateItem(found);
+        const base = ITEMS[found.baseId];
+        if (base) {
+          setStartPrice((base.sellValue ?? 100) * 4);
+          setBuyoutPrice((base.sellValue ?? 100) * 12);
+        }
+      }
+      setPendingListing(null);
+    }
+  }, [pendingListing, inventory, stash, setPendingListing]);
 
   const browse = auction.lots.filter((l) => !l.isMine);
   const mine = auction.lots.filter((l) => l.isMine);

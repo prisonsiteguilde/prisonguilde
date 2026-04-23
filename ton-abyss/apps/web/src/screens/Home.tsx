@@ -79,6 +79,27 @@ const MENU: MenuGroup[] = [
   },
 ];
 
+function DailyRewardsBanner() {
+  const dr = useGame((s) => s.dailyRewards);
+  const claim = useGame((s) => s.claimDailyReward);
+  if (dr.claimedToday) return null;
+  return (
+    <motion.button
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      onClick={() => claim()}
+      className="w-full flex items-center justify-between gap-3 rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-500/20 to-amber-500/5 px-3 py-2 hover:from-amber-500/30 transition-all"
+    >
+      <div className="text-left">
+        <div className="text-amber-200 font-display text-sm">🎁 Ежедневная награда</div>
+        <div className="text-[10px] text-white/65">День {dr.currentDay + 1} из 7 — нажмите, чтобы получить</div>
+      </div>
+      <div className="text-amber-300 text-xs font-bold animate-pulse">Забрать</div>
+    </motion.button>
+  );
+}
+
+
 export function Home() {
   const char = useGame((s) => s.character)!;
   const setScreen = useGame((s) => s.setScreen);
@@ -89,6 +110,7 @@ export function Home() {
 
   return (
     <div className="px-4 py-4 space-y-5 pb-24">
+      <DailyRewardsBanner />
       {/* Hero header — class portrait + vitals */}
       <div className="hero-card">
         <div className="flex items-start gap-4">

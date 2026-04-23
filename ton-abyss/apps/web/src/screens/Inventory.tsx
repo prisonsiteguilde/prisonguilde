@@ -5,6 +5,7 @@ import { ITEMS } from "@ton-abyss/content";
 import type { ItemInstance, RarityId } from "@ton-abyss/shared";
 import { RARITY_COLOR } from "@ton-abyss/shared";
 import { ItemTile } from "../components/ItemTile.js";
+import { confirmDialog } from "../components/ConfirmDialog.js";
 
 const SLOT_LABEL: Record<string, string> = {
   weapon: "Оружие",
@@ -274,14 +275,20 @@ function ItemDetails({ item, onEquip, onClose }: { item: ItemInstance; onEquip: 
             {locked ? "🔓 Разблок." : "🔒 Заблок."}
           </button>
           <button className="btn-ghost text-xs" onClick={() => { moveToStash(item.uid); onClose(); }}>В стэш</button>
-          <button className="btn-ghost text-xs" onClick={() => { setScreen("market"); onClose(); }}>Маркет →</button>
-          <button className="btn-ghost text-xs" onClick={() => { setScreen("auction"); onClose(); }}>Аукцион →</button>
+          <button className="btn-ghost text-xs" onClick={() => { useGame.getState().setPendingListing({ itemUid: item.uid, destination: "market" }); setScreen("market"); onClose(); }}>Маркет →</button>
+          <button className="btn-ghost text-xs" onClick={() => { useGame.getState().setPendingListing({ itemUid: item.uid, destination: "auction" }); setScreen("auction"); onClose(); }}>Аукцион →</button>
         </div>
         {!locked && (
           <button
             className="w-full py-2 text-xs rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20"
-            onClick={() => {
-              if (window.confirm(`Распылить ${base.name}? Получите эссенцию и материалы.`)) {
+            onClick={async () => {
+              const ok = await confirmDialog({
+                title: `Распылить ${base.name}?`,
+                message: `Получите материалы, пыль и эссенцию качества.${item.rarity === "mythic" || item.rarity === "abyssal" ? " ⚠ Это ценный предмет!" : ""}`,
+                confirmText: "♻ Распылить",
+                tone: item.rarity === "mythic" || item.rarity === "abyssal" ? "danger" : "warning",
+              });
+              if (ok) {
                 salvage([item.uid]);
                 onClose();
               }
