@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
@@ -2096,13 +2097,67 @@ export const useGame = create<GameState>()(
         craftingStats: s.craftingStats,
         screen: s.character ? (s.screen === "active_combat" ? "home" : s.screen) : "splash",
       }),
+      migrate: (persisted: any, version: number) => {
+        // v3 added god-mode v2 fields. Ensure they exist with defaults.
+        const base = persisted ?? {};
+        return {
+          ...base,
+          stash: base.stash ?? [],
+          petStates: base.petStates ?? {},
+          tower: base.tower ?? { currentFloor: 0, highestFloor: 0, active: false, currentScore: 0, bestScore: 0, lastEntryAt: 0 },
+          arena: base.arena ?? { elo: 0, wins: 0, losses: 0, streak: 0, lastFightAt: 0, dailyFights: 0 },
+          bounties: base.bounties ?? { active: [], refreshAt: 0, completedToday: 0 },
+          hunts: base.hunts ?? { active: [], completed: [] },
+          expeditions: base.expeditions ?? { active: [], history: [] },
+          factionRep: base.factionRep ?? {},
+          factionClaimedTiers: base.factionClaimedTiers ?? {},
+          relicsUnlocked: base.relicsUnlocked ?? [],
+          mountsOwned: base.mountsOwned ?? [],
+          activeMount: base.activeMount ?? null,
+          loadouts: base.loadouts ?? [],
+          lockedItems: base.lockedItems ?? [],
+          activeEvent: base.activeEvent ?? null,
+          prestigeCount: base.prestigeCount ?? 0,
+          craftingStats: base.craftingStats ?? { itemsCrafted: 0, itemsSalvaged: 0, itemsUpgraded: 0 },
+          // ensure legacy fields exist
+          inventory: base.inventory ?? [],
+          equipped: base.equipped ?? {},
+          materials: base.materials ?? {},
+          gems: base.gems ?? {},
+          pets: base.pets ?? [],
+          skillAllocation: base.skillAllocation ?? {},
+          skillPoints: base.skillPoints ?? 0,
+          paragon: base.paragon ?? { offense: 0, defense: 0, utility: 0, treasure: 0 },
+          paragonPoints: base.paragonPoints ?? 0,
+          quests: base.quests ?? {},
+          achievements: base.achievements ?? {},
+          unlockedTitles: base.unlockedTitles ?? [],
+          activeTitle: base.activeTitle ?? null,
+          mapProgress: base.mapProgress ?? { unlocked: ["mn_town_safehold", "mn_crypt_gate"], cleared: [], currentAct: 1 },
+          dungeonsCleared: base.dungeonsCleared ?? {},
+          bossesKilled: base.bossesKilled ?? {},
+          monstersKilled: base.monstersKilled ?? {},
+          totalKills: base.totalKills ?? 0,
+          totalGoldEarned: base.totalGoldEarned ?? 0,
+          totalItemsLooted: base.totalItemsLooted ?? 0,
+          totalDamageDealt: base.totalDamageDealt ?? 0,
+          hardcoreStreak: base.hardcoreStreak ?? 0,
+        };
+      },
     },
   ),
 );
 
 export function useDerivedStats() {
-  return useGame((s) => {
-    if (!s.character) return null;
-    return buildDerived(s.character, s.inventory, s.equipped, s.skillAllocation, s.paragon);
-  });
+  // Subscribe to stable refs; compute derived outside the store subscription
+  // to avoid "getSnapshot should be cached" infinite loop with useSyncExternalStore.
+  const character = useGame((s) => s.character);
+  const inventory = useGame((s) => s.inventory);
+  const equipped = useGame((s) => s.equipped);
+  const skillAllocation = useGame((s) => s.skillAllocation);
+  const paragon = useGame((s) => s.paragon);
+  return useMemo(() => {
+    if (!character) return null;
+    return buildDerived(character, inventory, equipped, skillAllocation, paragon);
+  }, [character, inventory, equipped, skillAllocation, paragon]);
 }

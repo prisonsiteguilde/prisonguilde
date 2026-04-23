@@ -13,8 +13,12 @@ if (tg) {
   try {
     tg.ready();
     tg.expand();
-    tg.setHeaderColor?.("#03060f");
-    tg.setBackgroundColor?.("#03060f");
+    // setHeaderColor / setBackgroundColor supported from Bot API 6.1+
+    const ver = parseFloat(String(tg.version ?? "6.0"));
+    if (ver >= 6.1) {
+      tg.setHeaderColor?.("#03060f");
+      tg.setBackgroundColor?.("#03060f");
+    }
   } catch {}
 }
 
