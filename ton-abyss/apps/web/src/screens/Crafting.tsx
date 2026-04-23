@@ -6,7 +6,7 @@ import { UPGRADE_TABLE, RARITY_COLOR, SALVAGE_YIELD } from "@ton-abyss/shared";
 
 export function Crafting() {
   const setScreen = useGame((s) => s.setScreen);
-  const [tab, setTab] = useState<"craft" | "upgrade" | "salvage">("craft");
+  const [tab, setTab] = useState<"craft" | "upgrade" | "salvage" | "deep">("craft");
 
   return (
     <div className="px-4 py-4 space-y-4">
@@ -16,14 +16,14 @@ export function Crafting() {
         <span className="w-16" />
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        {(["craft", "upgrade", "salvage"] as const).map((t) => (
+      <div className="grid grid-cols-4 gap-2">
+        {(["craft", "upgrade", "salvage", "deep"] as const).map((t) => (
           <button
             key={t}
-            className={`btn ${tab === t ? "bg-gradient-to-b from-amber-500 to-amber-700 text-white" : "btn-ghost"}`}
+            className={`btn text-xs ${tab === t ? "bg-gradient-to-b from-amber-500 to-amber-700 text-white" : "btn-ghost"}`}
             onClick={() => setTab(t)}
           >
-            {t === "craft" ? "Крафт" : t === "upgrade" ? "Усиление" : "Распыление"}
+            {t === "craft" ? "Крафт" : t === "upgrade" ? "Усиление" : t === "salvage" ? "Распыл." : "Алхимия"}
           </button>
         ))}
       </div>
@@ -31,6 +31,79 @@ export function Crafting() {
       {tab === "craft" && <CraftTab />}
       {tab === "upgrade" && <UpgradeTab />}
       {tab === "salvage" && <SalvageTab />}
+      {tab === "deep" && <DeepCraftTab />}
+    </div>
+  );
+}
+
+function DeepCraftTab() {
+  const inventory = useGame((s) => s.inventory);
+  const transmute = useGame((s) => s.transmute);
+  const reroll = useGame((s) => s.reroll);
+  const tierUp = useGame((s) => s.tierUp);
+  const [sel, setSel] = useState<string | null>(null);
+  const items = inventory.filter((i) => {
+    const slot = ITEMS[i.baseId]?.slot;
+    return slot && !["consumable", "material", "rune", "key"].includes(slot);
+  });
+  const it = sel ? inventory.find((i) => i.uid === sel) : null;
+  const base = it ? ITEMS[it.baseId] : null;
+
+  return (
+    <div className="space-y-3">
+      <div className="text-xs text-slate-300">Алхимия: трансмутация (+редкость), реролл аффиксов, повышение тира (+5 ур.).</div>
+      <div className="grid grid-cols-4 gap-2 max-h-[40vh] overflow-y-auto">
+        {items.map((i) => {
+          const b = ITEMS[i.baseId];
+          if (!b) return null;
+          return (
+            <button
+              key={i.uid}
+              onClick={() => setSel(i.uid)}
+              className={`p-2 rounded text-[10px] border ${sel === i.uid ? "border-amber-400 bg-amber-900/30" : "border-slate-700 bg-slate-900/60"}`}
+              style={{ color: RARITY_COLOR[i.rarity] }}
+            >
+              <div className="truncate">{b.name}</div>
+              <div className="text-[9px] text-slate-500">ур.{i.level} · +{i.upgradeLevel}</div>
+            </button>
+          );
+        })}
+      </div>
+      {it && base && (
+        <div className="panel p-3 space-y-2">
+          <div className="font-bold text-white" style={{ color: RARITY_COLOR[it.rarity] }}>{base.name}</div>
+          <div className="text-[11px] text-slate-400">Редкость: {it.rarity} · ур.{it.level} · +{it.upgradeLevel}</div>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => {
+                const r = transmute(it.uid);
+                if (!r.ok) alert(r.error);
+              }}
+              className="btn-primary text-xs"
+            >
+              Трансмут.
+            </button>
+            <button
+              onClick={() => {
+                const r = reroll(it.uid);
+                if (!r.ok) alert(r.error);
+              }}
+              className="btn-primary text-xs"
+            >
+              Реролл аф.
+            </button>
+            <button
+              onClick={() => {
+                const r = tierUp(it.uid);
+                if (!r.ok) alert(r.error);
+              }}
+              className="btn-primary text-xs"
+            >
+              Тир +5
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

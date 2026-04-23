@@ -46,6 +46,13 @@ import {
   canCraft,
   craft,
   upgradeItem,
+  transmuteItem,
+  rerollAffixes,
+  tierUpgradeItem,
+  TRANSMUTE_COST,
+  REROLL_COST,
+  TIER_UPGRADE_COST,
+  ESSENCE_FROM_RARITY,
   UPGRADE_TABLE,
   SALVAGE_YIELD,
 } from "@ton-abyss/shared";
@@ -426,6 +433,11 @@ export interface GameState {
   socketGem: (itemUid: string, slotIndex: number, gemBaseId: string) => { ok: boolean; error?: string };
   unsocketGem: (itemUid: string, slotIndex: number) => { ok: boolean };
   reforgeItem: (uid: string) => { ok: boolean; error?: string };
+
+  // deep crafting
+  transmute: (uid: string) => { ok: boolean; error?: string };
+  reroll: (uid: string) => { ok: boolean; error?: string };
+  tierUp: (uid: string) => { ok: boolean; error?: string };
 
   // Skills
   allocateSkill: (nodeId: string) => { ok: boolean; error?: string };
@@ -1458,6 +1470,89 @@ export const useGame = create<GameState>()(
           inventory: inv,
         });
         s.pushToast({ text: "Предмет перекован.", tone: "good" });
+        return { ok: true };
+      },
+
+      // ============= DEEP CRAFTING =============
+      transmute: (uid) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const idx = s.inventory.findIndex((i) => i.uid === uid);
+        if (idx < 0) return { ok: false, error: "Предмет не найден." };
+        const item = s.inventory[idx]!;
+        const base = ITEMS[item.baseId];
+        if (!base) return { ok: false, error: "База не найдена." };
+        const cost = TRANSMUTE_COST[item.rarity];
+        if (cost.gold > s.character.gold) return { ok: false, error: `Нужно ${cost.gold} золота.` };
+        if (cost.shards > s.character.shards) return { ok: false, error: `Нужно ${cost.shards} шардов.` };
+        if (cost.essence) {
+          const have = s.materials[`ess_${cost.essence}`] ?? 0;
+          if (have < cost.essenceQty) return { ok: false, error: `Нужно ${cost.essenceQty} ${cost.essence} эссенций.` };
+        }
+        const rng = new RNG(seedFrom(s.character.id, uid, Date.now()));
+        const r = transmuteItem(rng, item, base);
+        if (!r.ok || !r.item) return { ok: false, error: "Уже максимальная редкость." };
+        const inv = [...s.inventory];
+        inv[idx] = r.item;
+        const mats = { ...s.materials };
+        if (cost.essence) mats[`ess_${cost.essence}`] = (mats[`ess_${cost.essence}`] ?? 0) - cost.essenceQty;
+        set({
+          character: { ...s.character, gold: s.character.gold - cost.gold, shards: s.character.shards - cost.shards },
+          inventory: inv,
+          materials: mats,
+          craftingStats: { ...s.craftingStats, itemsCrafted: s.craftingStats.itemsCrafted + 1 },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Трансмутация: ${item.rarity} → ${r.item.rarity}.`, tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+      reroll: (uid) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const idx = s.inventory.findIndex((i) => i.uid === uid);
+        if (idx < 0) return { ok: false, error: "Предмет не найден." };
+        const item = s.inventory[idx]!;
+        const base = ITEMS[item.baseId];
+        if (!base) return { ok: false, error: "База не найдена." };
+        const cost = REROLL_COST[item.rarity];
+        if (s.character.gold < cost.gold) return { ok: false, error: `Нужно ${cost.gold} золота.` };
+        if (s.character.shards < cost.shards) return { ok: false, error: `Нужно ${cost.shards} шардов.` };
+        const rng = new RNG(seedFrom(s.character.id, uid, Date.now() + 1));
+        const newItem = rerollAffixes(rng, item, base);
+        const inv = [...s.inventory];
+        inv[idx] = newItem;
+        set({
+          character: { ...s.character, gold: s.character.gold - cost.gold, shards: s.character.shards - cost.shards },
+          inventory: inv,
+          toasts: [...s.toasts, { id: genId("tst"), text: "Аффиксы переброшены.", tone: "good" as const }],
+        });
+        return { ok: true };
+      },
+      tierUp: (uid) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const idx = s.inventory.findIndex((i) => i.uid === uid);
+        if (idx < 0) return { ok: false, error: "Предмет не найден." };
+        const item = s.inventory[idx]!;
+        const base = ITEMS[item.baseId];
+        if (!base) return { ok: false, error: "База не найдена." };
+        const cost = TIER_UPGRADE_COST;
+        if (s.character.gold < cost.gold) return { ok: false, error: `Нужно ${cost.gold} золота.` };
+        if (s.character.shards < cost.shards) return { ok: false, error: `Нужно ${cost.shards} шардов.` };
+        if (s.character.abyssDust < cost.dust) return { ok: false, error: `Нужно ${cost.dust} пыли.` };
+        const have = s.materials[`ess_${cost.essence}`] ?? 0;
+        if (have < cost.essenceQty) return { ok: false, error: `Нужно ${cost.essenceQty} ${cost.essence} эссенций.` };
+        const rng = new RNG(seedFrom(s.character.id, uid, Date.now() + 2));
+        const r = tierUpgradeItem(rng, item, base);
+        if (!r.ok || !r.item) return { ok: false, error: "Достигнут потолок уровня." };
+        const inv = [...s.inventory];
+        inv[idx] = r.item;
+        const mats = { ...s.materials, [`ess_${cost.essence}`]: have - cost.essenceQty };
+        set({
+          character: { ...s.character, gold: s.character.gold - cost.gold, shards: s.character.shards - cost.shards, abyssDust: s.character.abyssDust - cost.dust },
+          inventory: inv,
+          materials: mats,
+          toasts: [...s.toasts, { id: genId("tst"), text: `Тир повышен до ур. ${r.item.level}.`, tone: "epic" as const }],
+        });
         return { ok: true };
       },
 
