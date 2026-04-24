@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { MOUNTS } from "@ton-abyss/content";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function Mounts() {
-  const setScreen = useGame((s) => s.setScreen);
   const char = useGame((s) => s.character)!;
   const mountsOwned = useGame((s) => s.mountsOwned);
   const activeMount = useGame((s) => s.activeMount);
@@ -13,12 +13,7 @@ export function Mounts() {
   const achievements = useGame((s) => s.achievements);
 
   return (
-    <div className="px-4 py-4 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Скакуны</h2>
-        <span className="w-16" />
-      </div>
+    <ScreenLayout title="Скакуны" subtitle={`${mountsOwned.length} в загоне`} back="home" accent="#fde047">
 
       {activeMount && (
         <div className="card p-3 border-amber-400/40">
@@ -85,6 +80,6 @@ export function Mounts() {
           );
         })}
       </div>
-    </div>
+    </ScreenLayout>
   );
 }

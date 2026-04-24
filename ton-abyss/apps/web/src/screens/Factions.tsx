@@ -1,20 +1,15 @@
 import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { FACTIONS } from "@ton-abyss/content";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function Factions() {
-  const setScreen = useGame((s) => s.setScreen);
   const factionRep = useGame((s) => s.factionRep);
   const claimed = useGame((s) => s.factionClaimedTiers);
   const claimFactionTier = useGame((s) => s.claimFactionTier);
 
   return (
-    <div className="px-4 py-4 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Фракции</h2>
-        <span className="w-16" />
-      </div>
+    <ScreenLayout title="Фракции" subtitle="Репутация, тиры, награды" back="home" accent="#c084fc">
 
       <div className="space-y-3">
         {Object.values(FACTIONS).map((f) => {
@@ -85,6 +80,6 @@ export function Factions() {
           );
         })}
       </div>
-    </div>
+    </ScreenLayout>
   );
 }

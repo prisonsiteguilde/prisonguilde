@@ -1,24 +1,18 @@
 import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { RELICS, BOSSES } from "@ton-abyss/content";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function Relics() {
-  const setScreen = useGame((s) => s.setScreen);
   const relicsUnlocked = useGame((s) => s.relicsUnlocked);
   const bossesKilled = useGame((s) => s.bossesKilled);
   const claimRelic = useGame((s) => s.claimRelic);
 
   return (
-    <div className="px-4 py-4 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Реликвии</h2>
-        <span className="w-16" />
-      </div>
-
-      <div className="card p-3 border-purple-400/40">
-        <div className="font-display text-lg text-purple-200 mb-1">🏺 Перманентные бонусы</div>
-        <div className="text-xs text-white/60">Каждая реликвия даёт вечный бафф. Получайте за первое убийство уникального босса.</div>
+    <ScreenLayout title="Реликвии" subtitle="Перманентные бонусы за боссов" back="home" accent="#d6bcfa">
+      <div className="card-elevated p-3 border-purple-400/40">
+        <div className="text-title text-purple-200 mb-1">🏺 Перманентные бонусы</div>
+        <div className="text-caption text-white/60">Каждая реликвия даёт вечный бафф. Получайте за первое убийство уникального босса.</div>
       </div>
 
       <div className="space-y-2">
@@ -53,6 +47,6 @@ export function Relics() {
           );
         })}
       </div>
-    </div>
+    </ScreenLayout>
   );
 }

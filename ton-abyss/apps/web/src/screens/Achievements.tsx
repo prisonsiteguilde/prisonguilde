@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { ACHIEVEMENTS } from "@ton-abyss/content";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function Achievements() {
-  const setScreen = useGame((s) => s.setScreen);
   const achievements = useGame((s) => s.achievements);
   const unlockedTitles = useGame((s) => s.unlockedTitles);
   const activeTitle = useGame((s) => s.activeTitle);
@@ -14,12 +14,7 @@ export function Achievements() {
     .reduce((sum, [id]) => sum + (ACHIEVEMENTS[id]?.points ?? 0), 0);
 
   return (
-    <div className="px-4 py-4 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Достижения ({totalPoints} AP)</h2>
-        <span className="w-16" />
-      </div>
+    <ScreenLayout title="Достижения" subtitle={`${totalPoints} AP · ${unlockedTitles.length} титулов`} back="home" accent="#fcd34d">
 
       {unlockedTitles.length > 0 && (
         <div className="card p-3">
@@ -69,6 +64,6 @@ export function Achievements() {
           );
         })}
       </div>
-    </div>
+    </ScreenLayout>
   );
 }

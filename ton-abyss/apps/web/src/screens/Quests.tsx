@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { QUESTS } from "@ton-abyss/content";
 import type { QuestObjective } from "@ton-abyss/shared";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 function objectiveLabel(o: QuestObjective): string {
   const t = o.target === "any" ? "любой цели" : o.target;
@@ -18,20 +19,15 @@ function objectiveLabel(o: QuestObjective): string {
 }
 
 export function Quests() {
-  const setScreen = useGame((s) => s.setScreen);
   const quests = useGame((s) => s.quests);
   const claimQuest = useGame((s) => s.claimQuest);
   const acceptQuest = useGame((s) => s.acceptQuest);
 
   const all = Object.values(QUESTS);
+  const active = Object.values(quests).filter((q: { status: string }) => q.status === "active").length;
 
   return (
-    <div className="px-4 py-4 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Задания</h2>
-        <span className="w-16" />
-      </div>
+    <ScreenLayout title="Задания" subtitle={`${active} активных из ${all.length}`} back="home" accent="#84cc16">
 
       <div className="space-y-2">
         {all.map((q) => {
@@ -94,6 +90,6 @@ export function Quests() {
           );
         })}
       </div>
-    </div>
+    </ScreenLayout>
   );
 }

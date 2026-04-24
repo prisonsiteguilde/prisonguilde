@@ -2078,8 +2078,11 @@ export const useGame = create<GameState>()(
         if (!s.character) return;
         if (s.tower.active) { s.pushToast({ text: "Вы уже в Башне.", tone: "info" }); return; }
         if (s.character.gold < TOWER_CONFIG.entryCost.gold) { s.pushToast({ text: `Нужно ${TOWER_CONFIG.entryCost.gold} золота для входа.`, tone: "bad" }); return; }
+        const e = regenEnergy(s.energy);
+        if (e.current < 5) { s.pushToast({ text: `Нужно 5 энергии (есть ${Math.floor(e.current)}).`, tone: "bad" }); return; }
         set({
           character: { ...s.character, gold: s.character.gold - TOWER_CONFIG.entryCost.gold },
+          energy: { ...e, current: e.current - 5 },
           tower: { ...s.tower, currentFloor: 1, active: true, currentScore: 0, lastEntryAt: Date.now() },
           toasts: [...s.toasts, { id: genId("tst"), text: `Вы входите в Башню Бездны. Этаж 1.`, tone: "epic" as const }],
         });
@@ -2767,6 +2770,7 @@ export const useGame = create<GameState>()(
           character: { ...s.character, gold: s.character.gold + goldReward, xp: s.character.xp + xpReward },
           energy: { ...e, current: e.current - 10 },
           dailyCounters: { ...dc, arenaFights: dc.arenaFights + 1 },
+          journal: [{ id: genId("jl"), at: Date.now(), kind: won ? "kill" : "death", text: won ? `Арена: победа над ${opp.name}. +${eloDelta} ELO.` : `Арена: поражение от ${opp.name}. ${eloDelta} ELO.` }, ...s.journal].slice(0, 200),
           toasts: [...s.toasts, { id: genId("tst"), text: won ? `Победа! +${eloDelta} ELO, +${goldReward}g.` : `Поражение. ${eloDelta} ELO.`, tone: won ? "epic" as const : "bad" as const }],
         });
         if (won) {
