@@ -12,10 +12,10 @@ export function Gathering() {
   const gatherRun = useGame((s) => s.gatherRun);
   const pushToast = useGame((s) => s.pushToast);
   const dc = useGame((s) => s.dailyCounters);
-  const remaining = Math.max(0, 10 - dc.gatheringRuns);
+  const remaining = Math.max(0, 20 - dc.gatheringRuns);
 
   return (
-    <ScreenLayout title="Собирательство" subtitle={`Осталось на сегодня: ${remaining}/10`} back="home" accent="#22c55e">
+    <ScreenLayout title="Собирательство" subtitle={`Осталось на сегодня: ${remaining}/20`} back="home" accent="#22c55e">
       <div className="grid grid-cols-2 gap-2">
         {BIOMES.map((b) => (
           <button
@@ -30,7 +30,7 @@ export function Gathering() {
             <div className="text-[32px] mb-1">{b.emoji}</div>
             <div className="text-title" style={{ color: b.color }}>{b.ru}</div>
             <div className="text-micro text-white/50 mt-1 line-clamp-2">{b.drops}</div>
-            <div className="text-micro text-amber-300/80 mt-2">−4 энергии</div>
+            <div className="text-micro text-amber-300/80 mt-2">−2 энергии</div>
           </button>
         ))}
       </div>

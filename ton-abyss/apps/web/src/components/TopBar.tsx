@@ -17,7 +17,7 @@ export function TopBar() {
   const meta = CLASS_META[char.classId];
   const now = Date.now();
   const elapsedMs = now - energy.lastRegenAt;
-  const REGEN_MS = 6 * 60 * 1000;
+  const REGEN_MS = 4 * 60 * 1000;
   const currentEnergy = Math.min(energy.max, energy.current + Math.floor(elapsedMs / REGEN_MS));
   const secToNext = currentEnergy >= energy.max ? 0 : Math.max(0, Math.ceil((REGEN_MS - (elapsedMs % REGEN_MS)) / 1000));
   const energyPct = (currentEnergy / energy.max) * 100;

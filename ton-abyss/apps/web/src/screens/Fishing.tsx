@@ -8,16 +8,16 @@ export function Fishing() {
   const dc = useGame((s) => s.dailyCounters);
   const energy = useGame((s) => s.energy);
 
-  const remaining = Math.max(0, 20 - dc.fishingCasts);
+  const remaining = Math.max(0, 30 - dc.fishingCasts);
 
   return (
-    <ScreenLayout title="Рыбалка" subtitle={`Осталось на сегодня: ${remaining}/20`} back="home" accent="#38bdf8">
+    <ScreenLayout title="Рыбалка" subtitle={`Осталось на сегодня: ${remaining}/30`} back="home" accent="#38bdf8">
       <div className="card-elevated p-6 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-sky-900/20 via-teal-900/20 to-transparent" />
         <div className="relative">
           <div className="text-[72px] mb-2">🎣</div>
           <div className="text-title mb-1">Закинуть удочку</div>
-          <div className="text-caption text-white/60 mb-4">−2 энергии · золото + материалы + шанс редких</div>
+          <div className="text-caption text-white/60 mb-4">−1 энергии · золото + материалы + шанс редких</div>
           <motion.button
             whileTap={{ scale: 0.96 }}
             disabled={remaining <= 0}
@@ -42,7 +42,7 @@ export function Fishing() {
         </div>
       </div>
       <div className="card-ghost p-3 text-caption text-white/50">
-        Энергия: {Math.floor(energy.current)}/{energy.max}. Восстанавливается 1/6мин.
+        Энергия: {Math.floor(energy.current)}/{energy.max}. Восстанавливается 1/4мин.
       </div>
     </ScreenLayout>
   );

@@ -3065,7 +3065,7 @@ export const useGame = create<GameState>()(
         const s = get();
         const e = regenEnergy(s.energy);
         if (e.current < amount) {
-          return { ok: false, error: `Нужно ${amount} энергии (есть ${Math.floor(e.current)}). Восстанавливается 1/6мин.` };
+          return { ok: false, error: `Нужно ${amount} энергии (есть ${Math.floor(e.current)}). Восстанавливается 1/4мин.` };
         }
         set({ energy: { ...e, current: e.current - amount } });
         return { ok: true };

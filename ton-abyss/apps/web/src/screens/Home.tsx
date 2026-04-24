@@ -26,8 +26,8 @@ const MENU: MenuGroup[] = [
   {
     key: "activities", title: "Досуг", icon: "quest", tint: "#38bdf8",
     tiles: [
-      { id: "fishing",   label: "Рыбалка",       icon: "quest",       hint: "−2 энергии, лут", accent: "#38bdf8" },
-      { id: "gathering", label: "Собирательство",icon: "quest",       hint: "−4 энергии, 4 биома", accent: "#22c55e" },
+      { id: "fishing",   label: "Рыбалка",       icon: "quest",       hint: "−1 энергии, 30/д", accent: "#38bdf8" },
+      { id: "gathering", label: "Собирательство",icon: "quest",       hint: "−2 энергии, 4 биома", accent: "#22c55e" },
       { id: "journal",   label: "Журнал",        icon: "codex",       hint: "Лента событий",   accent: "#a855f7" },
       { id: "loadouts",  label: "Комплекты",     icon: "bag",         hint: "4 слота экипа",   accent: "#06b6d4" },
     ],

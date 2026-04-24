@@ -60,7 +60,7 @@ export function WorldBoss() {
                   }}
                   className="btn-primary w-full mt-3 py-3 rounded-xl font-bold"
                 >
-                  ⚔ Атаковать (−5 энергии)
+                  ⚔ Атаковать (−3 энергии)
                 </button>
               )}
             </div>
