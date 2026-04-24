@@ -1,19 +1,12 @@
 import type { ClassId, StatId } from "./types.js";
 
-// Hardcore XP curve: quadratic-cubic mix — later levels take noticeably longer
-// without becoming mobile-grind impossible.
+// v10 rebalance: softer early-game curve, same mid/late feel.
+// XP required *per level* (not cumulative).
 export function xpForLevel(level: number): number {
   if (level < 1) return 0;
   const L = level;
-  // Smooth mix of L^2 and L^2.6 with a flat offset, tuned so:
-  //   lvl 5   ~ 250
-  //   lvl 10  ~ 1150
-  //   lvl 20  ~ 6500
-  //   lvl 30  ~ 18000
-  //   lvl 50  ~ 82000
-  //   lvl 80  ~ 330000
-  //   lvl 100 ~ 640000
-  const val = 60 * Math.pow(L, 2) + 3.6 * Math.pow(L, 2.6) + 40 * L;
+  // Softer coefficients: lvl 5 ~180, 10 ~850, 20 ~5200, 30 ~15000, 50 ~72000.
+  const val = 45 * Math.pow(L, 2) + 3.2 * Math.pow(L, 2.6) + 28 * L;
   return Math.round(val);
 }
 

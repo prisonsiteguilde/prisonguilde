@@ -61,11 +61,14 @@ export function BottomNav() {
                 <div className="relative">
                   <Icon size={20} />
                   {(badges[n.id] ?? 0) > 0 && (
-                    <span
-                      className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold grid place-items-center shadow-[0_0_8px_rgba(244,63,94,0.6)]"
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: [0, 1.25, 1] }}
+                      transition={{ duration: 0.35 }}
+                      className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold grid place-items-center shadow-[0_0_8px_rgba(244,63,94,0.6)] pulse-ring"
                     >
                       {(badges[n.id] ?? 0) > 9 ? "9+" : badges[n.id]}
-                    </span>
+                    </motion.span>
                   )}
                 </div>
                 <span className="text-[10px] font-medium tracking-wide">{n.label}</span>

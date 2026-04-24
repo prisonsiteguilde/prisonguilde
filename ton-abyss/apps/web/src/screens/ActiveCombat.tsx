@@ -138,6 +138,14 @@ export function ActiveCombat() {
             className="h-full bg-gradient-to-r from-red-500 via-rose-500 to-red-400"
           />
           <div className="absolute inset-0 rarity-shimmer opacity-40" />
+          {/* phase chunks — 25/50/75 breakpoints (boss only) */}
+          {combat.isBossRoom && [25, 50, 75].map((p) => (
+            <div
+              key={p}
+              className="absolute top-0 bottom-0 w-px bg-black/80"
+              style={{ left: `${p}%`, boxShadow: "0 0 0 1px rgba(255,255,255,0.1)" }}
+            />
+          ))}
         </div>
 
         {combat.enemy.statuses.length > 0 && (
@@ -312,29 +320,39 @@ export function ActiveCombat() {
                 if (!a) return null;
                 const cd = combat.player.abilityCooldowns[abid] ?? 0;
                 const disabled = cd > 0 || combat.player.mana < a.manaCost;
+                const cdPct = cd > 0 ? Math.min(1, cd / a.cooldown) : 0;
                 return (
                   <button
                     key={abid}
                     disabled={disabled}
                     onClick={() => combatAction("ability", { abilityId: abid })}
-                    className={`card p-2 text-left text-[11px] border ${
+                    className={`relative overflow-hidden card p-2 text-left text-[11px] border press ${
                       disabled
-                        ? "opacity-50 border-white/5"
+                        ? "opacity-55 border-white/5"
                         : "border-abyss-500/30 hover:border-abyss-500/60 hover:bg-abyss-500/5"
                     } transition`}
                   >
-                    <div className="font-bold text-white/95 flex items-center gap-1.5">
+                    {/* radial cooldown sweep */}
+                    {cdPct > 0 && (
+                      <div
+                        className="absolute inset-0 pointer-events-none"
+                        style={{
+                          background: `conic-gradient(from -90deg, rgba(20,241,193,0.18) ${(1 - cdPct) * 360}deg, rgba(0,0,0,0.55) ${(1 - cdPct) * 360}deg)`,
+                        }}
+                      />
+                    )}
+                    <div className="relative font-bold text-white/95 flex items-center gap-1.5">
                       <ICONS.spell size={12} style={{ color: meta.palette }} />
                       {a.name}
                     </div>
-                    <div className="text-white/60 text-[10px] flex items-center gap-2 mt-0.5">
+                    <div className="relative text-white/60 text-[10px] flex items-center gap-2 mt-0.5">
                       <span className="flex items-center gap-1">
                         <ICONS.mana size={10} /> {a.manaCost}
                       </span>
-                      <span>CD {a.cooldown}{cd > 0 ? ` (–${cd}т)` : ""}</span>
+                      <span className="tabular-nums">CD {a.cooldown}{cd > 0 ? ` (−${cd}т)` : ""}</span>
                     </div>
                     {a.description && (
-                      <div className="text-white/50 text-[10px] mt-0.5 line-clamp-2">{a.description}</div>
+                      <div className="relative text-white/50 text-[10px] mt-0.5 line-clamp-2">{a.description}</div>
                     )}
                   </button>
                 );
@@ -383,7 +401,7 @@ export function ActiveCombat() {
                 <span className="chip">лут: {combat.aggregatedLoot.length}</span>
               </div>
             ) : (
-              <span className="chip-danger">Хардкор не прощает. Потеря 25% золота.</span>
+              <span className="chip-danger">Потери масштабируются с уровнем персонажа.</span>
             )}
           </div>
           <button className="btn-abyssal mt-4 h-12 w-full tracking-widest" onClick={endCombatReturn}>

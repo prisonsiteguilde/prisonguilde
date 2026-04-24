@@ -186,11 +186,11 @@ export function Inventory() {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-4 gap-2 stagger-in">
         {items.map((it) => {
           const isSel = bulkSelected.has(it.uid);
           return (
-            <div key={it.uid} className="relative">
+            <div key={it.uid} className="relative tile-lift rounded-lg">
               <ItemTile
                 item={it}
                 onClick={() => {
@@ -226,24 +226,27 @@ export function Inventory() {
         )}
       </div>
 
-      {/* Item detail modal */}
+      {/* Item detail drawer (bottom-sheet on mobile, right-side drawer on wider screens) */}
       <AnimatePresence>
         {selected && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center p-4"
+            transition={{ duration: 0.18 }}
+            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-md"
             onClick={() => setSelected(null)}
           >
             <motion.div
-              initial={{ y: 100, opacity: 0 }}
+              initial={{ y: 120, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 100, opacity: 0 }}
-              className="card p-5 w-full max-w-md"
+              exit={{ y: 120, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 380, damping: 32 }}
+              className="absolute left-0 right-0 bottom-0 card-elevated p-5 w-full max-w-md mx-auto rounded-t-2xl max-h-[85vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
               data-rarity={selected.rarity}
             >
+              <div className="mx-auto -mt-2 mb-3 h-1 w-10 rounded-full bg-white/20" />
               <ItemDetails item={selected} onEquip={() => { equipItem(selected.uid); setSelected(null); }} onClose={() => setSelected(null)} />
             </motion.div>
           </motion.div>
@@ -287,9 +290,32 @@ function ItemDetails({ item, onEquip, onClose }: { item: ItemInstance; onEquip: 
   const lockedItems = useGame((s) => s.lockedItems);
   const moveToStash = useGame((s) => s.moveToStash);
   const salvage = useGame((s) => s.salvage);
+  const equipped = useGame((s) => s.equipped);
+  const inv = useGame((s) => s.inventory);
   if (!base) return null;
   const locked = lockedItems.includes(item.uid);
   const isGear = ["weapon", "offhand", "head", "chest", "legs", "hands", "feet", "ring", "amulet", "neck", "waist", "back", "trinket", "relic"].includes(base.slot);
+  // v10: compare vs currently equipped
+  const equippedUid = equipped[base.slot];
+  const equippedItem = equippedUid ? inv.find((i) => i.uid === equippedUid) : undefined;
+  const equippedBase = equippedItem ? ITEMS[equippedItem.baseId] : undefined;
+  const comparison: { key: string; delta: number }[] = [];
+  if (isGear && equippedItem && equippedBase) {
+    const keys = new Set<string>();
+    for (const k of Object.keys(base.baseStats ?? {})) keys.add(k);
+    for (const k of Object.keys(equippedBase.baseStats ?? {})) keys.add(k);
+    for (const a of item.affixes) keys.add(a.stat);
+    for (const a of equippedItem.affixes) keys.add(a.stat);
+    for (const k of keys) {
+      const sumStats = (it: ItemInstance, b: typeof base): number => {
+        const bs = (b.baseStats as Record<string, number> | undefined)?.[k] ?? 0;
+        const af = it.affixes.filter((a) => a.stat === k).reduce((s, a) => s + a.value, 0);
+        return bs + af;
+      };
+      const d = sumStats(item, base) - sumStats(equippedItem, equippedBase);
+      if (Math.abs(d) > 0.0001) comparison.push({ key: k, delta: d });
+    }
+  }
   return (
     <div className="rarity-border">
       <div className="flex items-center gap-3">
@@ -323,6 +349,24 @@ function ItemDetails({ item, onEquip, onClose }: { item: ItemInstance; onEquip: 
                 <span className="font-mono text-emerald-200">{formatStat(a.stat, a.value)}</span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {comparison.length > 0 && (
+        <div className="mt-3">
+          <div className="text-[11px] uppercase text-white/55 mb-1">Сравнение с экипированным</div>
+          <div className="space-y-1 text-xs rounded-lg bg-white/5 p-2 border border-white/10">
+            {comparison.map(({ key, delta }) => {
+              const pos = delta > 0;
+              return (
+                <div key={key} className="flex justify-between">
+                  <span className="text-white/70">{STAT_RU[key] ?? key}</span>
+                  <span className={`font-mono ${pos ? "text-emerald-300" : "text-rose-300"}`}>
+                    {pos ? "▲" : "▼"} {formatStat(key, Math.abs(delta))}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

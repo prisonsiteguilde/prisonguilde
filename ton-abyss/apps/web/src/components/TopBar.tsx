@@ -1,5 +1,5 @@
 import { useGame } from "../store.js";
-import { CLASS_META } from "@ton-abyss/shared";
+import { CLASS_META, xpForLevel } from "@ton-abyss/shared";
 import { motion } from "framer-motion";
 import { ICONS, type IconName } from "./Icon.js";
 import { useEffect, useState } from "react";
@@ -76,19 +76,28 @@ function Pill({ icon, value, tone }: { icon: IconName; value: string; tone: stri
   const Icon = ICONS[icon];
   return (
     <div
-      className="flex items-center gap-1 rounded-lg border px-1.5 py-1"
+      className="flex items-center gap-1 rounded-lg border px-1.5 py-1 overflow-hidden"
       style={{ borderColor: `${tone}33`, background: `${tone}0f` }}
     >
       <span style={{ color: tone }}>
         <Icon size={14} />
       </span>
-      <span className="font-mono text-[12px] font-bold tabular-nums" style={{ color: tone }}>{value}</span>
+      <motion.span
+        key={value}
+        initial={{ opacity: 0, y: -5 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+        className="font-mono text-[12px] font-bold tabular-nums"
+        style={{ color: tone }}
+      >
+        {value}
+      </motion.span>
     </div>
   );
 }
 
 function XpBar({ xp, level }: { xp: number; level: number }) {
-  const need = Math.round(60 * level * level + 3.6 * Math.pow(level, 2.6) + 40 * level);
+  const need = xpForLevel(level);
   const pct = Math.min(100, (xp / need) * 100);
   return (
     <div className="mt-1 h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
