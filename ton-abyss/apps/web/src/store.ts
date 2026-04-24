@@ -1116,6 +1116,13 @@ export const useGame = create<GameState>()(
           s.pushToast({ text: "Недостаточно золота для входа.", tone: "bad" });
           return;
         }
+        // Plan v9: energy cost
+        const e = regenEnergy(s.energy);
+        if (e.current < 8) {
+          s.pushToast({ text: `Нужно 8 энергии (есть ${Math.floor(e.current)}).`, tone: "bad" });
+          return;
+        }
+        set({ energy: { ...e, current: e.current - 8 } });
         // Charge entry
         const newChar = { ...s.character, gold: s.character.gold - (dungeon.entryCost?.gold ?? 0) };
         const derived = buildDerived(newChar, s.inventory, s.equipped, s.skillAllocation, s.paragon);
@@ -1532,6 +1539,10 @@ export const useGame = create<GameState>()(
             current.progress = progress;
             achievements[ach.id] = current;
           }
+          const journalEntries = [
+            { id: genId("jl"), at: Date.now(), kind: "boss", text: `Убит босс: ${BOSSES[dungeon.bossId]?.name ?? dungeon.bossId} (${dungeon.name}). +${combat.aggregatedXp} XP, +${combat.aggregatedGold}g.` },
+            ...(lu.skillPointsGained > 0 ? [{ id: genId("jl"), at: Date.now(), kind: "level", text: `Новый уровень! +${lu.skillPointsGained} очков навыков.` }] : []),
+          ];
           set({
             character: char,
             inventory: inv,
@@ -1550,6 +1561,7 @@ export const useGame = create<GameState>()(
             lootReveal: combat.aggregatedLoot.length > 0 ? combat.aggregatedLoot : null,
             combat,
             bossCinematic: null,
+            journal: [...journalEntries, ...s.journal].slice(0, 200),
           });
           s.pushToast({ text: `Победа! +${combat.aggregatedXp} XP, +${combat.aggregatedGold} золота, дропа: ${combat.aggregatedLoot.length}.`, tone: "epic" });
         } else {
@@ -1558,10 +1570,12 @@ export const useGame = create<GameState>()(
           char.gold = Math.max(0, Math.floor(char.gold * 0.70));
           char.xp = Math.max(0, Math.floor(char.xp * 0.75));
           char.hpCurrent = 1;
+          const deathEntry = { id: genId("jl"), at: Date.now(), kind: "death", text: `Гибель в ${dungeon.name}. Потеряно 30% золота, 25% опыта.` };
           set({
             character: char,
             combat,
             hardcoreStreak: 0,
+            journal: [deathEntry, ...s.journal].slice(0, 200),
           });
           s.pushToast({ text: "Вы погибли. Потери: 30% золота, 25% опыта. Хардкор не прощает.", tone: "bad" });
         }

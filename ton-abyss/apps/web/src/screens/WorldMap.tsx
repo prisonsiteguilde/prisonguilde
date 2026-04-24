@@ -28,6 +28,7 @@ export function WorldMap() {
   const mapProgress = useGame((s) => s.mapProgress);
   const enterMapNode = useGame((s) => s.enterMapNode);
   const [hovered, setHovered] = useState<MapNode | null>(null);
+  const [selected, setSelected] = useState<MapNode | null>(null);
   const [activeAct, setActiveAct] = useState<1 | 2 | 3 | 4>(1);
 
   // Compute connections
@@ -181,10 +182,10 @@ export function WorldMap() {
             return (
               <button
                 key={n.id}
-                className="absolute w-8 h-8 -translate-x-1/2 -translate-y-1/2 rounded-full hover:bg-white/10 active:scale-90 transition disabled:opacity-40"
+                className={`absolute w-8 h-8 -translate-x-1/2 -translate-y-1/2 rounded-full hover:bg-white/10 active:scale-90 transition disabled:opacity-40 ${selected?.id === n.id ? "ring-2 ring-white/70" : ""}`}
                 style={{ left: `${n.x}%`, top: `${n.y * 0.75 + 1}%` }}
                 disabled={!unlocked}
-                onClick={() => enterMapNode(n.id)}
+                onClick={() => setSelected(n)}
                 onMouseEnter={() => setHovered(n)}
                 onMouseLeave={() => setHovered(null)}
                 onFocus={() => setHovered(n)}
@@ -221,6 +222,45 @@ export function WorldMap() {
           </motion.div>
         )}
       </div>
+
+      {/* Selected node — inline confirm panel */}
+      {selected && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card-elevated p-4 space-y-3"
+          style={{ borderColor: `${BIOME_COLOR[selected.biome ?? "haven"]}66` }}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-micro text-white/50 uppercase tracking-wider">
+                {KIND_LABEL[selected.kind] ?? selected.kind} · {actMeta.name.replace(`Акт ${activeAct} — `, "")}
+              </div>
+              <div className="text-title" style={{ color: BIOME_COLOR[selected.biome ?? "haven"] }}>
+                {selected.name}
+              </div>
+              {selected.levelReq > 0 && (
+                <div className="text-caption text-white/60">Требуется ур. {selected.levelReq}</div>
+              )}
+            </div>
+            <button onClick={() => setSelected(null)} className="text-white/40 hover:text-white/70 text-xl leading-none px-2">×</button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setSelected(null)}
+              className="btn-secondary py-2.5 text-caption"
+            >
+              Отмена
+            </button>
+            <button
+              onClick={() => { const id = selected.id; setSelected(null); enterMapNode(id); }}
+              className="btn-primary py-2.5 text-caption font-bold"
+            >
+              {selected.kind === "town" ? "Войти" : selected.kind === "boss" ? "Бросить вызов" : "Начать поход"} →
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Node list grid (accessible) */}
       <div className="space-y-2">
