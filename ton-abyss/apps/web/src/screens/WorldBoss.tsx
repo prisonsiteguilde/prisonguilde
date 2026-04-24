@@ -2,6 +2,7 @@ import { useGame } from "../store.js";
 import { ScreenLayout } from "../components/ScreenLayout.js";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { CreatureSprite } from "../components/CreatureSprite.js";
 
 export function WorldBoss() {
   const wb = useGame((s) => s.worldBoss);
@@ -36,8 +37,16 @@ export function WorldBoss() {
         <>
           <div className="card-elevated p-5 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-b from-rose-950/40 via-black/20 to-transparent" />
+            <motion.div
+              className="absolute -top-12 -right-12 w-52 h-52 rounded-full blur-3xl pointer-events-none"
+              style={{ background: "rgba(239,68,68,0.3)" }}
+              animate={{ scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            />
             <div className="relative">
-              <div className="text-[72px] text-center mb-1">{defeated ? "💀" : "🐉"}</div>
+              <div className="flex justify-center mb-1 min-h-[220px] items-end">
+                <CreatureSprite archetype="apex" element="void" size="lg" state={defeated ? "death" : "idle"} isBoss />
+              </div>
               <div className="text-title text-center" style={{ color: defeated ? "#94a3b8" : "#ef4444" }}>{wb.name}</div>
               <div className="text-caption text-center text-white/60 mb-3">
                 {defeated ? "Повержен!" : `${hrs}ч ${mins}мин до ухода`}
