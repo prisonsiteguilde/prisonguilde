@@ -1,0 +1,22 @@
+{
+  "name": "ton-abyss",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TON Abyss — хардкорный roguelite-RPG Telegram Mini App на TON",
+  "packageManager": "pnpm@9.15.1",
+  "scripts": {
+    "build": "pnpm -r --filter @ton-abyss/shared --filter @ton-abyss/content build && pnpm -r --filter @ton-abyss/api --filter @ton-abyss/web build",
+    "dev": "pnpm -r --parallel dev",
+    "dev:web": "pnpm --filter @ton-abyss/web dev",
+    "dev:api": "pnpm --filter @ton-abyss/api dev",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r exec rm -rf dist node_modules .turbo"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

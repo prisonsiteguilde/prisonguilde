@@ -1,0 +1,38 @@
+export * from "./abilities.js";
+export * from "./items.js";
+export * from "./materials.js";
+export * from "./monsters.js";
+export * from "./bosses.js";
+export * from "./pets.js";
+export * from "./dungeons.js";
+export * from "./recipes.js";
+export * from "./loot-tables.js";
+export * from "./sets.js";
+export * from "./gems.js";
+export * from "./quests.js";
+export * from "./achievements.js";
+export * from "./skills.js";
+export * from "./world-map.js";
+export * from "./factions.js";
+export * from "./tower.js";
+export * from "./arena.js";
+export * from "./bounties.js";
+export * from "./hunts.js";
+export * from "./expeditions.js";
+export * from "./runewords.js";
+export * from "./relics.js";
+export * from "./mounts.js";
+export * from "./enchants.js";
+export * from "./events.js";
+export * from "./clans.js";
+// Side-effect import: registers v3 expansion content.
+import "./expansion-v3.js";
+// Side-effect: registers weapon-locked abilities
+import "./weapon-abilities.js";
+export * from "./battlepass-season.js";
+export * from "./weapon-items.js";
+export * from "./lootbox-items.js";
+export * from "./echo-rifts.js";
+export * from "./weapons-mythic.js";
+export * from "./forge-stations.js";
+export * from "./pet-treats.js";
