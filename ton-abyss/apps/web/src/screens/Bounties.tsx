@@ -2,9 +2,9 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { BOUNTIES_POOL, BOUNTY_REROLL_COST, FACTIONS } from "@ton-abyss/content";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function Bounties() {
-  const setScreen = useGame((s) => s.setScreen);
   const bounties = useGame((s) => s.bounties);
   const refreshBountiesIfNeeded = useGame((s) => s.refreshBountiesIfNeeded);
   const rerollBounties = useGame((s) => s.rerollBounties);
@@ -13,18 +13,10 @@ export function Bounties() {
   useEffect(() => { refreshBountiesIfNeeded(); }, [refreshBountiesIfNeeded]);
 
   return (
-    <div className="px-4 py-4 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Доска контрактов</h2>
-        <span className="w-16" />
-      </div>
-
-      <div className="card p-3">
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-white/70">Сегодня выполнено: <b>{bounties.completedToday}</b></div>
-          <button className="btn-ghost text-xs" onClick={() => rerollBounties()}>Рефрешнуть ({BOUNTY_REROLL_COST}g)</button>
-        </div>
+    <ScreenLayout title="Доска контрактов" subtitle={`Выполнено сегодня: ${bounties.completedToday}`} back="home" accent="#a3e635">
+      <div className="card-flat p-3 flex items-center justify-between">
+        <div className="text-caption text-white/70">Активных: <b className="text-white/95">{bounties.active.length}</b></div>
+        <button className="btn-ghost text-caption press" onClick={() => rerollBounties()}>Рефрешнуть ({BOUNTY_REROLL_COST}g)</button>
       </div>
 
       <div className="space-y-2">
@@ -67,6 +59,6 @@ export function Bounties() {
           );
         })}
       </div>
-    </div>
+    </ScreenLayout>
   );
 }

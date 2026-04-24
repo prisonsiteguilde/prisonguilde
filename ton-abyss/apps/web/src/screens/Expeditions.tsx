@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { EXPEDITIONS, PETS } from "@ton-abyss/content";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function Expeditions() {
-  const setScreen = useGame((s) => s.setScreen);
   const expeditions = useGame((s) => s.expeditions);
   const pets = useGame((s) => s.pets);
   const sendExpedition = useGame((s) => s.sendExpedition);
@@ -17,12 +17,7 @@ export function Expeditions() {
   }, []);
 
   return (
-    <div className="px-4 py-4 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Экспедиции питомцев</h2>
-        <span className="w-16" />
-      </div>
+    <ScreenLayout title="Экспедиции питомцев" subtitle={`${expeditions.active.length} активных`} back="home" accent="#fbbf24">
 
       {expeditions.active.length > 0 && (
         <div className="card p-3">
@@ -114,7 +109,7 @@ export function Expeditions() {
           </div>
         </div>
       )}
-    </div>
+    </ScreenLayout>
   );
 }
 

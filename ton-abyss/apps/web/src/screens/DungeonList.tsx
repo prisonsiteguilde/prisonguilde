@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { DUNGEONS } from "@ton-abyss/content";
 import { DIFFICULTY_CURVE } from "@ton-abyss/shared";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 const BIOME_ART: Record<string, { emoji: string; tint: string; gradient: string }> = {
   crypt: { emoji: "⚰️", tint: "#60a5fa", gradient: "from-slate-800 via-slate-900 to-black" },
@@ -11,18 +12,12 @@ const BIOME_ART: Record<string, { emoji: string; tint: string; gradient: string 
 };
 
 export function DungeonList() {
-  const setScreen = useGame((s) => s.setScreen);
   const beginDungeon = useGame((s) => s.beginDungeon);
   const dungeons = Object.values(DUNGEONS);
   const char = useGame((s) => s.character)!;
 
   return (
-    <div className="px-4 py-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Данжи</h2>
-        <span className="w-16" />
-      </div>
+    <ScreenLayout title="Данжи" subtitle={`${dungeons.length} мест для зачистки`} back="home" accent="#f43f5e">
 
       <div className="space-y-3">
         {dungeons.map((d) => {
@@ -79,6 +74,6 @@ export function DungeonList() {
           );
         })}
       </div>
-    </div>
+    </ScreenLayout>
   );
 }

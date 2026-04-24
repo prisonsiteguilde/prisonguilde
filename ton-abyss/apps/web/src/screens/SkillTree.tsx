@@ -2,9 +2,9 @@ import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { SKILLS } from "@ton-abyss/content";
 import { CLASS_CONFIG } from "@ton-abyss/shared";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function SkillTree() {
-  const setScreen = useGame((s) => s.setScreen);
   const character = useGame((s) => s.character)!;
   const skillAllocation = useGame((s) => s.skillAllocation);
   const skillPoints = useGame((s) => s.skillPoints);
@@ -18,12 +18,7 @@ export function SkillTree() {
   const byTier = [1, 2, 3, 4].map((t) => classSkills.filter((s) => s.tier === t));
 
   return (
-    <div className="px-4 py-4 space-y-4 pb-28">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Дерево Навыков</h2>
-        <button onClick={resetSkills} className="btn-ghost text-xs">Сброс (2000💰)</button>
-      </div>
+    <ScreenLayout title="Дерево Навыков" subtitle={`${skillPoints} очков · Парагон ${paragonPoints}`} back="home" accent={CLASS_CONFIG[character.classId].color} actions={<button onClick={resetSkills} className="btn-ghost text-caption press">Сброс (2000g)</button>}>
 
       <div className="card p-3 flex items-center gap-3">
         <div className="text-3xl" style={{ filter: `drop-shadow(0 0 8px ${CLASS_CONFIG[character.classId].color})` }}>
@@ -84,6 +79,6 @@ export function SkillTree() {
           ))}
         </div>
       </div>
-    </div>
+    </ScreenLayout>
   );
 }

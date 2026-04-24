@@ -2,9 +2,9 @@ import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { useGame } from "../store.js";
 import { CLASS_CONFIG } from "@ton-abyss/shared";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function Leaderboard() {
-  const setScreen = useGame((s) => s.setScreen);
   const leaderboard = useGame((s) => s.leaderboard);
   const refresh = useGame((s) => s.refreshLeaderboard);
   const character = useGame((s) => s.character);
@@ -14,12 +14,7 @@ export function Leaderboard() {
   }, [refresh]);
 
   return (
-    <div className="px-4 py-4 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Лидерборд</h2>
-        <button className="btn-ghost text-xs" onClick={refresh}>⟳</button>
-      </div>
+    <ScreenLayout title="Лидерборд" subtitle={`${leaderboard.length} игроков в топе`} back="home" accent="#fde047" actions={<button className="btn-ghost text-caption press" onClick={refresh}>⟳</button>}>
 
       <div className="space-y-1">
         {leaderboard.map((e, idx) => {
@@ -54,6 +49,6 @@ export function Leaderboard() {
         })}
         {leaderboard.length === 0 && <div className="text-white/50 text-center py-8">Загрузка…</div>}
       </div>
-    </div>
+    </ScreenLayout>
   );
 }

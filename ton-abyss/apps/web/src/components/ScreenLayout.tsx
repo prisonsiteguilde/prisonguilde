@@ -12,11 +12,11 @@ interface Props {
   className?: string;
 }
 
-export function ScreenLayout({ title, subtitle, back, action, accent, children, className }: Props) {
+export function ScreenLayout({ title, subtitle, back, action, actions, accent, children, className }: Props & { actions?: ReactNode }) {
   return (
-    <div className={`px-4 pt-3 pb-24 ${className ?? ""}`}>
+    <div className={`px-4 pt-3 pb-24 page-in ${className ?? ""}`}>
       <div className="mb-4">
-        <ScreenHeader title={title} subtitle={subtitle} back={back} action={action} accent={accent} />
+        <ScreenHeader title={title} subtitle={subtitle} back={back} action={action ?? actions} accent={accent} />
       </div>
       <div className="section-gap">{children}</div>
     </div>

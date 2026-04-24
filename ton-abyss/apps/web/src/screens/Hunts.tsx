@@ -2,9 +2,9 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { HUNTS, FACTIONS } from "@ton-abyss/content";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function Hunts() {
-  const setScreen = useGame((s) => s.setScreen);
   const hunts = useGame((s) => s.hunts);
   const startHunt = useGame((s) => s.startHunt);
   const claimHunt = useGame((s) => s.claimHunt);
@@ -17,12 +17,7 @@ export function Hunts() {
   }, [progressHunt]);
 
   return (
-    <div className="px-4 py-4 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Охотничья доска</h2>
-        <span className="w-16" />
-      </div>
+    <ScreenLayout title="Охотничья доска" subtitle={`${hunts.active.length} активных, ${hunts.completed.length} завершено`} back="home" accent="#22d3ee">
 
       <div className="space-y-2">
         {HUNTS.map((h) => {
@@ -68,6 +63,6 @@ export function Hunts() {
           );
         })}
       </div>
-    </div>
+    </ScreenLayout>
   );
 }

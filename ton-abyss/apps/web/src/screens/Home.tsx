@@ -119,42 +119,42 @@ export function Home() {
   const primary: StatId[] = ["strength", "agility", "intellect", "vitality", "spirit", "luck"];
 
   return (
-    <div className="px-4 pt-3 pb-24 section-gap-lg">
+    <div className="px-4 pt-3 pb-24 section-gap-lg page-in">
       <DailyRewardsBanner />
-      {/* Quick-action bar */}
-      <div className="grid grid-cols-2 gap-2.5">
+      {/* Quick-action bar — hero CTAs */}
+      <div className="grid grid-cols-2 gap-3">
         <motion.button
-          whileTap={{ scale: 0.97 }}
+          whileTap={{ scale: 0.96 }}
           onClick={() => setScreen("world_map")}
-          className="card-elevated relative overflow-hidden p-4 text-left group"
-          style={{ minHeight: 82 }}
+          className="cta-hero-abyss text-left"
+          style={{ minHeight: 92 }}
         >
-          <div className="absolute -right-4 -bottom-6 w-28 h-28 rounded-full blur-2xl opacity-35" style={{ background: "#60a5fa" }} />
+          <div className="absolute -right-4 -bottom-8 w-36 h-36 rounded-full blur-3xl opacity-40 pointer-events-none" style={{ background: "#60a5fa" }} />
           <div className="flex items-center gap-3 relative">
-            <div className="w-11 h-11 rounded-xl grid place-items-center border" style={{ color: "#60a5fa", background: "linear-gradient(135deg,#60a5fa26,transparent)", borderColor: "#60a5fa55" }}>
-              <ICONS.map size={22} />
+            <div className="w-12 h-12 rounded-xl grid place-items-center border" style={{ color: "#60a5fa", background: "linear-gradient(135deg,#60a5fa33,transparent)", borderColor: "#60a5fa66" }}>
+              <ICONS.map size={26} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-title text-white/95">Карта</div>
-              <div className="text-caption">Акты, биомы</div>
+              <div className="text-display text-white leading-none">Карта</div>
+              <div className="text-caption text-white/70 mt-1">Акты · биомы · боссы</div>
             </div>
           </div>
         </motion.button>
 
         <motion.button
-          whileTap={{ scale: 0.97 }}
+          whileTap={{ scale: 0.96 }}
           onClick={() => setScreen("dungeon_list")}
-          className="card-elevated relative overflow-hidden p-4 text-left group"
-          style={{ minHeight: 82 }}
+          className="cta-hero-danger text-left"
+          style={{ minHeight: 92 }}
         >
-          <div className="absolute -right-4 -bottom-6 w-28 h-28 rounded-full blur-2xl opacity-35" style={{ background: "#f43f5e" }} />
+          <div className="absolute -right-4 -bottom-8 w-36 h-36 rounded-full blur-3xl opacity-40 pointer-events-none" style={{ background: "#f43f5e" }} />
           <div className="flex items-center gap-3 relative">
-            <div className="w-11 h-11 rounded-xl grid place-items-center border" style={{ color: "#f43f5e", background: "linear-gradient(135deg,#f43f5e26,transparent)", borderColor: "#f43f5e55" }}>
-              <ICONS.dungeons size={22} />
+            <div className="w-12 h-12 rounded-xl grid place-items-center border" style={{ color: "#f43f5e", background: "linear-gradient(135deg,#f43f5e33,transparent)", borderColor: "#f43f5e66" }}>
+              <ICONS.dungeons size={26} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-title text-white/95">Данжи</div>
-              <div className="text-caption">Боссы и лут</div>
+              <div className="text-display text-white leading-none">Данжи</div>
+              <div className="text-caption text-white/70 mt-1">Боссы · лут · XP</div>
             </div>
           </div>
         </motion.button>
@@ -240,10 +240,10 @@ export function Home() {
       </div>
 
       {/* Menu by category */}
-      {MENU.map((group, gi) => {
+      {MENU.map((group) => {
         const GroupIcon = ICONS[group.icon];
         return (
-          <div key={group.key} className="space-y-2" style={{ animationDelay: `${gi * 60}ms` }}>
+          <div key={group.key} className="space-y-2">
             <div className="flex items-center gap-2.5 px-1">
               <div
                 className="w-7 h-7 rounded-lg grid place-items-center border"
@@ -263,17 +263,15 @@ export function Home() {
                 {group.tiles.length}
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-2.5">
-              {group.tiles.map((t, ti) => {
+            <div className="grid grid-cols-2 gap-2.5 stagger-in">
+              {group.tiles.map((t) => {
                 const TileIcon = ICONS[t.icon];
                 return (
                   <motion.button
                     key={t.id}
-                    whileTap={{ scale: 0.97 }}
-                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.96 }}
                     onClick={() => setScreen(t.id)}
-                    className="card-elevated p-3 relative overflow-hidden text-left flex items-center gap-3"
-                    style={{ animation: `tile-in 0.4s ease-out ${(gi * 4 + ti) * 30}ms both` }}
+                    className="card-elevated tile-lift p-3 relative overflow-hidden text-left flex items-center gap-3"
                   >
                     <div
                       className="absolute -right-4 -bottom-4 w-20 h-20 rounded-full blur-2xl opacity-30 pointer-events-none"

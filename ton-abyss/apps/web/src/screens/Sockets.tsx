@@ -3,9 +3,9 @@ import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { ITEMS, GEMS } from "@ton-abyss/content";
 import { rarityTint } from "../components/ItemTile.js";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function Sockets() {
-  const setScreen = useGame((s) => s.setScreen);
   const inventory = useGame((s) => s.inventory);
   const gems = useGame((s) => s.gems);
   const socketGem = useGame((s) => s.socketGem);
@@ -18,12 +18,7 @@ export function Sockets() {
   const selected = sockettables.find((i) => i.uid === selectedUid) ?? sockettables[0];
 
   return (
-    <div className="px-4 py-4 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Гнёзда и Перековка</h2>
-        <span className="w-16" />
-      </div>
+    <ScreenLayout title="Гнёзда и Перековка" subtitle={`${sockettables.length} предметов · ${gems.length} гемов`} back="home" accent="#c084fc">
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1 max-h-72 overflow-y-auto">
@@ -109,6 +104,6 @@ export function Sockets() {
           </div>
         </div>
       </div>
-    </div>
+    </ScreenLayout>
   );
 }

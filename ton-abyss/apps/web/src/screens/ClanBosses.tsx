@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useGame, useDerivedStats } from "../store.js";
 import { CLAN_BOSSES } from "@ton-abyss/shared";
 import { Icon } from "../components/Icon.js";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function ClanBosses() {
   const clan = useGame((s) => s.clan);
@@ -16,25 +17,19 @@ export function ClanBosses() {
 
   if (!clan) {
     return (
-      <div className="px-4 py-4 space-y-4 pb-24">
-        <div className="flex items-center gap-2">
-          <button onClick={() => setScreen("home")} className="btn-ghost">← Домой</button>
-        </div>
-        <div className="panel p-6 text-center space-y-2">
+      <ScreenLayout title="Клан-боссы" subtitle="Требуется клан" back="home" accent="#fb7185">
+        <div className="card-elevated p-6 text-center space-y-2">
           <Icon name="clan" size={48} color="#f0abfc" />
-          <div className="text-lg font-bold text-white">Клан-боссы</div>
-          <div className="text-sm text-slate-400">Сначала вступите в клан.</div>
-          <button className="btn-primary mt-2" onClick={() => setScreen("clan")}>В клан</button>
+          <div className="text-title text-white">Клан-боссы</div>
+          <div className="text-caption text-slate-400">Сначала вступите в клан.</div>
+          <button className="btn-primary press mt-2" onClick={() => setScreen("clan")}>В клан</button>
         </div>
-      </div>
+      </ScreenLayout>
     );
   }
 
   return (
-    <div className="px-4 py-4 space-y-4 pb-24">
-      <div className="flex items-center gap-2">
-        <button onClick={() => setScreen("home")} className="btn-ghost">← Домой</button>
-      </div>
+    <ScreenLayout title="Клан-боссы" subtitle={inst ? "Активный бой" : `${CLAN_BOSSES.length} боссов доступно`} back="home" accent="#fb7185">
 
       <div className="panel p-4 space-y-1 bg-gradient-to-br from-rose-900/30 to-slate-900/80 border border-rose-500/30">
         <div className="text-xs uppercase tracking-widest text-rose-300/80">Клан-боссы</div>
@@ -155,7 +150,7 @@ export function ClanBosses() {
           ))}
         </div>
       )}
-    </div>
+    </ScreenLayout>
   );
 }
 

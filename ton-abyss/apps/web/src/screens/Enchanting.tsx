@@ -2,9 +2,9 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "../store.js";
 import { ENCHANTS, RUNEWORDS, ITEMS } from "@ton-abyss/content";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function Enchanting() {
-  const setScreen = useGame((s) => s.setScreen);
   const inventory = useGame((s) => s.inventory);
   const materials = useGame((s) => s.materials);
   const char = useGame((s) => s.character)!;
@@ -19,18 +19,12 @@ export function Enchanting() {
   });
 
   return (
-    <div className="px-4 py-4 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Чарование</h2>
-        <span className="w-16" />
-      </div>
-
-      <div className="flex gap-2">
-        <button className={`flex-1 px-3 py-2 rounded text-sm ${tab === "enchant" ? "bg-fuchsia-500/30 border border-fuchsia-400/40" : "bg-black/30"}`} onClick={() => setTab("enchant")}>
+    <ScreenLayout title="Чарование" subtitle={`${equipableItems.length} предметов доступно`} back="home" accent="#f472b6">
+      <div className="seg">
+        <button className={`seg-item ${tab === "enchant" ? "active" : ""}`} onClick={() => setTab("enchant")}>
           ✨ Энчанты
         </button>
-        <button className={`flex-1 px-3 py-2 rounded text-sm ${tab === "runeword" ? "bg-amber-500/30 border border-amber-400/40" : "bg-black/30"}`} onClick={() => setTab("runeword")}>
+        <button className={`seg-item ${tab === "runeword" ? "active" : ""}`} onClick={() => setTab("runeword")}>
           🔮 Рунворды
         </button>
       </div>
@@ -123,6 +117,6 @@ export function Enchanting() {
           })}
         </div>
       )}
-    </div>
+    </ScreenLayout>
   );
 }

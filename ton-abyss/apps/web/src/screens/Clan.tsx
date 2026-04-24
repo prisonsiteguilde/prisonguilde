@@ -2,20 +2,14 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { useGame } from "../store.js";
 import { CLAN_PERKS, CLAN_RANKS, NPC_CLANS, CLAN_CONFIG } from "@ton-abyss/content";
+import { ScreenLayout } from "../components/ScreenLayout.js";
 
 export function Clan() {
-  const setScreen = useGame((s) => s.setScreen);
   const clan = useGame((s) => s.clan);
-
   return (
-    <div className="px-4 py-4 space-y-3 pb-24">
-      <div className="flex items-center justify-between">
-        <button className="btn-ghost" onClick={() => setScreen("home")}>← Домой</button>
-        <h2 className="panel-title">Клан</h2>
-        <span className="w-16" />
-      </div>
+    <ScreenLayout title="Клан" subtitle={clan ? `${clan.name} · ур. ${clan.level}` : "Без клана"} back="home" accent="#f0abfc">
       {clan ? <ClanDashboard /> : <NoClan />}
-    </div>
+    </ScreenLayout>
   );
 }
 
