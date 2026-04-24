@@ -2,13 +2,25 @@ import { useGame } from "../store.js";
 import { CLASS_META } from "@ton-abyss/shared";
 import { motion } from "framer-motion";
 import { ICONS, type IconName } from "./Icon.js";
+import { useEffect, useState } from "react";
 
 export function TopBar() {
   const char = useGame((s) => s.character);
   const screen = useGame((s) => s.screen);
   const setScreen = useGame((s) => s.setScreen);
+  const energy = useGame((s) => s.energy);
+  const speedupEnergy = useGame((s) => s.speedupEnergy);
+  const pushToast = useGame((s) => s.pushToast);
+  const [, tick] = useState(0);
+  useEffect(() => { const id = setInterval(() => tick((t) => t + 1), 30_000); return () => clearInterval(id); }, []);
   if (!char) return null;
   const meta = CLASS_META[char.classId];
+  const now = Date.now();
+  const elapsedMs = now - energy.lastRegenAt;
+  const REGEN_MS = 6 * 60 * 1000;
+  const currentEnergy = Math.min(energy.max, energy.current + Math.floor(elapsedMs / REGEN_MS));
+  const secToNext = currentEnergy >= energy.max ? 0 : Math.max(0, Math.ceil((REGEN_MS - (elapsedMs % REGEN_MS)) / 1000));
+  const energyPct = (currentEnergy / energy.max) * 100;
 
   return (
     <div className="sticky top-0 z-30 backdrop-blur-md bg-abyss-950/80 border-b border-white/10">
@@ -36,6 +48,23 @@ export function TopBar() {
           <Pill icon="dust"  value={fmt(char.abyssDust)} tone="#c084fc" />
         </div>
       </div>
+      <button
+        onClick={() => { const r = speedupEnergy(); if (!r.ok && r.error) pushToast({ text: r.error, tone: "bad" }); }}
+        className="w-full max-w-screen-md mx-auto px-3 pb-1.5 flex items-center gap-2 group"
+        aria-label="Энергия"
+      >
+        <span className="text-[11px] font-semibold text-amber-300/80 shrink-0">⚡ {currentEnergy}/{energy.max}</span>
+        <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-gradient-to-r from-amber-500 via-amber-300 to-amber-500"
+            animate={{ width: `${energyPct}%` }}
+            transition={{ duration: 0.4 }}
+          />
+        </div>
+        <span className="text-[9px] text-white/40 shrink-0 tabular-nums">
+          {secToNext > 0 ? `+1 через ${Math.floor(secToNext / 60)}:${String(secToNext % 60).padStart(2, "0")}` : "MAX"}
+        </span>
+      </button>
       {screen !== "home" && (
         <motion.div className="h-[2px] bg-gradient-to-r from-transparent via-abyss-500 to-transparent" layoutId="barGlow" />
       )}

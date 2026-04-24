@@ -142,7 +142,12 @@ export type Screen =
   | "auction"
   | "trade_post"
   | "blueprints"
-  | "forge_stations";
+  | "forge_stations"
+  | "fishing"
+  | "gathering"
+  | "world_boss"
+  | "journal"
+  | "loadouts";
 
 export interface Toast {
   id: string;
@@ -417,6 +422,28 @@ export interface GameState {
   prestigeCount: number;
   craftingStats: { itemsCrafted: number; itemsSalvaged: number; itemsUpgraded: number };
 
+  // Plan v9: Energy & Daily Caps (anti-grind)
+  energy: { current: number; max: number; lastRegenAt: number };
+  dailyCounters: {
+    date: string;
+    lootboxOpens: number;
+    mythicLootboxOpens: number;
+    marketListings: number;
+    auctionCreates: number;
+    tradeAccepts: number;
+    echoRiftAttempts: number;
+    arenaFights: number;
+    petTreatsFed: Record<string, number>;
+    staminaSpeedups: number;
+    fishingCasts: number;
+    gatheringRuns: number;
+    journalEntries: number;
+  };
+  // Plan v9: Player Journal
+  journal: { id: string; at: number; kind: string; text: string; meta?: Record<string, string | number> }[];
+  // Plan v9: World Boss
+  worldBoss: { id: string; name: string; hpCurrent: number; hpMax: number; endsAt: number; contributors: Record<string, number>; rewards: Record<string, { gold: number; shards: number; claimed: boolean }> } | null;
+
   // clan
   clan: PlayerClan | null;
   clanDailyContrib: { date: string; gold: number; kills: number; bounties: number; bosses: number };
@@ -471,9 +498,7 @@ export interface GameState {
   takeFromStash: (uid: string) => void;
   lockItem: (uid: string) => void;
   unlockItem: (uid: string) => void;
-  saveLoadout: (name: string) => void;
   equipLoadout: (id: string) => void;
-  deleteLoadout: (id: string) => void;
   enterTower: () => void;
   towerNext: () => void;
   runEchoRift: (tier: number) => { ok: boolean; error?: string; gold?: number; xp?: number };
@@ -512,6 +537,23 @@ export interface GameState {
   feedPetTreat: (petUid: string, treatId: string) => { ok: boolean; error?: string; bondGained?: number; xpGained?: number };
   setActiveForgeStation: (stationId: string) => void;
   unlockForgeStation: (stationId: string) => { ok: boolean; error?: string };
+  // Plan v9: Energy & Daily caps
+  consumeEnergy: (amount: number) => { ok: boolean; error?: string };
+  speedupEnergy: () => { ok: boolean; error?: string; cost?: number };
+  // Plan v9: Activities
+  fishingCast: () => { ok: boolean; error?: string; reward?: { gold: number; mat?: string; matQty?: number } };
+  gatherRun: (biome: string) => { ok: boolean; error?: string; mats?: Record<string, number> };
+  // Plan v9: World boss
+  spawnWorldBoss: () => void;
+  attackWorldBoss: () => { ok: boolean; error?: string; damage?: number };
+  claimWorldBossReward: () => { ok: boolean; error?: string };
+  // Plan v9: Journal
+  addJournalEntry: (kind: string, text: string, meta?: Record<string, string | number>) => void;
+  clearJournal: () => void;
+  // Plan v9: Loadouts
+  saveLoadout: (slot: number, name: string) => { ok: boolean; error?: string };
+  loadLoadout: (slot: number) => { ok: boolean; error?: string };
+  deleteLoadout: (slot: number) => void;
   evolvePet: (petUid: string) => { ok: boolean; error?: string };
   fusePets: (petUidA: string, petUidB: string) => { ok: boolean; error?: string };
   hatchEgg: (eggBaseId: string) => { ok: boolean };
@@ -610,6 +652,39 @@ function todayKey(): string {
 
 function genId(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 8)}_${Date.now().toString(36)}`;
+}
+
+// Plan v9: regen energy lazily on access. 1 point per 6 minutes (=10/h, full 120 in 12h)
+const ENERGY_REGEN_MS = 6 * 60 * 1000;
+function regenEnergy(e: { current: number; max: number; lastRegenAt: number }): { current: number; max: number; lastRegenAt: number } {
+  const now = Date.now();
+  const elapsed = now - e.lastRegenAt;
+  if (elapsed < ENERGY_REGEN_MS) return e;
+  const points = Math.floor(elapsed / ENERGY_REGEN_MS);
+  const newCurrent = Math.min(e.max, e.current + points);
+  const consumedMs = points * ENERGY_REGEN_MS;
+  return { current: newCurrent, max: e.max, lastRegenAt: e.lastRegenAt + consumedMs };
+}
+
+function rolloverDailyIfNeeded<T extends { date: string }>(dc: T): T {
+  const today = todayKey();
+  if (dc.date === today) return dc;
+  return {
+    ...dc,
+    date: today,
+    lootboxOpens: 0,
+    mythicLootboxOpens: 0,
+    marketListings: 0,
+    auctionCreates: 0,
+    tradeAccepts: 0,
+    echoRiftAttempts: 0,
+    arenaFights: 0,
+    petTreatsFed: {},
+    staminaSpeedups: 0,
+    fishingCasts: 0,
+    gatheringRuns: 0,
+    journalEntries: 0,
+  } as unknown as T;
 }
 
 function starterKit(classId: ClassId): { inv: ItemInstance[]; equipped: Record<string, string | null>; mats: Record<string, number> } {
@@ -840,6 +915,24 @@ export const useGame = create<GameState>()(
       petStates: {},
       activeForgeStation: "neutral",
       unlockedForgeStations: ["neutral"],
+      energy: { current: 120, max: 120, lastRegenAt: Date.now() },
+      dailyCounters: {
+        date: todayKey(),
+        lootboxOpens: 0,
+        mythicLootboxOpens: 0,
+        marketListings: 0,
+        auctionCreates: 0,
+        tradeAccepts: 0,
+        echoRiftAttempts: 0,
+        arenaFights: 0,
+        petTreatsFed: {},
+        staminaSpeedups: 0,
+        fishingCasts: 0,
+        gatheringRuns: 0,
+        journalEntries: 0,
+      },
+      journal: [],
+      worldBoss: null,
       toasts: [],
       lastDungeonLog: [],
       echoRifts: { highestTier: 0, clears: 0, pityCounter: 0, bestRunGold: 0 },
@@ -1953,11 +2046,6 @@ export const useGame = create<GameState>()(
       }),
       lockItem: (uid) => set((s) => ({ lockedItems: s.lockedItems.includes(uid) ? s.lockedItems : [...s.lockedItems, uid] })),
       unlockItem: (uid) => set((s) => ({ lockedItems: s.lockedItems.filter((x) => x !== uid) })),
-      saveLoadout: (name) => set((s) => {
-        const loadout: Loadout = { id: genId("ld"), name, equipped: { ...s.equipped } };
-        const next = [...s.loadouts.slice(-2), loadout];
-        return { loadouts: next, toasts: [...s.toasts, { id: genId("tst"), text: `Комплект «${name}» сохранён.`, tone: "good" as const }] };
-      }),
       equipLoadout: (id) => set((s) => {
         const ld = s.loadouts.find((l) => l.id === id);
         if (!ld) return s;
@@ -1969,7 +2057,6 @@ export const useGame = create<GameState>()(
         }
         return { equipped: nextEq, toasts: [...s.toasts, { id: genId("tst"), text: `Комплект «${ld.name}» надет.`, tone: "good" as const }] };
       }),
-      deleteLoadout: (id) => set((s) => ({ loadouts: s.loadouts.filter((l) => l.id !== id) })),
 
       // ================ TOWER ================
       enterTower: () => {
@@ -2054,6 +2141,15 @@ export const useGame = create<GameState>()(
         if (!t) return { ok: false, error: "Тир не найден." };
         if (s.character.level < t.levelMin) return { ok: false, error: `Нужен уровень ${t.levelMin}.` };
         if (s.echoRifts.highestTier + 1 < tier) return { ok: false, error: `Сначала пройди тир ${s.echoRifts.highestTier + 1}.` };
+        // Plan v9: daily cap + energy
+        const dc = rolloverDailyIfNeeded(s.dailyCounters);
+        if (dc.echoRiftAttempts >= 8) return { ok: false, error: "Дневной лимит Эхо-Рифтов (8/8)." };
+        const e = regenEnergy(s.energy);
+        if (e.current < 20) return { ok: false, error: `Нужно 20 энергии (есть ${Math.floor(e.current)}).` };
+        set({
+          energy: { ...e, current: e.current - 20 },
+          dailyCounters: { ...dc, echoRiftAttempts: dc.echoRiftAttempts + 1 },
+        });
 
         const seed = Date.now() + tier * 1000;
         const rngFn = (() => {
@@ -2244,6 +2340,8 @@ export const useGame = create<GameState>()(
         if (price < 10) return { ok: false, error: "Минимальная цена 10g." };
         const myActive = s.market.listings.filter((l) => l.isMine).length;
         if (myActive >= s.market.maxActiveListings) return { ok: false, error: `Лимит активных лотов: ${s.market.maxActiveListings}.` };
+        const dc = rolloverDailyIfNeeded(s.dailyCounters);
+        if (dc.marketListings >= 5) return { ok: false, error: "Дневной лимит выставлений (5/5)." };
         const listingFee = Math.max(50, Math.floor(price * 0.05));
         if (s.character.gold < listingFee) return { ok: false, error: `Нужно ${listingFee}g для оплаты комиссии.` };
         const now = Date.now();
@@ -2262,7 +2360,8 @@ export const useGame = create<GameState>()(
           stash: s.stash.filter((i) => i.uid !== uid),
           character: { ...s.character, gold: s.character.gold - listingFee },
           market: { ...s.market, listings: [listing, ...s.market.listings] },
-          toasts: [...s.toasts, { id: genId("tst"), text: `Лот выставлен. Комиссия: ${listingFee}g.`, tone: "info" as const }],
+          dailyCounters: { ...dc, marketListings: dc.marketListings + 1 },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Лот выставлен. Комиссия: ${listingFee}g. (${dc.marketListings + 1}/5 за день)`, tone: "info" as const }],
         });
         return { ok: true };
       },
@@ -2393,6 +2492,8 @@ export const useGame = create<GameState>()(
         if (s.lockedItems.includes(uid)) return { ok: false, error: "Предмет заблокирован." };
         if (startPrice < 50) return { ok: false, error: "Стартовая цена ≥ 50g." };
         if (buyoutPrice && buyoutPrice <= startPrice) return { ok: false, error: "Цена выкупа должна быть выше старта." };
+        const dc = rolloverDailyIfNeeded(s.dailyCounters);
+        if (dc.auctionCreates >= 3) return { ok: false, error: "Дневной лимит аукционов (3/3)." };
         const fee = Math.max(100, Math.floor(startPrice * 0.05));
         if (s.character.gold < fee) return { ok: false, error: `Нужно ${fee}g комиссии.` };
         const now = Date.now();
@@ -2414,7 +2515,8 @@ export const useGame = create<GameState>()(
           stash: s.stash.filter((i) => i.uid !== uid),
           character: { ...s.character, gold: s.character.gold - fee },
           auction: { ...s.auction, lots: [lot, ...s.auction.lots] },
-          toasts: [...s.toasts, { id: genId("tst"), text: `Лот на аукционе. Комиссия: ${fee}g.`, tone: "info" as const }],
+          dailyCounters: { ...dc, auctionCreates: dc.auctionCreates + 1 },
+          toasts: [...s.toasts, { id: genId("tst"), text: `Лот на аукционе. Комиссия: ${fee}g. (${dc.auctionCreates + 1}/3 за день)`, tone: "info" as const }],
         });
         return { ok: true };
       },
@@ -2619,6 +2721,17 @@ export const useGame = create<GameState>()(
         if (!s.character) return { won: false, eloDelta: 0 };
         const opp = ARENA_OPPONENTS.find((o) => o.id === opponentId);
         if (!opp) return { won: false, eloDelta: 0 };
+        // Plan v9: daily + energy
+        const dc = rolloverDailyIfNeeded(s.dailyCounters);
+        if (dc.arenaFights >= 10) {
+          set({ toasts: [...s.toasts, { id: genId("tst"), text: "Дневной лимит арены (10/10).", tone: "bad" as const }] });
+          return { won: false, eloDelta: 0 };
+        }
+        const e = regenEnergy(s.energy);
+        if (e.current < 10) {
+          set({ toasts: [...s.toasts, { id: genId("tst"), text: `Нужно 10 энергии (есть ${Math.floor(e.current)}).`, tone: "bad" as const }] });
+          return { won: false, eloDelta: 0 };
+        }
         const derived = buildDerived(s.character, s.inventory, s.equipped, s.skillAllocation, s.paragon);
         // Power comparison with RNG
         const playerPower = derived.attack + derived.spellPower + derived.defense + derived.maxHp / 10;
@@ -2638,6 +2751,8 @@ export const useGame = create<GameState>()(
             dailyFights: s.arena.dailyFights + 1,
           },
           character: { ...s.character, gold: s.character.gold + goldReward, xp: s.character.xp + xpReward },
+          energy: { ...e, current: e.current - 10 },
+          dailyCounters: { ...dc, arenaFights: dc.arenaFights + 1 },
           toasts: [...s.toasts, { id: genId("tst"), text: won ? `Победа! +${eloDelta} ELO, +${goldReward}g.` : `Поражение. ${eloDelta} ELO.`, tone: won ? "epic" as const : "bad" as const }],
         });
         if (won) {
@@ -2919,6 +3034,201 @@ export const useGame = create<GameState>()(
           toasts: [...s.toasts, { id: genId("tst"), text: `🔥 ${def.ru} открыта и активирована!`, tone: "epic" as const }],
         });
         return { ok: true };
+      },
+
+      // ============ ENERGY SYSTEM ============
+      consumeEnergy: (amount) => {
+        const s = get();
+        const e = regenEnergy(s.energy);
+        if (e.current < amount) {
+          return { ok: false, error: `Нужно ${amount} энергии (есть ${Math.floor(e.current)}). Восстанавливается 1/6мин.` };
+        }
+        set({ energy: { ...e, current: e.current - amount } });
+        return { ok: true };
+      },
+      speedupEnergy: () => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const dc = rolloverDailyIfNeeded(s.dailyCounters);
+        if (dc.staminaSpeedups >= 3) return { ok: false, error: "Лимит ускорений на сегодня (3/3)." };
+        const cost = 500 + dc.staminaSpeedups * 250;
+        if (s.character.gold < cost) return { ok: false, error: `Нужно ${cost}g.` };
+        const e = regenEnergy(s.energy);
+        const restored = Math.floor(e.max * 0.5);
+        set({
+          character: { ...s.character, gold: s.character.gold - cost },
+          energy: { ...e, current: Math.min(e.max, e.current + restored), lastRegenAt: Date.now() },
+          dailyCounters: { ...dc, staminaSpeedups: dc.staminaSpeedups + 1 },
+          toasts: [...s.toasts, { id: genId("tst"), text: `+${restored} энергии за ${cost}g.`, tone: "good" as const }],
+        });
+        return { ok: true, cost };
+      },
+
+      // ============ FISHING (anti-grind passive activity) ============
+      fishingCast: () => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const dc = rolloverDailyIfNeeded(s.dailyCounters);
+        if (dc.fishingCasts >= 20) return { ok: false, error: "Дневной лимит рыбалки (20)." };
+        const e = regenEnergy(s.energy);
+        if (e.current < 2) return { ok: false, error: "Нужно 2 энергии." };
+        const rng = Math.random();
+        let mat: string | undefined;
+        let matQty = 0;
+        const goldGain = 30 + Math.floor(Math.random() * 80);
+        if (rng < 0.4) { mat = "mat_pearl"; matQty = 1; }
+        else if (rng < 0.65) { mat = "mat_seaweed"; matQty = 2; }
+        else if (rng < 0.85) { mat = "mat_iron"; matQty = 1; }
+        else if (rng < 0.95) { mat = "treat_jerky"; matQty = 1; }
+        else { mat = "mat_abyss_shard"; matQty = 1; }
+        const newMats = { ...s.materials };
+        if (mat) newMats[mat] = (newMats[mat] ?? 0) + matQty;
+        set({
+          character: { ...s.character, gold: s.character.gold + goldGain },
+          energy: { ...e, current: e.current - 2 },
+          materials: newMats,
+          dailyCounters: { ...dc, fishingCasts: dc.fishingCasts + 1 },
+          toasts: [...s.toasts, { id: genId("tst"), text: `🎣 +${goldGain}g${mat ? `, +${matQty}× ${mat}` : ""}`, tone: "good" as const }],
+        });
+        return { ok: true, reward: { gold: goldGain, mat, matQty } };
+      },
+
+      // ============ GATHERING ============
+      gatherRun: (biome) => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        const dc = rolloverDailyIfNeeded(s.dailyCounters);
+        if (dc.gatheringRuns >= 10) return { ok: false, error: "Дневной лимит сбора (10)." };
+        const e = regenEnergy(s.energy);
+        if (e.current < 4) return { ok: false, error: "Нужно 4 энергии." };
+        const tableMap: Record<string, string[]> = {
+          forest: ["mat_linen", "mat_leather", "mat_oak"],
+          mountain: ["mat_iron", "mat_silver", "mat_mithril"],
+          swamp: ["mat_pearl", "mat_essence_shimmer", "mat_void_shard"],
+          abyss: ["mat_abyss_shard", "mat_essence_radiant", "mat_boss_soul"],
+        };
+        const pool = tableMap[biome] ?? tableMap.forest!;
+        const drops: Record<string, number> = {};
+        for (const m of pool) {
+          if (Math.random() < 0.7) drops[m] = (drops[m] ?? 0) + 1 + Math.floor(Math.random() * 3);
+        }
+        const newMats = { ...s.materials };
+        for (const [m, q] of Object.entries(drops)) newMats[m] = (newMats[m] ?? 0) + q;
+        set({
+          energy: { ...e, current: e.current - 4 },
+          materials: newMats,
+          dailyCounters: { ...dc, gatheringRuns: dc.gatheringRuns + 1 },
+          toasts: [...s.toasts, { id: genId("tst"), text: `🌿 Собрано: ${Object.entries(drops).map(([m, q]) => `${q}× ${m}`).join(", ")}`, tone: "good" as const }],
+        });
+        return { ok: true, mats: drops };
+      },
+
+      // ============ WORLD BOSS ============
+      spawnWorldBoss: () => {
+        const s = get();
+        if (s.worldBoss && s.worldBoss.endsAt > Date.now() && s.worldBoss.hpCurrent > 0) return;
+        const bosses = [
+          { id: "wb_collossus", name: "Колосс Бездны", hp: 200000 },
+          { id: "wb_devourer", name: "Пожиратель Миров", hp: 300000 },
+          { id: "wb_warden", name: "Страж Финального Покоя", hp: 500000 },
+        ];
+        const b = bosses[Math.floor(Math.random() * bosses.length)]!;
+        set({
+          worldBoss: {
+            id: b.id, name: b.name,
+            hpMax: b.hp, hpCurrent: b.hp,
+            endsAt: Date.now() + 24 * 60 * 60 * 1000,
+            contributors: {},
+            rewards: {},
+          },
+          toasts: [...s.toasts, { id: genId("tst"), text: `🐉 ${b.name} появился! Действует 24ч.`, tone: "epic" as const }],
+        });
+      },
+      attackWorldBoss: () => {
+        const s = get();
+        if (!s.character) return { ok: false, error: "Нет персонажа." };
+        if (!s.worldBoss || s.worldBoss.hpCurrent <= 0) return { ok: false, error: "Босса нет." };
+        if (s.worldBoss.endsAt < Date.now()) return { ok: false, error: "Босс ушёл." };
+        const e = regenEnergy(s.energy);
+        if (e.current < 5) return { ok: false, error: "Нужно 5 энергии." };
+        const derived = buildDerived(s.character, s.inventory, s.equipped, s.skillAllocation, s.paragon);
+        const dmg = Math.round((derived.attack + derived.spellPower * 0.7) * (0.8 + Math.random() * 0.4));
+        const newHp = Math.max(0, s.worldBoss.hpCurrent - dmg);
+        const myDmg = (s.worldBoss.contributors[s.character.id] ?? 0) + dmg;
+        const updated = {
+          ...s.worldBoss,
+          hpCurrent: newHp,
+          contributors: { ...s.worldBoss.contributors, [s.character.id]: myDmg },
+        };
+        const toasts = [...s.toasts, { id: genId("tst"), text: `⚔ -${dmg.toLocaleString("ru-RU")} HP боссу.`, tone: "good" as const }];
+        if (newHp === 0) {
+          // distribute rewards based on damage share
+          const totalDmg = Object.values(updated.contributors).reduce((a, b) => a + b, 0);
+          const myShare = myDmg / totalDmg;
+          const goldReward = Math.round(50000 * myShare);
+          const shardsReward = Math.round(150 * myShare);
+          updated.rewards[s.character.id] = { gold: goldReward, shards: shardsReward, claimed: false };
+          toasts.push({ id: genId("tst"), text: `🏆 Босс повержен! Доля: ${(myShare * 100).toFixed(1)}%`, tone: "epic" as const });
+        }
+        set({
+          energy: { ...e, current: e.current - 5 },
+          worldBoss: updated,
+          toasts,
+        });
+        if (newHp === 0) {
+          const journalEntry = { id: genId("jl"), at: Date.now(), kind: "boss", text: `Повержен мировой босс ${s.worldBoss.name}. Ваш урон: ${myDmg.toLocaleString("ru-RU")}.` };
+          set((st) => ({ journal: [journalEntry, ...st.journal].slice(0, 200) }));
+        }
+        return { ok: true, damage: dmg };
+      },
+      claimWorldBossReward: () => {
+        const s = get();
+        if (!s.character || !s.worldBoss) return { ok: false, error: "Нет награды." };
+        const r = s.worldBoss.rewards[s.character.id];
+        if (!r) return { ok: false, error: "Не участвовал или нет добычи." };
+        if (r.claimed) return { ok: false, error: "Уже забрано." };
+        set({
+          character: { ...s.character, gold: s.character.gold + r.gold, shards: s.character.shards + r.shards },
+          worldBoss: { ...s.worldBoss, rewards: { ...s.worldBoss.rewards, [s.character.id]: { ...r, claimed: true } } },
+          toasts: [...s.toasts, { id: genId("tst"), text: `+${r.gold}g, +${r.shards}🔹 за мирового босса!`, tone: "epic" as const }],
+        });
+        return { ok: true };
+      },
+
+      // ============ JOURNAL ============
+      addJournalEntry: (kind, text, meta) => {
+        const s = get();
+        const dc = rolloverDailyIfNeeded(s.dailyCounters);
+        const entry = { id: genId("jl"), at: Date.now(), kind, text, ...(meta ? { meta } : {}) };
+        const next = [entry, ...s.journal].slice(0, 200);
+        set({ journal: next, dailyCounters: { ...dc, journalEntries: dc.journalEntries + 1 } });
+      },
+      clearJournal: () => set({ journal: [] }),
+
+      // ============ LOADOUTS ============
+      saveLoadout: (slot, name) => {
+        const s = get();
+        if (slot < 0 || slot >= 4) return { ok: false, error: "Слот 0-3." };
+        const ld: Loadout = { id: `ld${slot}`, name, equipped: { ...s.equipped } };
+        const newLoadouts = [...s.loadouts];
+        newLoadouts[slot] = ld;
+        set({ loadouts: newLoadouts, toasts: [...s.toasts, { id: genId("tst"), text: `Лоадаут «${name}» сохранён в слот ${slot + 1}.`, tone: "good" as const }] });
+        return { ok: true };
+      },
+      loadLoadout: (slot) => {
+        const s = get();
+        const ld = s.loadouts[slot];
+        if (!ld) return { ok: false, error: "Слот пуст." };
+        // Verify all equipped items still exist
+        const valid = Object.values(ld.equipped).every((u) => !u || s.inventory.find((i) => i.uid === u));
+        if (!valid) return { ok: false, error: "Часть предметов из лоадаута больше не в инвентаре." };
+        set({ equipped: { ...ld.equipped }, toasts: [...s.toasts, { id: genId("tst"), text: `Лоадаут «${ld.name}» применён.`, tone: "good" as const }] });
+        return { ok: true };
+      },
+      deleteLoadout: (slot) => {
+        const s = get();
+        const newLoadouts = s.loadouts.filter((_, i) => i !== slot);
+        set({ loadouts: newLoadouts });
       },
 
       evolvePet: (petUid) => {
@@ -3513,6 +3823,12 @@ export const useGame = create<GameState>()(
         if (!s.character) return { ok: false, error: "Нет персонажа." };
         const owned = s.materials[kind] ?? 0;
         if (owned < qty) return { ok: false, error: `Нет сундуков (нужно ${qty}, есть ${owned}).` };
+        // Plan v9: daily caps
+        const dc = rolloverDailyIfNeeded(s.dailyCounters);
+        const isMythic = kind === "lb_gold" || kind === "lb_abyss";
+        const cap = isMythic ? 1 : 5;
+        const counter = isMythic ? dc.mythicLootboxOpens : dc.lootboxOpens;
+        if (counter + qty > cap) return { ok: false, error: `Дневной лимит ${isMythic ? "мифических" : "обычных"} сундуков (${counter}/${cap}).` };
         let lbState = s.lootbox;
         const rolls: { kind: LootboxKind; rarities: import("@ton-abyss/shared").RarityId[]; pity: boolean }[] = [];
         const newItems: ItemInstance[] = [];
@@ -3534,12 +3850,23 @@ export const useGame = create<GameState>()(
         }
         const newMats = { ...s.materials, [kind]: owned - qty };
         const lastRoll = rolls[rolls.length - 1] ?? null;
+        const newDc = isMythic
+          ? { ...dc, mythicLootboxOpens: dc.mythicLootboxOpens + qty }
+          : { ...dc, lootboxOpens: dc.lootboxOpens + qty };
+        // Journal: log top-rarity items
+        const rarityOrder: Record<string, number> = { common: 0, uncommon: 1, rare: 2, epic: 3, mythic: 4, abyssal: 5 };
+        const best = newItems.reduce<ItemInstance | null>((acc, it) => (!acc || (rarityOrder[it.rarity] ?? 0) > (rarityOrder[acc.rarity] ?? 0) ? it : acc), null);
+        const nextJournal = best && (rarityOrder[best.rarity] ?? 0) >= 3
+          ? [{ id: genId("jl"), at: Date.now(), kind: "loot", text: `Из сундука выпал: ${best.baseId} [${best.rarity}]` }, ...s.journal].slice(0, 200)
+          : s.journal;
         set({
           inventory: [...s.inventory, ...newItems],
           materials: newMats,
           lootbox: lbState,
           lastLootboxRoll: lastRoll,
           lootReveal: newItems,
+          dailyCounters: newDc,
+          journal: nextJournal,
           toasts: [...s.toasts, { id: genId("tst"), text: `Открыто ${qty} сундука. Получено ${newItems.length} предметов.`, tone: "epic" as const }],
         });
         get().progressBpMission("bm_d_lootbox_1", qty);
@@ -3547,7 +3874,11 @@ export const useGame = create<GameState>()(
         return { ok: true, rolls };
       },
 
-      pushToast: (t) => set((s) => ({ toasts: [...s.toasts, { ...t, id: genId("tst") }].slice(-6) })),
+      pushToast: (t) => set((s) => {
+        const last = s.toasts[s.toasts.length - 1];
+        if (last && last.text === t.text && last.tone === t.tone) return {};
+        return { toasts: [...s.toasts, { ...t, id: genId("tst") }].slice(-6) };
+      }),
       dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 
       reset: () =>
@@ -3564,6 +3895,24 @@ export const useGame = create<GameState>()(
           petStates: {},
           activeForgeStation: "neutral",
           unlockedForgeStations: ["neutral"],
+          energy: { current: 120, max: 120, lastRegenAt: Date.now() },
+          dailyCounters: {
+            date: todayKey(),
+            lootboxOpens: 0,
+            mythicLootboxOpens: 0,
+            marketListings: 0,
+            auctionCreates: 0,
+            tradeAccepts: 0,
+            echoRiftAttempts: 0,
+            arenaFights: 0,
+            petTreatsFed: {},
+            staminaSpeedups: 0,
+            fishingCasts: 0,
+            gatheringRuns: 0,
+            journalEntries: 0,
+          },
+          journal: [],
+          worldBoss: null,
           toasts: [],
           lastDungeonLog: [],
           tower: { currentFloor: 0, highestFloor: 0, active: false, currentScore: 0, bestScore: 0, lastEntryAt: 0 },
@@ -3623,7 +3972,7 @@ export const useGame = create<GameState>()(
     }),
     {
       name: "ton-abyss-save",
-      version: 10,
+      version: 11,
       partialize: (s) => ({
         character: s.character,
         inventory: s.inventory,
@@ -3636,6 +3985,10 @@ export const useGame = create<GameState>()(
         petStates: s.petStates,
         activeForgeStation: s.activeForgeStation,
         unlockedForgeStations: s.unlockedForgeStations,
+        energy: s.energy,
+        dailyCounters: s.dailyCounters,
+        journal: s.journal,
+        worldBoss: s.worldBoss,
         skillAllocation: s.skillAllocation,
         skillPoints: s.skillPoints,
         paragon: s.paragon,
@@ -3749,6 +4102,24 @@ export const useGame = create<GameState>()(
           hardcoreStreak: base.hardcoreStreak ?? 0,
           activeForgeStation: base.activeForgeStation ?? "neutral",
           unlockedForgeStations: base.unlockedForgeStations ?? ["neutral"],
+          energy: base.energy ?? { current: 120, max: 120, lastRegenAt: Date.now() },
+          dailyCounters: base.dailyCounters ?? {
+            date: todayKey(),
+            lootboxOpens: 0,
+            mythicLootboxOpens: 0,
+            marketListings: 0,
+            auctionCreates: 0,
+            tradeAccepts: 0,
+            echoRiftAttempts: 0,
+            arenaFights: 0,
+            petTreatsFed: {},
+            staminaSpeedups: 0,
+            fishingCasts: 0,
+            gatheringRuns: 0,
+            journalEntries: 0,
+          },
+          journal: base.journal ?? [],
+          worldBoss: base.worldBoss ?? null,
         };
       },
     },

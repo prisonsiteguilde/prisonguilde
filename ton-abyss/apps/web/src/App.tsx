@@ -46,6 +46,11 @@ const Auction = lazy(() => import("./screens/Auction.js").then((m) => ({ default
 const TradePost = lazy(() => import("./screens/TradePost.js").then((m) => ({ default: m.TradePost })));
 const Blueprints = lazy(() => import("./screens/Blueprints.js").then((m) => ({ default: m.Blueprints })));
 const ForgeStations = lazy(() => import("./screens/ForgeStations.js").then((m) => ({ default: m.ForgeStations })));
+const Fishing = lazy(() => import("./screens/Fishing.js").then((m) => ({ default: m.Fishing })));
+const Gathering = lazy(() => import("./screens/Gathering.js").then((m) => ({ default: m.Gathering })));
+const WorldBoss = lazy(() => import("./screens/WorldBoss.js").then((m) => ({ default: m.WorldBoss })));
+const Journal = lazy(() => import("./screens/Journal.js").then((m) => ({ default: m.Journal })));
+const Loadouts = lazy(() => import("./screens/Loadouts.js").then((m) => ({ default: m.Loadouts })));
 
 export function App() {
   const screen = useGame((s) => s.screen);
@@ -109,6 +114,11 @@ export function App() {
             {screen === "trade_post" && <TradePost />}
             {screen === "blueprints" && <Blueprints />}
             {screen === "forge_stations" && <ForgeStations />}
+            {screen === "fishing" && <Fishing />}
+            {screen === "gathering" && <Gathering />}
+            {screen === "world_boss" && <WorldBoss />}
+            {screen === "journal" && <Journal />}
+            {screen === "loadouts" && <Loadouts />}
             </Suspense>
           </motion.div>
         </AnimatePresence>

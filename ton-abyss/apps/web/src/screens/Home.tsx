@@ -20,6 +20,16 @@ const MENU: MenuGroup[] = [
       { id: "hunts",       label: "Охота",   icon: "hunt",     hint: "Редкие цели",  accent: "#22d3ee" },
       { id: "clan_bosses", label: "Клан-боссы", icon: "skull",  hint: "Рейды клана",  accent: "#fb7185" },
       { id: "echo_rifts",  label: "Эхо-Рифты",  icon: "gem",    hint: "Эндгейм, аффиксы", accent: "#d946ef" },
+      { id: "world_boss",  label: "Мировой босс", icon: "skull", hint: "Групповой рейд 24ч", accent: "#ef4444" },
+    ],
+  },
+  {
+    key: "activities", title: "Досуг", icon: "quest", tint: "#38bdf8",
+    tiles: [
+      { id: "fishing",   label: "Рыбалка",       icon: "quest",       hint: "−2 энергии, лут", accent: "#38bdf8" },
+      { id: "gathering", label: "Собирательство",icon: "quest",       hint: "−4 энергии, 4 биома", accent: "#22c55e" },
+      { id: "journal",   label: "Журнал",        icon: "codex",       hint: "Лента событий",   accent: "#a855f7" },
+      { id: "loadouts",  label: "Комплекты",     icon: "bag",         hint: "4 слота экипа",   accent: "#06b6d4" },
     ],
   },
   {
