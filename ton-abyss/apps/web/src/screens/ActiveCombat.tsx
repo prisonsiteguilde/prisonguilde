@@ -5,6 +5,7 @@ import { ABILITIES, ITEMS } from "@ton-abyss/content";
 import { CLASS_META, WEAPON_KINDS } from "@ton-abyss/shared";
 import { ClassPortrait } from "../components/ClassPortrait.js";
 import { ICONS } from "../components/Icon.js";
+import { CreatureSprite } from "../components/CreatureSprite.js";
 
 const CLASS_FALLBACK_ABILITIES: Record<string, string[]> = {
   warden: ["basic_strike", "power_strike", "shield_wall"],
@@ -27,6 +28,7 @@ export function ActiveCombat() {
   const prevPlayerHp = useRef<number | null>(null);
   const [dmgPops, setDmgPops] = useState<DmgPop[]>([]);
   const [shake, setShake] = useState<null | "player" | "enemy">(null);
+  const [enemyAnim, setEnemyAnim] = useState<"idle" | "hit" | "attack" | "telegraph" | "death">("idle");
   const popIdRef = useRef(0);
 
   const meta = character ? CLASS_META[character.classId] : null;
@@ -43,7 +45,11 @@ export function ActiveCombat() {
       const isCrit = lastLog?.text?.toLowerCase().includes("крит");
       pushPop(`-${dmg}`, isCrit ? "crit" : "enemy");
       setShake("enemy");
-      setTimeout(() => setShake(null), 250);
+      setEnemyAnim(combat.enemy.hp <= 0 ? "death" : "hit");
+      setTimeout(() => {
+        setShake(null);
+        setEnemyAnim((a) => (a === "death" ? "death" : "idle"));
+      }, 350);
     }
     prevEnemyHp.current = combat.enemy.hp;
 
@@ -51,7 +57,12 @@ export function ActiveCombat() {
       const dmg = Math.round(prevPlayerHp.current - combat.player.hp);
       pushPop(`-${dmg}`, "player");
       setShake("player");
-      setTimeout(() => setShake(null), 250);
+      // enemy just attacked us — run attack animation briefly
+      setEnemyAnim((a) => (a === "death" ? a : "attack"));
+      setTimeout(() => {
+        setShake(null);
+        setEnemyAnim((a) => (a === "death" ? a : "idle"));
+      }, 550);
     } else if (prevPlayerHp.current !== null && combat.player.hp > prevPlayerHp.current) {
       const heal = Math.round(combat.player.hp - prevPlayerHp.current);
       pushPop(`+${heal}`, "heal");
@@ -98,38 +109,105 @@ export function ActiveCombat() {
         </div>
       </div>
 
-      {/* Enemy card with shake */}
+      {/* Enemy cinematic stage */}
       <motion.div
         layout
         animate={shake === "enemy" ? { x: [0, -6, 6, -4, 4, 0] } : undefined}
         transition={{ duration: 0.25 }}
-        className={`relative overflow-hidden rounded-2xl p-4 border ${
+        className={`relative overflow-hidden rounded-2xl border ${
           combat.isBossRoom
-            ? "border-red-500/50 bg-gradient-to-b from-red-950/60 to-red-950/10 shadow-[0_0_40px_-10px_rgba(239,68,68,0.6)]"
-            : "border-red-500/20 bg-gradient-to-b from-red-950/30 to-transparent"
+            ? "border-red-500/50 bg-gradient-to-b from-red-950/80 via-red-950/30 to-red-950/10 shadow-[0_0_40px_-10px_rgba(239,68,68,0.6)]"
+            : "border-red-500/20 bg-gradient-to-b from-red-950/45 via-red-950/15 to-transparent"
         }`}
       >
-        {/* background haze */}
-        <div
-          className="absolute -top-10 -right-10 w-44 h-44 rounded-full blur-3xl pointer-events-none"
+        {/* animated background haze */}
+        <motion.div
+          className="absolute -top-16 -right-16 w-64 h-64 rounded-full blur-3xl pointer-events-none"
           style={{ background: combat.isBossRoom ? "rgba(239,68,68,0.3)" : "rgba(239,68,68,0.15)" }}
+          animate={{ scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute -bottom-20 -left-10 w-56 h-56 rounded-full blur-3xl pointer-events-none"
+          style={{ background: combat.isBossRoom ? "rgba(217,70,239,0.22)" : "rgba(217,70,239,0.12)" }}
+          animate={{ scale: [1.1, 1, 1.1], opacity: [0.5, 0.9, 0.5] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        <div className="flex items-center gap-3 relative">
-          <EnemyPortrait isBoss={!!combat.isBossRoom} />
-          <div className="flex-1 min-w-0">
-            <div className="font-display text-xl tracking-wider text-red-200 truncate">{combat.enemy.name}</div>
-            <div className="text-[11px] text-white/60 capitalize">
-              {combat.enemyDef.archetype ?? "враг"} · ур. {combat.enemyDef.level}
+        {/* floor line */}
+        <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+
+        {/* arena name strip */}
+        <div className="relative flex items-center justify-between gap-2 px-4 pt-3">
+          <div className="min-w-0">
+            <div className="font-display text-lg sm:text-xl tracking-wider text-red-200 truncate drop-shadow-[0_2px_6px_rgba(239,68,68,0.6)]">
+              {combat.enemy.name}
+            </div>
+            <div className="text-[10px] text-white/60 capitalize tracking-widest">
+              {combat.enemyDef.archetype ?? "враг"} · ур. {combat.enemyDef.level} · {combat.enemyDef.element}
             </div>
           </div>
-          <div className="text-right text-[11px]">
-            <div className="text-white/50">ЗДОРОВЬЕ</div>
-            <div className="font-mono font-bold tabular-nums">
+          <div className="text-right text-[11px] shrink-0">
+            <div className="text-white/40 text-[9px] tracking-widest">ЗДОРОВЬЕ</div>
+            <div className="font-mono font-bold tabular-nums text-red-200">
               {Math.max(0, Math.floor(combat.enemy.hp))} / {combat.enemy.maxHp}
             </div>
           </div>
         </div>
+
+        {/* big animated creature */}
+        <div className="relative flex items-end justify-center pt-2 pb-4 min-h-[200px] overflow-hidden">
+          <CreatureSprite
+            archetype={combat.enemyDef.archetype}
+            element={combat.enemyDef.element}
+            size="lg"
+            state={enemyAnim}
+            isBoss={!!combat.isBossRoom}
+          />
+          {/* telegraph flash overlay when enemy attacks */}
+          <AnimatePresence>
+            {enemyAnim === "attack" && (
+              <motion.div
+                key="atk-flash"
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: [0, 0.7, 0], scale: [0.6, 1.6, 2] }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.55 }}
+                className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-40 pointer-events-none"
+                style={{
+                  background: "radial-gradient(ellipse at center, rgba(239,68,68,0.5) 0%, transparent 65%)",
+                }}
+              />
+            )}
+          </AnimatePresence>
+          {/* damage pops over creature */}
+          <AnimatePresence>
+            {dmgPops
+              .filter((p) => p.tone === "enemy" || p.tone === "crit")
+              .map((p) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, y: 0, scale: 0.7 }}
+                  animate={{
+                    opacity: [0, 1, 1, 0],
+                    y: [-10, -40, -70, -100],
+                    scale: p.tone === "crit" ? [0.7, 1.8, 1.3, 1] : [0.7, 1.3, 1.1, 0.9],
+                  }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.1 }}
+                  className={`absolute pointer-events-none font-display font-bold tabular-nums ${
+                    p.tone === "crit" ? "text-4xl text-amber-300 drop-shadow-[0_0_12px_rgba(251,191,36,0.9)]" : "text-2xl text-red-300 drop-shadow-[0_0_6px_rgba(239,68,68,0.7)]"
+                  }`}
+                  style={{ left: `${p.x}%`, top: "50%" }}
+                >
+                  {p.text}
+                  {p.tone === "crit" && "!"}
+                </motion.div>
+              ))}
+          </AnimatePresence>
+        </div>
+
+        <div className="relative px-4 pb-4">
 
         <div className="h-3 bg-black/60 rounded-full overflow-hidden mt-3 border border-red-500/30 relative">
           <motion.div
@@ -157,32 +235,7 @@ export function ActiveCombat() {
             ))}
           </div>
         )}
-
-        {/* damage pops floating */}
-        <AnimatePresence>
-          {dmgPops
-            .filter((p) => p.tone === "enemy" || p.tone === "crit")
-            .map((p) => (
-              <motion.div
-                key={p.id}
-                initial={{ opacity: 0, y: 0, scale: 0.7 }}
-                animate={{
-                  opacity: [0, 1, 1, 0],
-                  y: [-5, -30, -50, -70],
-                  scale: p.tone === "crit" ? [0.7, 1.6, 1.2, 1] : [0.7, 1.2, 1, 0.9],
-                }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 1.1 }}
-                className={`absolute pointer-events-none font-display font-bold tabular-nums ${
-                  p.tone === "crit" ? "text-3xl text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" : "text-xl text-red-300"
-                }`}
-                style={{ left: `${p.x}%`, top: "50%" }}
-              >
-                {p.text}
-                {p.tone === "crit" && "!"}
-              </motion.div>
-            ))}
-        </AnimatePresence>
+        </div>
       </motion.div>
 
       {/* Player card with shake */}
