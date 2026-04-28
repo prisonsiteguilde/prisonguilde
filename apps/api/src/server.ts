@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import websocket from "@fastify/websocket";
@@ -103,7 +103,11 @@ async function requirePlayerId(header: string | undefined): Promise<string> {
   const [payload, sig] = token.split(".");
   if (!payload || !sig) throw unauthorized("Bad session");
   const expected = createHmac("sha256", hmacSecret).update(payload).digest("base64url");
-  if (sig !== expected) throw unauthorized("Bad session signature");
+  const sigBuf = Buffer.from(sig);
+  const expectedBuf = Buffer.from(expected);
+  if (sigBuf.length !== expectedBuf.length || !timingSafeEqual(sigBuf, expectedBuf)) {
+    throw unauthorized("Bad session signature");
+  }
   const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { playerId: string; expiresAt: string };
   if (Date.now() > new Date(parsed.expiresAt).getTime()) throw unauthorized("Session expired");
   return parsed.playerId;

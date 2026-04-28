@@ -209,7 +209,7 @@ function LootView({ chests: catalogChests }: { chests: ChestDefinition[] }) {
     <section className="grid two">
       {catalogChests.map((chest) => (
         <Card key={chest.id} title={chest.name}>
-          <p>Цена: {chest.price.piastres ? `${chest.price.piastres} пиастров` : ""} {chest.price.doubloons ? `${chest.price.doubloons} дублонов` : "бесплатно"}</p>
+          <p>Цена: {chest.price.piastres ? `${chest.price.piastres} пиастров` : ""} {chest.price.doubloons ? `${chest.price.doubloons} дублонов` : ""}{!chest.price.piastres && !chest.price.doubloons ? "бесплатно" : ""}</p>
           <p>Pity: Epic {chest.pity.epic ?? "—"} · Legendary {chest.pity.legendary ?? "—"} · Mythic {chest.pity.mythic ?? "—"}</p>
           <p>Текущий pity: {state?.player.pity[chest.id] ?? 0}</p>
           <button onClick={() => void openChest(chest.id)}>Открыть честно</button>

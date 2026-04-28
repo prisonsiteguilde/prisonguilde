@@ -348,7 +348,7 @@ export const battleActionSchema = z.object({
   battleId: z.string().min(1),
   moveId: z.string().min(1),
   nonce: z.number().int().nonnegative(),
-  clientTick: z.number().int().nonnegative()
+  clientTick: z.number().nonnegative()
 });
 
 export const craftStartSchema = z.object({

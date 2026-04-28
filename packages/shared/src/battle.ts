@@ -14,7 +14,7 @@ export function createBattle(player: Player, enemyId: string, seed: string): Bat
   const now = new Date().toISOString();
 
   return {
-    id: `battle_${seed.slice(0, 12)}`,
+    id: `battle_${seed.replace(/[^a-zA-Z0-9]/g, "_").slice(0, 48)}`,
     playerId: player.id,
     enemyId,
     seed,
