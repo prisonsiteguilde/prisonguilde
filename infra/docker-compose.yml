@@ -1,0 +1,29 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: infra/node.Dockerfile
+    command: npm run dev:api
+    ports:
+      - "8787:8787"
+    environment:
+      PORT: 8787
+      WEB_ORIGIN: http://localhost:5173
+      TELEGRAM_BOT_TOKEN: replace-with-production-token
+      SESSION_HMAC_SECRET: local-dev-secret-change-me
+      TON_COLLECTION_ADDRESS: ton://collection/corsairs-dev
+    volumes:
+      - ..:/app
+      - /app/node_modules
+  web:
+    build:
+      context: ..
+      dockerfile: infra/node.Dockerfile
+    command: npm run dev:web
+    ports:
+      - "5173:5173"
+    volumes:
+      - ..:/app
+      - /app/node_modules
+    depends_on:
+      - api
