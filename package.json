@@ -1,0 +1,23 @@
+{
+  "name": "corsairs-return-of-the-legend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Server-authoritative Telegram Mini App RPG on TON.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @corsairs/api",
+    "dev:api": "npm run dev --workspace @corsairs/api",
+    "dev:web": "npm run dev --workspace @corsairs/web",
+    "build": "npm run build --workspace @corsairs/shared && npm run build --workspace @corsairs/api && npm run build --workspace @corsairs/web",
+    "typecheck": "npm run build --workspace @corsairs/shared && npm run typecheck --workspace @corsairs/api && npm run typecheck --workspace @corsairs/web",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
