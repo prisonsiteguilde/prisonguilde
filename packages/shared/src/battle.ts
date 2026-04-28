@@ -40,13 +40,13 @@ export function resolvePlayerMove(state: BattleState, moveId: string): BattleSta
   if (state.phase !== "player") {
     throw new Error("Сейчас не ход игрока");
   }
-  const move = availablePlayerMoves(state.player).find((entry) => entry.id === moveId);
+  const move = availablePlayerMoves(state.player, state.enemy).find((entry) => entry.id === moveId);
   if (!move) {
     throw new Error("Приём недоступен");
   }
 
   const next = applyMove(state, state.player, state.enemy, move, "player");
-  if (next.phase === "finished") return next;
+  if (next.phase === "finished" || next.phase === "player") return next;
   return runEnemyTurn(next);
 }
 
@@ -68,11 +68,11 @@ export function runEnemyTurn(state: BattleState): BattleState {
   };
 }
 
-export function availablePlayerMoves(actor: BattleActor): MoveDefinition[] {
+export function availablePlayerMoves(actor: BattleActor, target?: BattleActor): MoveDefinition[] {
   const loadoutMoves = actor.id === "player"
     ? ["thrust", "slash", "riposte", "pistol", "bomb", "skullbreaker", "harvest"].map(requireMove)
     : Object.values(moves);
-  return loadoutMoves.filter((move) => canUseMove(actor, undefined, move));
+  return loadoutMoves.filter((move) => canUseMove(actor, target, move));
 }
 
 export function rewardInventory(reward: RewardTable, seed: string): { xp: number; piastres: number; doubloons: number; items: InventoryItem[] } {

@@ -11,6 +11,7 @@ import {
   enemies,
   items,
   marketListSchema,
+  mergeInventory,
   openChest,
   recipes,
   resolvePlayerMove,
@@ -89,7 +90,7 @@ export class GameService {
         piastres: player.currencies.piastres + rewards.piastres,
         doubloons: player.currencies.doubloons + rewards.doubloons
       },
-      inventory: [...player.inventory, ...rewards.items],
+      inventory: mergeInventory([...player.inventory, ...rewards.items]),
       quests,
       updatedAt: new Date().toISOString()
     };
